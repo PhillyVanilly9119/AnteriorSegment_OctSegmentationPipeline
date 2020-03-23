@@ -16,7 +16,7 @@ imagesc(image);
 colormap gray;
 hold on, plot(seg)
 
-%%
+%% Main processing functions
 
 function minImg = createMinImg(input)
     minImg = single(input);
