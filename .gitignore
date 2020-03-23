@@ -1,0 +1,9 @@
+# File types for plotting and storing images
+*.fig
+*.mat
+*.bmp
+*.png
+*.jpg
+
+# Executables
+*.exe
