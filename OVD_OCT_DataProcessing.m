@@ -8,6 +8,7 @@ file = 'octDataCube.bin';
 a = 1024;
 b = 512;
 c = 128;
+d = 3;
 
 %% Data pre-processing
 % Check if a data stack is already in the workspace
