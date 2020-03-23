@@ -5,7 +5,7 @@
 % c@ melanie.wuest@zeiss.com & philipp.matten@meduniwien.ac.at
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Forward decs and globals
+%% Forward declarations and globals
 % Add main path of repository of search path
 addpath('C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline\Code')
 file = 'octDataCube.bin';
@@ -13,8 +13,7 @@ a = 1024;
 b = 512;
 c = 128;
 
-%% Preprocess
-% call this return
+%% Preprocessing 
 % Check if a data stack is already in the workspace
 if exist('octData', 'var')
     answer = questdlg('There is already a data set in the workspace. Would you like to load a new set?', ...
@@ -49,10 +48,11 @@ else
     
 end
 
+%% Show data
 bScan = octData(:,:,60);
 figure; imshow(bScan);
 
-%% Apply image filter
+%% Apply image filter (playing around)
 % noise = mean2(bScan(512-100:512+100,256-25:256+25));
 % noise = mean2(bScan(end-25:end,:));
 % rescaled = denoiseBScan(bScan, 50);
