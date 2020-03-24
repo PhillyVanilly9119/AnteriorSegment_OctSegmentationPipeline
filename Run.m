@@ -54,11 +54,11 @@ else
 end
 
 %% Display b-Scan
-bScan = octData(:,:,60);
-figure; imshow(bScan);
+% bScan = octData(:,:,60);
+% figure; imshow(bScan);
 
 %% Pre-segementation image filter
-filteredOctCube = zeros(octData);
+%filteredOctCube = [];
 answer = questdlg('Would you like to apply an image filter to enhance contrast of edges?', ...
     'Apply pre-layer-segementation image filter volume', 'Yes, weighted edge', 'Yes, noise reduction', 'No', 'No');
 switch answer
@@ -80,24 +80,16 @@ end
 
 %% Begin segmenatation
 
+%explMask = automaicallySegementedBinBoundry(uint16(f_img), cubeSz(2), round(cubeSz(1)/2)-1);
+
+% TODO:
+% 
+% explMask = manuallySegementedLayer(fltBScan, 230, 200);
+% imshow(fltBScan);
+% hold on;
+% plot(explMask(:,2),explMask(:,1),'g','LineWidth',3);
+
 
 %% Display filtered b-Scan
-filteredBScan = filteredOctCube(:,:,60);
-figure; imshow(filteredBScan);
-
-%% Apply image filter (playing around)
-% noise = mean2(bScan(512-100:512+100,256-25:256+25));
-% noise = mean2(bScan(end-25:end,:));
-% rescaled = denoiseBScan(bScan, 50);
-% meded = filterImageNoise(rescaled, 'median', 1);
-% filtered = filterImageNoise(meded, 'openAndClose', 2);
-% figure; imshow(rescaled);
-% weighted = (((1/max(max(double(bScan)))) * double(bScan))) + ((1/max(max(double(rescaled)))) * double(rescaled));
-% figure; imshow(weighted);
-% figure; imshow(filterImageNoise(weighted, 'openAndClose', 2));
-
-% figure; imshow(filterImageNoise(bScan, 'closeAndOpen', 2));
-% figure; imshow(detectEdges(bScan, .005, 'log'))
-% smoothAScans = smoothenAScans(bScan, 3, 25); % Params: image, Order, Length
-% figure; plot(bScan(:,512)); hold on; plot(smoothAScans(:,512));
-% figure; imshow(smoothAScans)
+% filteredBScan = filteredOctCube(:,:,60);
+% figure; imshow(filteredBScan);
