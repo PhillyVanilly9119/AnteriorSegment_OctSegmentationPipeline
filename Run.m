@@ -88,6 +88,18 @@ cubeSz = size(filteredOctCube);
 fltBScan = filteredOctCube(:,:,64);
 pts = selectNPointsManually(fltBScan, round(cubeSz(2)/20)); %returns "point-string" of 1st interface in bScan
 
+gradImg = findVerticalImageGradient(fltBScan);
+figure; imshow(gradImg);
+
+%% Michis segmentation logic
+% sz = size(image);
+% mask = zeros(sz(1), sz(2));
+% 
+% im = createGradImg(single(image));
+% [seg, mns] = segment(im, mask, 1e-7);
+
+%TODO: implement function that finds boarder on basis of gradient
+
 %% TODO: FROM Here on
 intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
 mask(:,:,1) = zeros(cubeSz(1), cubeSz(2)); %declare mask of first layer
