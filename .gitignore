@@ -7,3 +7,6 @@
 
 # Executables
 *.exe
+
+# Matlab images
+*.asv
