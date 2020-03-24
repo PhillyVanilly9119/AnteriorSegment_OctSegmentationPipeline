@@ -84,34 +84,47 @@ end
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
 % TODO: call from loop, to go through whole volume
-cubeSz = size(filteredOctCube);
-fltBScan = filteredOctCube(:,:,64);
-pts = selectNPointsManually(fltBScan, round(cubeSz(2)/20)); %returns "point-string" of 1st interface in bScan
 
-gradImg = findVerticalImageGradient(fltBScan);
-figure; imshow(gradImg);
 
 %% Michis segmentation logic
-% sz = size(image);
-% mask = zeros(sz(1), sz(2));
+fltBScan = filteredOctCube(:,:,64);
+% fltBScan = filterImageNoise(fltBScan(5:end,:), 'openAndClose', 3);
+% fltBScan = filterImageNoise(fltBScan, 'open', 7);
+% fltBScan = denoiseAndRescaleBScan(fltBScan, 25);
+% figure; imshow(fltBScan)
+sz = size(fltBScan);
+mask = zeros(sz(1), sz(2));
+
+im = createGradImg(single(fltBScan)); %if no image-processing toolbox available
+figure; imshow(im);
+[seg, mns] = segmentImage(im, mask, 1e-4);
+
+figure
+imagesc(fltBScan);
+colormap gray;
+hold on, plot(seg)
+%??? TODO: implement function that finds boarder on basis of gradient
+
+%% Maunal segmentation
+% cubeSz = size(filteredOctCube);
+% fltBScan = filteredOctCube(:,:,64);
+% pts = selectNPointsManually(fltBScan, round(cubeSz(2)/20)); %returns "point-string" of 1st interface in bScan
+% gradImg = findVerticalImageGradient(fltBScan);
+% figure; imshow(gradImg);
 % 
-% im = createGradImg(single(image));
-% [seg, mns] = segment(im, mask, 1e-7);
-
-%TODO: implement function that finds boarder on basis of gradient
-
-%% TODO: FROM Here on
-intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
-mask(:,:,1) = zeros(cubeSz(1), cubeSz(2)); %declare mask of first layer
-%loop to replace all boarder pixels with ones
-for i = 1:length(intPts)
-    if (intPts(1,i) <= cubeSz(2)) && (intPts(2,i) <= cubeSz(1))
-        mask(intPts(2,i),intPts(1,i),1) = 1;
-    end
-end
-
-figure; imshow(fltBScan);
-figure; imshow(mask);
+% 
+% %% TODO: FROM Here on
+% intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
+% mask(:,:,1) = zeros(cubeSz(1), cubeSz(2)); %declare mask of first layer
+% %loop to replace all boarder pixels with ones
+% for i = 1:length(intPts)
+%     if (mask(1,:,1) <= cubeSz(2)) && (mask(:,1,1) <= cubeSz(1))
+%         mask(intPts(2,i),intPts(1,i),1) = 1;
+%     end
+% end
+% 
+% figure; imshow(fltBScan);
+% figure; imshow(mask);
 
 %TODO: Add saving logic for segmented masks in a sub-folder
 %TODO: add pre-check if masks already exist
