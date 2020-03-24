@@ -1,10 +1,9 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% MAIN FILE for data processing pipeline of Ant. Eye Segmentation-Pipeline
-%                               copyright: 
-%       @melanie.wuest@zeiss.com & @philipp.matten@meduniwien.ac.at
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% MAIN FILE for data processing pipeline of Anterior Eye Seg-
+%                   mentation-Pipeline
 %
-%   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% c@ melanie.wuest@zeiss.com & philipp.matten@meduniwien.ac.at
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Forward declarations and globals
 % Add main path of repository of search path
@@ -53,7 +52,7 @@ else
     
 end
 
-%% Display b-Scan
+%% Show data
 bScan = octData(:,:,60);
 figure; imshow(bScan);
 
@@ -79,10 +78,9 @@ switch answer
 end
 
 
-%% Display filtered b-Scan
-filteredBScan = filteredOctCube(:,:,60);
-figure; imshow(filteredBScan);
-
+%% Show data
+bScan = octData(:,:,60);
+figure; imshow(bScan);
 %% Apply image filter (playing around)
 % noise = mean2(bScan(512-100:512+100,256-25:256+25));
 % noise = mean2(bScan(end-25:end,:));
