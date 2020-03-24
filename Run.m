@@ -78,6 +78,8 @@ switch answer
         
 end
 
+%% Begin segmenatation
+
 
 %% Display filtered b-Scan
 filteredBScan = filteredOctCube(:,:,60);
