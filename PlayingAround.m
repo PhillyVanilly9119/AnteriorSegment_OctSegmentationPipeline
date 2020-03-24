@@ -1,3 +1,11 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                           Auxiliary function
+%                               copyright: 
+%       @melanie.wuest@zeiss.com & @philipp.matten@meduniwien.ac.at
+%
+%   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% playing aroung
 
 fltBScan = filteredOctCube(:,:,64);
@@ -11,6 +19,8 @@ f_img = imbinarize(f_img);
 f_img = filterImageNoise(f_img, 'open', 3);
 f_img = detectEdges(f_img, 0.001);
 imshow(f_img);
+
+
 
 %% Apply image filter (playing around)
 % noise = mean2(bScan(512-100:512+100,256-25:256+25));
