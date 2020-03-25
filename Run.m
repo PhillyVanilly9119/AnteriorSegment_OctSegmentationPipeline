@@ -81,6 +81,9 @@ switch answer
         
 end
 
+% Calculate the volumes SNR
+[octSNR, ~] = calculateAvgSNR(filteredOctCube);
+
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
 % TODO: call from loop, to go through whole volume
