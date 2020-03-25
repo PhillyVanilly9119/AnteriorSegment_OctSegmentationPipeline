@@ -8,6 +8,9 @@
 
 %% playing aroung
 
+% Calculate the volumes SNR
+%[octSNR, ~] = calculateAvgSNR(filteredOctCube);
+
 fltBScan = filteredOctCube(:,:,64);
 cubeSz = size(fltBScan);
 fltBScan = filteredOctCube(:,:,64);
