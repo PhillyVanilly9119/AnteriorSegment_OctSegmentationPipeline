@@ -1,4 +1,4 @@
-function [pts] = selectNPointsManually(image, n)
+function [pts] = selectNPointsManually(image, n, layer)
 %readPoints   Read manually-defined points from image
 %   POINTS = READPOINTS(IMAGE) displays the image in the current figure,
 %   then records the position of each click of button 1 of the mouse in the
@@ -13,14 +13,13 @@ if nargin < 2
 else
     pts = zeros(2, n);
 end
-h = imshow(image);% display image
-% h_fig = figure;
-% set(h_fig,'KeyPressFcn',@selectNPointsManually);
+imshow(image);% display image of which the layers should be segmented
 
 xold = 0;
 yold = 0;
 k = 0;
 hold on;           % and keep it there while we plot
+
 while 1
     [xi, yi, but] = ginput(1);      % get a point
     if ~isequal(but, 1)             % stop if not button 1
@@ -31,23 +30,30 @@ while 1
     pts(2,k) = yi;
     if xold
         plot([xold xi], [yold yi], 'go-');  % draw as we go
-        text = sprintf("%0.0f Points remaining for segmenting", n-k);
-        title(text)
-%         title("Press 9 to leave mask if it doesnt automatically close, once you're done");
-    else
-        plot(xi, yi, 'go');         % first point on its own
+        if layer == 1
+            layerID = "Cornea (Epithelium)";
+        elseif layer == 2
+            layerID = "OVD-margin";
+        else
+            layerID = "Not sure what you should segment...";
+        end 
+           text = sprintf("%0.0f Point(s) remaining for segmentation of layer: %s", n-k, layerID);
+            title(text)
+            %         title("Press 9 to leave mask if it doesnt automatically close, once you're done");
+        else
+            plot(xi, yi, 'go');         % first point on its own
+        end
+        if isequal(k, n)
+            break
+        end
+        xold = xi;
+        yold = yi;
     end
-    if isequal(k, n)
-        break
+    hold off;
+    if k < size(pts,2)
+        pts = pts(:, 1:k);
     end
-    xold = xi;
-    yold = yi;
-end
-hold off;
-if k < size(pts,2)
-    pts = pts(:, 1:k);
-end
-
-close(gcf)
-
+    
+    close(gcf)
+    
 end
