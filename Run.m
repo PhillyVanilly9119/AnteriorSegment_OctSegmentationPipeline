@@ -10,11 +10,11 @@
 
 % Add main path of repository of search path
 warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
-localGlobPath = 'C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline\Code';
-addpath(localGlobPath);
+localGlobPath = 'C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline';
+addpath(fullfile(localGlobPath, 'Code'));
 
 binFileOct = 'octDataCube.bin';
-maskFolder = fullfile(localGlobPath, 'SegmentedMasks');
+maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
 a = 1024; %static for standard
 b = 512;
 c = 128;
@@ -57,6 +57,8 @@ else
     
 end
 
+temp = split(path, '\');
+maskSubFolder = temp{end};
 
 %% Display b-Scan
 % bScan = octData(:,:,60);
@@ -94,33 +96,46 @@ end
 imshow(filteredOctCube(:,:,64))
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
-% TODO: call from loop, to go through whole volume
 
 %Check if folder for masks exists &/ create it
+%TODO: add volume ID
+maskFolder = fullfile(maskFolder, maskSubFolder);
 if ~exist(maskFolder, 'dir')
     mkdir(maskFolder)
 end
 
 %%Maunal segmentation
-%%CONTINUE HERE
+%TODO: add pre-check if masks already exist
 cubeSz = size(filteredOctCube);
 segPts = round(cubeSz(2)/20);
 for i = 1:cubeSz(3)
-
-    pts = selectNPointsManually(fltBScan, segPts); %segment points along boarder
+    
+    mask = zeros(cubeSz(1), cubeSz(2), 2);
+    
+    pts = selectNPointsManually(filteredOctCube(:,:,i), segPts, 1); %segment points along boarder
     intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
-
-end
-
-mask(:,:,1) = zeros(cubeSz(1), cubeSz(2)); %declare mask of first layer
-%loop to replace all boarder pixels with ones
-for i = 1:length(intPts)
-    if (mask(1,:,1) <= cubeSz(2)) && (mask(:,1,1) <= cubeSz(1))
-        mask(intPts(2,i),intPts(1,i),1) = 1;
+    % mask 1
+    for ii = 1:length(intPts) % 1:512
+        mask(intPts(2,ii),intPts(1,ii),1) = 1; %replace 0s with 1s at boarder
     end
+    
+    pts = selectNPointsManually(filteredOctCube(:,:,i), segPts, 2); %segment points along boarder
+    intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
+    % mask 2
+    for ii = 1:length(intPts) % 1:512
+        mask(intPts(2,ii),intPts(1,ii),2) = 1; %replace 0s with 1s at boarder
+    end
+    
+    %Save masks to bin file and as images
+    saveCalculatedMask(mask, maskFolder, i);
+    
 end
+
+%%CONTINUE HERE
 
 %% Michis segmentation logic
+% TODO: place before manual segmentation (once it works)
+
 % fltBScan = filteredOctCube(:,:,64);
 % % fltBScan = filterImageNoise(fltBScan(5:end,:), 'openAndClose', 3);
 % % fltBScan = filterImageNoise(fltBScan, 'open', 7);
@@ -143,5 +158,3 @@ end
 % gradImg = findVerticalImageGradient(fltBScan);
 % figure; imshow(gradImg);
 
-%TODO: Add saving logic for segmented masks in a sub-folder
-%TODO: add pre-check if masks already exist
