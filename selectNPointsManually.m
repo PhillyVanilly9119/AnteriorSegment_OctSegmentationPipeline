@@ -31,29 +31,29 @@ while 1
     if xold
         plot([xold xi], [yold yi], 'go-');  % draw as we go
         if layer == 1
-            layerID = "Cornea (Epithelium)";
+            layerID = "Endothelium";
         elseif layer == 2
             layerID = "OVD-margin";
         else
             layerID = "Not sure what you should segment...";
-        end 
-           text = sprintf("%0.0f Point(s) remaining for segmentation of layer: %s", n-k, layerID);
-            title(text)
-            %         title("Press 9 to leave mask if it doesnt automatically close, once you're done");
-        else
-            plot(xi, yi, 'go');         % first point on its own
         end
-        if isequal(k, n)
-            break
-        end
-        xold = xi;
-        yold = yi;
+        text = sprintf("%0.0f Point(s) remaining for segmentation of layer: %s", n-k, layerID);
+        title(text)
+    else
+        plot(xi, yi, 'go');         % first point on its own
     end
-    hold off;
-    if k < size(pts,2)
-        pts = pts(:, 1:k);
+    if isequal(k, n)
+        break
     end
-    
-    close(gcf)
-    
+    xold = xi;
+    yold = yi;
+end
+hold off;
+if k < size(pts,2)
+    pts = pts(:, 1:k);
+end
+
+pts = round(pts);
+close(gcf)
+
 end

@@ -24,6 +24,7 @@ c = 128;
 if exist('octData', 'var')
     answer = questdlg('There is already a data set in the workspace. Would you like to load a new set?', ...
         'Load OCT data from image files', 'Yes', 'No', 'No');
+    flag_ImageQualiyIsGood = 1;
     switch answer
         case 'Yes'
             disp('Loading new data set...')
@@ -35,6 +36,7 @@ if exist('octData', 'var')
     end
     
 else
+    flag_ImageQualiyIsGood = 0;
     path = uigetdir();
     octData = loadOctImages(path, a, b, 'bmp');
     % Check if octDataCube.bin-file exists
@@ -57,6 +59,7 @@ else
     
 end
 
+sz = size(octData);
 temp = split(path, '\');
 maskSubFolder = temp{end};
 
@@ -66,12 +69,15 @@ maskSubFolder = temp{end};
 
 %% 2) Pre-segementation image-filter-options
 
-sz = size(octData);
-imshow(octData(:,:,round(sz(3)/2)));
-title("B-Scan at the middle of the loaded volume")
-pause(2);
+if exist('flag_ImageQualiyIsGood', 'var') && ~flag_ImageQualiyIsGood
+    imshow(octData(:,:,round(sz(3)/2)));
+    title("B-Scan at the middle of the loaded volume")
+    pause(2);
+    [flag_ImageQualiyIsGood, filteredOctCube] = filterVolume(octData);
+else
+    filteredOctCube = octData;
+end
 
-[flag_ImageQualiyIsGood, filteredOctCube] = filterVolume(octData);
 while ~flag_ImageQualiyIsGood
     close all
     
@@ -86,14 +92,13 @@ while ~flag_ImageQualiyIsGood
             [flag_ImageQualiyIsGood, filteredOctCube] = filterVolume(filteredOctCube);
         case 'No'
             flag_ImageQualiyIsGood = 1;
-            
     end
     
     close all
     
 end
 
-imshow(filteredOctCube(:,:,64))
+imshow(filteredOctCube(:,:,sz(3)))
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
 
@@ -105,28 +110,47 @@ if ~exist(maskFolder, 'dir')
 end
 
 %%Maunal segmentation
-%TODO: add pre-check if masks already exist
-cubeSz = size(filteredOctCube);
-segPts = round(cubeSz(2)/20);
-for i = 1:cubeSz(3)
+%TODO: REF - think about putting the segmentation into class
+for i = 1:sz(3)
     
-    mask = zeros(cubeSz(1), cubeSz(2), 2);
+    segPts = round(sz(2)/20);
+    bScan = filteredOctCube(:,:,i);
+    mask = zeros(sz(1), sz(2), 2);
+    [isEndo, isOVD] = segmentationDecision(bScan);
     
-    pts = selectNPointsManually(filteredOctCube(:,:,i), segPts, 1); %segment points along boarder
-    intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
-    % mask 1
-    for ii = 1:length(intPts) % 1:512
-        mask(intPts(2,ii),intPts(1,ii),1) = 1; %replace 0s with 1s at boarder
+    if isEndo
+        pts = selectNPointsManually(bScan, segPts, 1);
+        while length(pts(1,:)) ~= length(unique(pts(1,:)))
+            f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
+            pause(1)
+            pts = selectNPointsManually(bScan, segPts, 1);    
+        end
+        intPts = interpolateSegmentedPoints(pts, sz(2), sz(1));
+        % write values in mask 1
+        for ii = 1:length(intPts)
+            mask(intPts(2,ii),intPts(1,ii),1) = 1;
+        end
+    else
+        mask(:,:,1) = mask(:,:,1);
     end
     
-    pts = selectNPointsManually(filteredOctCube(:,:,i), segPts, 2); %segment points along boarder
-    intPts = interpolateSegmentedPoints(pts, cubeSz(2), cubeSz(1)); %returns "point-string" of 1st interface in bScan
-    % mask 2
-    for ii = 1:length(intPts) % 1:512
-        mask(intPts(2,ii),intPts(1,ii),2) = 1; %replace 0s with 1s at boarder
+    if isOVD
+        pts = selectNPointsManually(bScan, segPts, 2);
+        while length(pts(1,:)) ~= length(unique(pts(1,:)))
+            f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
+            pause(1)
+            pts = selectNPointsManually(bScan, segPts, 2);    
+        end
+        intPts = interpolateSegmentedPoints(pts, sz(2), sz(1));
+        % write values in mask 2
+        for ii = 1:length(intPts) 
+            mask(intPts(2,ii),intPts(1,ii),2) = 1; 
+        end
+    else
+        mask(:,:,2) = mask(:,:,2);
     end
     
-    %Save masks to bin file and as images
+    %Save masks as *.bin-file and images
     saveCalculatedMask(mask, maskFolder, i);
     
 end
