@@ -29,7 +29,9 @@ if exist('octData', 'var')
         case 'Yes'
             disp('Loading new data set...')
             path = uigetdir();
-            octData = loadOctImages(path, a, b, 'bmp');
+            volume = loadOctImages(path, a, b, 'bmp');
+            %Change aspect ration of BScans to square
+            octData = resizeOctCube(volume, 2);
         case 'No'
             octData = octData;
             %flag_Savedata = 0;
@@ -38,7 +40,8 @@ if exist('octData', 'var')
 else
     flag_ImageQualiyIsGood = 0;
     path = uigetdir();
-    octData = loadOctImages(path, a, b, 'bmp');
+    volume = loadOctImages(path, a, b, 'bmp');%Change aspect ration of BScans to square
+    octData = resizeOctCube(volume, 2);
     % Check if octDataCube.bin-file exists
     % -> if not: dialog for saving OCT volume in said *.bin-file
     if isfile(fullfile(localGlobPath, binFileOct))
@@ -58,6 +61,7 @@ else
     end
     
 end
+
 
 sz = size(octData);
 temp = split(path, '\');
@@ -123,13 +127,9 @@ for i = 1:sz(3)
         while length(pts(1,:)) ~= length(unique(pts(1,:)))
             f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
             pause(1)
-            pts = selectNPointsManually(bScan, segPts, 1);    
+            pts = selectNPointsManually(bScan, segPts, 1);
         end
-        intPts = interpolateSegmentedPoints(pts, sz(2), sz(1));
-        % write values in mask 1
-        for ii = 1:length(intPts)
-            mask(intPts(2,ii),intPts(1,ii),1) = 1;
-        end
+        mask(:,:,1) = intSelectedPointsOnMask(pts, sz(2), sz(1));
     else
         mask(:,:,1) = mask(:,:,1);
     end
@@ -139,13 +139,9 @@ for i = 1:sz(3)
         while length(pts(1,:)) ~= length(unique(pts(1,:)))
             f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
             pause(1)
-            pts = selectNPointsManually(bScan, segPts, 2);    
+            pts = selectNPointsManually(bScan, segPts, 2);
         end
-        intPts = interpolateSegmentedPoints(pts, sz(2), sz(1));
-        % write values in mask 2
-        for ii = 1:length(intPts) 
-            mask(intPts(2,ii),intPts(1,ii),2) = 1; 
-        end
+        mask(:,:,2) = intSelectedPointsOnMask(pts, sz(2), sz(1));
     else
         mask(:,:,2) = mask(:,:,2);
     end
