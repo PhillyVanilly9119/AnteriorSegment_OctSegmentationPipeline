@@ -8,12 +8,17 @@ Highest priority fixes that influence the useability of the **Pipeline**
 gefixt: springt nach erfolgreicher Segmentierung zum nächsten b-Scan im Volumen
 - [x] Option: keine OVD-Schicht sichtbar
 gefixt: Option ob beide Schichten (jeweils) sichtbar sind. Wenn nein -> keine Segemtierung nötig
-- [x] Randbedingsungsproblem bei Polynomfit der segmentierten Punkte gelöst (keine Werte < 0 mehr als valides interpoliertes Ergebnis) 
+ -> sehr gut!
+- [x] Randbedingsungsproblem bei Polynomfit der segmentierten Punkte gelöst (keine Werte < 0 mehr als valides interpoliertes Ergebnis)
 - [ ] sehr inhomogene Schicht detektierbar?
 Verstehe den Bug nicht... Kannst beschreiben was du damit meinst?
+Cornea ist rund und homogen, gut zu segmentieren. Die OVD-Schicht ist oft nur ein Hügel und die Schicht nicht durchgängig von rechts nach links, also sehr inhomogen.
+- [ ] wenn textbox "Points are not unique, please reselect!" angezeigt wird, muss man dann die bis dahin gefitteten B-Scans von einem Volumen nochmals fitten, oder kann man nur den einzelnen nochmals wiederholen? Manchmal schließt das Fenster, manchmal springt es zum nächsten Bscan. Bisher kann ich nicht feststellen, woran das liegt
+
+
 
 #### Phil
-- [ ] Masken können größer werden, als die eigentlichen Bilder -> checken
+- [ ] Masken können größer werden, als die eigentlichen Bilder
 
 #### Main (RUN.m)
 
