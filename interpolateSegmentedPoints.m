@@ -21,7 +21,4 @@ intPts(intPts(2,:) > imgHeigth) = imgHeigth;
 intPts(intPts < 0) = 0;
 % warning("Points were flipped! You should have started segmenting on the right!")
 
-% intPts(intPts(1,:) > imgWitdh) = imgWitdh;
-% intPts(intPts(1,:) < 0) = 0;
-
 end
