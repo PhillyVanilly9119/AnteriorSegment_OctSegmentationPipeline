@@ -6,6 +6,7 @@ Highest priority fixes that influence the useability of the **Pipeline**
 
 
 ### Beta devel fixes for **Pipeline** in intended use-case for OVD-thickness determination (Melli's BA)
+
 ##### Melli's Bug-Report
 - [x] nachdem im ersten bScan beide Layer segmentiert wurden, springt es nicht automatisch zum nächsten BScan.  <br />
 -> gefixt: springt nach erfolgreicher Segmentierung zum nächsten b-Scan im Volumen
@@ -23,36 +24,9 @@ Highest priority fixes that influence the useability of the **Pipeline**
 -> not really fixable: Jeder Punkt in x (Bildbreite) darf max. einen y-Punkt (in der Bildhöhe) "zugewiesen" haben, da Interpolation sonst nicht eindeutig ist. Bis das passiert, wird dieser Fehler den User neu segmentieren lassen
 
 
-#### Phil
+#### Phils Fix-suggestions
 - [x] Masken können größer werden, als die eigentlichen Bilder.  <br />
 -> fixed: Masken werden anhand der Bildgrößen in gekapselten Funtionen erstellt
 
-#### Main (RUN.m)
-
-
-#### Concrete functions (Main)
-- [ ] example fix: fix it!
-
-#### Abstract functions (Sub)
-- [ ] example fix: fix it!
-
-## Prio 2
-Quick fixes that only influence the processing
-#### Main (RUN.m)
-- [ ] example fix: fix it!
-
-#### Concrete functions (Main)
-- [ ] example fix: fix it!
-
-#### Abstract functions (Sub)
-
-## Prio 3
-Least priority fixes ("Nice-To-Haves")
-#### Main (RUN.m)
-- [ ] example fix: fix it!
-
-#### Concrete functions (Main)
-- [ ] example fix: fix it!
-
-#### Abstract functions (Sub)
-- [ ] example fix: fix it!
+- [ ] Implement lobal path and file-selection more dynamically, for making it work more easily on different machines and on different drives and directories. <br />
+-> fixed: NO
