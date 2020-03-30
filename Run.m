@@ -10,10 +10,11 @@
 
 % Add main path of repository of search path
 warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
-localGlobPath = 'C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline';
+localGlobPath = 'C:\Users\ZeissLab\Documents\Documents_Philipp\Code\AnteriorSegment_OctSegmenationPipeline';
 addpath(fullfile(localGlobPath, 'Code'));
 
-binFileOct = 'octDataCube.bin';
+binFileOct = 'octDataCube.bin'; %P
+ut files in struct
 maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
 a = 1024; %static for standard
 b = 512;
