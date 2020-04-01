@@ -7,66 +7,72 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Forward declarations and globals
+global DataStruct
+DataStruct.rawVolumeDims = [1024,512,128];
+DataStruct.aspectRatioFactor = 2;
+DataStruct.loadedVolumeDims =   [
+    DataStruct.rawVolumeDims(1), ...
+    DataStruct.aspectRatioFactor * DataStruct.rawVolumeDims(2),...
+    DataStruct.rawVolumeDims(3)
+    ];
+DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
+DataStruct.binFileName = 'octDataCube.bin';
 
-% Add main path of repository of search path
-warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
-localGlobPath = 'C:\Users\ZeissLab\Documents\Documents_Philipp\Code\AnteriorSegment_OctSegmenationPipeline';
-addpath(fullfile(localGlobPath, 'Code'));
-
-binFileOct = 'octDataCube.bin'; %P
-ut files in struct
-maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
-a = 1024; %static for standard
-b = 512;
-c = 128;
-
-%% 1) Preprocessing
+%% 1) Preprocessing: Loading Data
 % Check if a data stack is already in the workspace
-if exist('octData', 'var')
-    answer = questdlg('There is already a data set in the workspace. Would you like to load a new set?', ...
+if exist('OctDataCube', 'var')
+    answer = questdlg('There is already data in workspace. Would you like to load a new set?', ...
         'Load OCT data from image files', 'Yes', 'No', 'No');
-    flag_ImageQualiyIsGood = 1;
+    DataStruct.flag_isGoodImgQual = 1;
     switch answer
         case 'Yes'
             disp('Loading new data set...')
-            path = uigetdir();
-            volume = loadOctImages(path, a, b, 'bmp');
+            DataStruct.currentDataPath = uigetdir();
+            volume = loadOctImages( DataStruct.currentDataPath, ...
+                DataStruct.rawVolumeDims(1),...
+                DataStruct.rawVolumeDims(2), 'bmp');
             %Change aspect ration of BScans to square
-            octData = resizeOctCube(volume, 2);
+            OctDataCube = resizeOctCube(volume, DataStruct.aspectRatioFactor);
         case 'No'
-            octData = octData;
-            %flag_Savedata = 0;
+            OctDataCube = OctDataCube;
     end
     
 else
-    flag_ImageQualiyIsGood = 0;
-    path = uigetdir();
-    volume = loadOctImages(path, a, b, 'bmp');%Change aspect ration of BScans to square
-    octData = resizeOctCube(volume, 2);
+    DataStruct.flag_isGoodImgQual = 0;
+    DataStruct.currentDataPath = uigetdir();
+    %Change aspect ration of BScans to square
+    volume = loadOctImages( DataStruct.currentDataPath, ...
+        DataStruct.rawVolumeDims(1), ...
+        DataStruct.rawVolumeDims(2), 'bmp');
+    OctDataCube = resizeOctCube(volume, DataStruct.aspectRatioFactor);
     % Check if octDataCube.bin-file exists
     % -> if not: dialog for saving OCT volume in said *.bin-file
-    if isfile(fullfile(localGlobPath, binFileOct))
+    if isfile(fullfile(DataStruct.currentDataPath, 'Data', DataStruct.binFileName))
         answer = questdlg('Would you like to save all images as a binary-file?', ...
             'Saving Options for OCT Images', 'Yes', 'No', 'No');
         switch answer
             case 'Yes'
                 disp('Saving your data on same path as images were loaded from')
-                flag_Savedata = 1;
+                saveDataCubeAsBinFile(  DataStruct.currentDataPath, ...
+                    DataStruct.binFileName, OctDataCube);
             case 'No'
                 disp('Data was not saved')
-                flag_Savedata = 0;
-        end
-        if flag_Savedata == 1
-            saveDataCubeAsBinFile(path, binFileOct, octData)
         end
     end
     
 end
 
+clear volume
 
-sz = size(octData);
-temp = split(path, '\');
-maskSubFolder = temp{end};
+%Check if folder for masks exists &/ create it
+%TODO: add volume ID#
+tmp = strsplit(DataStruct.currentDataPath, '\');
+DataStruct.maskFolder = fullfile(DataStruct.currentDataPath, 'Data', ...
+    'Segmented Masks', strcat('masks_',tmp{end}));
+if ~exist(DataStruct.maskFolder, 'dir')
+    mkdir(DataStruct.maskFolder)
+end
+
 
 %% Display b-Scan
 % bScan = octData(:,:,60);
@@ -106,13 +112,6 @@ end
 imshow(filteredOctCube(:,:,sz(3)))
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
-
-%Check if folder for masks exists &/ create it
-%TODO: add volume ID
-maskFolder = fullfile(maskFolder, maskSubFolder);
-if ~exist(maskFolder, 'dir')
-    mkdir(maskFolder)
-end
 
 %%Maunal segmentation
 %TODO: REF - think about putting the segmentation into class
