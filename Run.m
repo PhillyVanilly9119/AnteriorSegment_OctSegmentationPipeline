@@ -79,20 +79,16 @@ end
 % figure; imshow(bScan);
 
 %% 2) Pre-segementation image-filter-options
-
-if exist('flag_ImageQualiyIsGood', 'var') && ~flag_ImageQualiyIsGood
-    imshow(octData(:,:,round(sz(3)/2)));
-    title("B-Scan at the middle of the loaded volume")
-    pause(2);
-    [flag_ImageQualiyIsGood, filteredOctCube] = filterVolume(octData);
+sz = size(OctDataCube);
+if isfield(DataStruct, 'flag_isGoodImgQual') && ~DataStruct.flag_isGoodImgQual
+    [DataStruct.flag_isGoodImgQual, ProcessedOctCube] = filterVolume(OctDataCube);
 else
-    filteredOctCube = octData;
+    ProcessedOctCube = OctDataCube;
 end
 
-while ~flag_ImageQualiyIsGood
+while ~DataStruct.flag_isGoodImgQual
     close all
-    
-    imshow(filteredOctCube(:,:,round(sz(3)/2)));
+    imshow(ProcessedOctCube(:,:,round(sz(3)/2)));
     title("B-Scan at the middle of the pre-processed volume")
     pause(2);
     
@@ -100,16 +96,17 @@ while ~flag_ImageQualiyIsGood
         'Is the image qualitey satisfying to start segmentation?', 'Yes', 'No', 'No');
     switch answer
         case 'Yes'
-            [flag_ImageQualiyIsGood, filteredOctCube] = filterVolume(filteredOctCube);
+            [DataStruct.flag_isGoodImgQual, ProcessedOctCube] = filterVolume(ProcessedOctCube);
         case 'No'
-            flag_ImageQualiyIsGood = 1;
+            DataStruct.flag_isGoodImgQual = 1;
     end
     
     close all
     
 end
 
-imshow(filteredOctCube(:,:,sz(3)))
+imshow(ProcessedOctCube(:,:,(sz(3)/2)));
+
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
 
@@ -118,7 +115,7 @@ imshow(filteredOctCube(:,:,sz(3)))
 for i = 1:sz(3)
     
     segPts = round(sz(2)/20);
-    bScan = filteredOctCube(:,:,i);
+    bScan = ProcessedOctCube(:,:,i);
     mask = zeros(sz(1), sz(2), 2);
     [isEndo, isOVD] = segmentationDecision(bScan);
     
