@@ -69,6 +69,7 @@ clear volume
 tmp = strsplit(DataStruct.currentDataPath, '\');
 DataStruct.maskFolder = fullfile(DataStruct.currentDataPath, 'Data', ...
     'Segmented Masks', strcat('masks_',tmp{end}));
+clear temp
 if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
@@ -81,6 +82,8 @@ end
 %% 2) Pre-segementation image-filter-options
 sz = size(OctDataCube);
 if isfield(DataStruct, 'flag_isGoodImgQual') && ~DataStruct.flag_isGoodImgQual
+    imshow(OctDataCube(:,:,round(DataStruct.rawVolumeDims(3)/2)));
+    title("Sample b-Scan of volume to evaluate image quality")
     [DataStruct.flag_isGoodImgQual, ProcessedOctCube] = filterVolume(OctDataCube);
 else
     ProcessedOctCube = OctDataCube;
@@ -109,66 +112,24 @@ imshow(ProcessedOctCube(:,:,(sz(3)/2)));
 
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
+% TODO: Implement as just in case the automatic segmentation failed
+% manuallySegmentVolume(ProcessedOctCube);
 
-%%Maunal segmentation
-%TODO: REF - think about putting the segmentation into class
-for i = 1:sz(3)
-    
-    segPts = round(sz(2)/20);
-    bScan = ProcessedOctCube(:,:,i);
-    mask = zeros(sz(1), sz(2), 2);
-    [isEndo, isOVD] = segmentationDecision(bScan);
-    
-    if isEndo
-        pts = selectNPointsManually(bScan, segPts, 1);
-        while length(pts(1,:)) ~= length(unique(pts(1,:)))
-            f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
-            pause(1)
-            pts = selectNPointsManually(bScan, segPts, 1);
-        end
-        mask(:,:,1) = intSelectedPointsOnMask(pts, sz(2), sz(1));
-    else
-        mask(:,:,1) = mask(:,:,1);
-    end
-    
-    if isOVD
-        pts = selectNPointsManually(bScan, segPts, 2);
-        while length(pts(1,:)) ~= length(unique(pts(1,:)))
-            f = msgbox('Points are not unique, please reselect!','Re-segmentation neccessary');
-            pause(1)
-            pts = selectNPointsManually(bScan, segPts, 2);
-        end
-        mask(:,:,2) = intSelectedPointsOnMask(pts, sz(2), sz(1));
-    else
-        mask(:,:,2) = mask(:,:,2);
-    end
-    
-    %Save masks as *.bin-file and images
-    saveCalculatedMask(mask, maskFolder, i);
-    
-end
 
-%%CONTINUE HERE
 
 %% Michis segmentation logic
 % TODO: place before manual segmentation (once it works)
 
-% fltBScan = filteredOctCube(:,:,64);
-% % fltBScan = filterImageNoise(fltBScan(5:end,:), 'openAndClose', 3);
-% % fltBScan = filterImageNoise(fltBScan, 'open', 7);
-% % fltBScan = denoiseAndRescaleBScan(fltBScan, 25);
-% % figure; imshow(fltBScan)
-% sz = size(fltBScan);
-% mask = zeros(sz(1), sz(2));
-%
+%%CONTINUE HERE
 % im = createGradImg(single(fltBScan)); %if no image-processing toolbox available
-% figure; imshow(im);
-% [seg, mns] = segmentImage(im, mask, 1e-4);
-%
-% figure
-% imagesc(fltBScan);
-% colormap gray;
-% hold on, plot(seg)
+im = ProcessedOctCube(:,:,60);
+mask = zeros(sz(1), sz(2));
+[seg, mns] = segmentImage(im, mask, 1e-5, 1e-7);
+
+figure
+imagesc(im);
+colormap gray;
+hold on, plot(seg)
 % %??? TODO: implement function that finds boarder on basis of gradient
 
 
