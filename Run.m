@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Forward declarations and globals
+%% Define global vars (Struct)
 global DataStruct
 DataStruct.rawVolumeDims = [1024,512,128];
 DataStruct.aspectRatioFactor = 2;
@@ -63,9 +63,10 @@ else
 end
 
 clear volume
+correctSz = size(OctDataCube);
+DataStruct.rawVolumeDims(3) = correctSz(3);
 
 %Check if folder for masks exists &/ create it
-%TODO: add volume ID#
 tmp = strsplit(DataStruct.currentDataPath, '\');
 DataStruct.maskFolder = fullfile(DataStruct.currentDataPath, 'Data', ...
     'Segmented Masks', strcat('masks_',tmp{end}));
@@ -74,10 +75,6 @@ if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
 
-
-%% Display b-Scan
-% bScan = octData(:,:,60);
-% figure; imshow(bScan);
 
 %% 2) Pre-segementation image-filter-options
 sz = size(OctDataCube);
@@ -108,31 +105,15 @@ while ~DataStruct.flag_isGoodImgQual
     
 end
 
-imshow(ProcessedOctCube(:,:,(sz(3)/2)));
+close all
+% %Debug
+% imshow(ProcessedOctCube(:,:,(DataStruct.loadedVolumeDims(3)/2)));
 
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
-% TODO: Implement as just in case the automatic segmentation failed
-% manuallySegmentVolume(ProcessedOctCube);
+mainSegmentationLoop(DataStruct, ProcessedOctCube);
 
 
 
-%% Michis segmentation logic
-% TODO: place before manual segmentation (once it works)
 
-%%CONTINUE HERE
-% im = createGradImg(single(fltBScan)); %if no image-processing toolbox available
-im = ProcessedOctCube(:,:,60);
-mask = zeros(sz(1), sz(2));
-[seg, mns] = segmentImage(im, mask, 1e-5, 1e-7);
-
-figure
-imagesc(im);
-colormap gray;
-hold on, plot(seg)
-% %??? TODO: implement function that finds boarder on basis of gradient
-
-
-% gradImg = findVerticalImageGradient(fltBScan);
-% figure; imshow(gradImg);
 
