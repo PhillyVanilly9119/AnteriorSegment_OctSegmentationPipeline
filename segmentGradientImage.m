@@ -8,24 +8,13 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [segmImg] = segmentGradientImage(image, label)
+function [segmImg, curve] = segmentGradientImage(image, label, nExtrema)
 %% Preprocessing
 % globals
 sz = size(image);
 curve = zeros(sz(1), 2);
 segmImg = zeros(sz(1),sz(2));
 gradImg = createGradImg(single(image));
-%Determine neccessary segmentation steps
-if label == 1 % case ONLY ENDOTHELIUM
-    nExtrema = 2; %assuming ENDOthlium and EPIThelium
-    %     pos = 1;
-elseif label == 2 % case BOTH
-    nExtrema = 3; %assuming all 3 layers
-    %     pos = [1,2];
-else
-    disp("Neither layer selection was passed through the label parameter...");
-    return;
-end
 
 %% Filter bScan on aScan-basis
 % TODO: Try alternatively with derivative of a-Scan
@@ -71,6 +60,9 @@ endoPolCoeffs = polyfit(endoVec, curve(endoVec,1)', 2);
 fittedEndothel = polyval(endoPolCoeffs, 1:sz(1));
 curve(:,1) = round(fittedEndothel);
 curve(:,2) = round(curve(:,2));
+%value boundaries after segmentation
+curve(curve > 1024) = 1024;
+curve(curve < 0) = 0;
 
 %% Write boarders into Mask
 %TODO: Write (all available i.e non-0 curves) into segemented mask (segmImg)
@@ -81,6 +73,12 @@ for i = 1:sz(1)
     if curve(i,2) ~= 0
         segmImg(curve(i,2),i) = 1;
     end
+end
+
+sSz = size(segmImg);
+if sSz(1) ~= sz(1) || sSz(2) ~= sz(2)
+    disp("Segmented mask has wrong dimensions!")
+    return
 end
 
 end
