@@ -112,8 +112,3 @@ close all
 %% Begin segmenatation
 % CAUTION!!! Still in manual trial-phase of implementation
 mainSegmentationLoop(DataStruct, ProcessedOctCube);
-
-
-
-
-
