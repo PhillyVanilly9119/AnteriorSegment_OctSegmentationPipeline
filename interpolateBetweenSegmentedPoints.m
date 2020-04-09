@@ -12,7 +12,7 @@ function [curve] = interpolateBetweenSegmentedPoints(pts, imgWitdh, imgHeight)
 % where first row is pos. in imgWidth and second row is pos. in imgHeight
 pts = round(pts);
 
-heightPts = interp1(pts(1,:), pts(2,:), min(pts(1,:)):max(pts(1,:)), 'cubic');
+heightPts = interp1(pts(1,:), pts(2,:), min(pts(1,:)):max(pts(1,:)), 'PCHIP');
 
 %Add for loop to fill non-interpolated values with 0s, which will belater
 %denote spots were no layer is drawn

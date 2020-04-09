@@ -23,7 +23,7 @@ gradImg = createGradImg(single(image));
 %% Filter bScan on aScan-basis
 %% Find extrema (i.e. bScans' boaders)
 a = 1;
-windowSize = 7;
+windowSize = 10;
 b = (1/windowSize)*ones(1,windowSize);
 
 filteredAScans = zeros(sz(1), sz(2));

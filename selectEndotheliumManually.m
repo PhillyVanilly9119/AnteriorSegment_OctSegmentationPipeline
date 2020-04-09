@@ -6,9 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [curve] = selectEndotheliumManually(image, n)
-
-sz = size(image);
+function [pts] = selectEndotheliumManually(image, n)
 
 if nargin < 2
     n = Inf;
@@ -49,10 +47,6 @@ hold off;
 if k < size(pts,2)
     pts = pts(:, 1:k);
 end
-
-pts = round(pts);
-p = polyfit(pts(1,:), pts(2,:), 2);
-curve = round(polyval(p, 1:sz(1)));
 
 close(gcf)
 
