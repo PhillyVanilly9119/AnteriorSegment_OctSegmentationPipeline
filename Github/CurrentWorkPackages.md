@@ -14,7 +14,7 @@ Highest priority fixes that influence the useability of the **Pipeline**
 - [x] Option: keine OVD-Schicht sichtbar -> nicht segmentieren.  <br />
 -> gefixt: Option ob beide Schichten (jeweils) sichtbar sind. Wenn nein -> keine Segemtierung nötig
 
-- [x] Randbedingsungsproblem bei Polynomfit - außerhalb vom Bildrand interpolierte Punkte werfen Fehler.  <br />
+- [x] Randbedingsungsproblem bei Polynomfit - außerhalb vom Bildrand interpolierte Punkte werfen Fehler. <br />
 -> gefixt: keine Werte < 0 mehr als valides interpoliertes Ergebnis und in links/ rechts Randbereichen wird die Schicht
 
 - [x] sehr inhomogene Schicht detektierbar? Cornea ist rund und homogen, gut zu segmentieren. Die OVD-Schicht ist oft nur ein Hügel und die Schicht nicht durchgängig von rechts nach links, also sehr inhomogen.  <br />

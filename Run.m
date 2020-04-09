@@ -6,6 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+<<<<<<< Updated upstream
 %% Define global vars (Struct)
 global DataStruct
 DataStruct.imageVolumeDims = [1024,512,128]; %default cude size
@@ -19,6 +20,26 @@ DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
 DataStruct.binFileName = 'octDataCube.bin';
 
 %% 1) Preprocessing: Loading Data
+=======
+%% Forward declarations and globals
+
+% Add main path of repository of search path
+%TODO: add all paths in a global struct from with all function gather info
+filePath = matlab.desktop.editor.getActiveFilename;
+
+warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
+localGlobPath = 'C:\Users\ZeissLab\Documents\Documents_Philipp\Code\AnteriorSegment_OctSegmenationPipeline';
+addpath(fullfile(localGlobPath, 'Code'));
+
+binFileOct = 'octDataCube.bin'; %P
+ut files in struct
+maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
+a = 1024; %static for standard
+b = 512;
+c = 128;
+
+%% 1) Preprocessing
+>>>>>>> Stashed changes
 % Check if a data stack is already in the workspace
 if exist('OctDataCube', 'var')
     answer = questdlg('There is already data in workspace. Would you like to load a new set?', ...
