@@ -8,50 +8,59 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [segmImg, curve] = segmentGradientImage(image, label, nExtrema)
+% TODO: Try if different filter coeffs for both boarders
+% TODO: Rethink and test ranges in which layers are being calculated
+
+function [segmImg, curve] = segmentGradientImage(image, label)
 %% Preprocessing
 % globals
 sz = size(image);
+offset = 10; % pixels from (n,0) in image that are ignores for calculations
 curve = zeros(sz(1), 2);
 segmImg = zeros(sz(1),sz(2));
 gradImg = createGradImg(single(image));
 
 %% Filter bScan on aScan-basis
-% TODO: Try alternatively with derivative of a-Scan
-a = 1;
-windowSize = 15;
-b = (1/windowSize)*ones(1,windowSize);
-filteredAScans = zeros(sz(1), sz(2));
-for i = 1:sz(1)
-    filteredAScans(:,i) = filter(b,a,gradImg(:,i));
-end
-
 %% Find extrema (i.e. bScans' boaders)
-% 1): Endothelium
-qtr = round(sz(1)/4);
-hlf = round(sz(1)/2);
-endoVec = hlf-qtr:(hlf+qtr-1);
-for i = 1:length(endoVec)
-    [~, cMax] = maxk(filteredAScans(:,i+qtr), nExtrema);
-    [~, cMin] = mink(filteredAScans(:,i+qtr), nExtrema);
-    if label == 1 %if only ENDO is visible
-        %Endo-layer is last max-layer
-        curve(i+qtr,1) = round(mean(cMax(end), cMin(end)));
-    elseif label == 2 %if both OVD and ENDO are visible
-        %Endo-layer is second to last max-layer
-        curve(i+qtr,1) = round(mean(cMax(end-1), cMin(end-1)));
-    else %of no LOI* is visible
-        curve(i+qtr,1) = 0;
-    end
-end
+a = 1;
+windowSize = 7;
+b = (1/windowSize)*ones(1,windowSize);
 
-% 2): OVD
+filteredAScans = zeros(sz(1), sz(2));
+eigth = round(sz(1)/8);
+qtr = round(sz(1)/4);
+half = round(sz(1)/2);
+endoVec = half-qtr:(half+qtr-1);
+ovdVec = half-eigth:(half+eigth-1);
+
+nExt = 3; %3 layers: epi, endo and ovd
+
 for i = 1:sz(1)
-    [~, cMax] = maxk(filteredAScans(:,i), nExtrema);
-    [~, cMin] = mink(filteredAScans(:,i), nExtrema);
-    if label == 2
-        curve(i,2) = round(mean(cMax(end), cMin(end)));
+    aScan = gradImg(:,i); %Placeholder
+    aScan = filter(b,a,aScan); %Filter derivate
+    aScan = normalizeAScan(aScan); %Normalize for comparability
+    filteredAScans(:,i) = aScan;
+    
+    %find extrema
+    [~, cMax] = maxk(aScan(offset:end-offset), nExt);
+    [~, cMin] = mink(aScan(offset:end-offset), 2*nExt);
+    
+    %for every max in a-Scan find clostest min
+    for ii = 1:nExt % length(cMax)
+        [~,idx] = min(round(abs(cMin-cMax(ii))));
+        boundarySpot(ii) = round(mean([cMin(idx), cMax(ii)]));
     end
+    
+    % Map points in range of OVD
+    if all(i >= min(endoVec) & i <= max(endoVec)) && label ~= 0
+        curve(endoVec(i-min(endoVec)+1),1) = boundarySpot(2);
+    end
+    
+    % Map points in range of endothelium
+    if all(i >= min(ovdVec) & i <= max(ovdVec)) && label == 2
+        curve(ovdVec(i-min(ovdVec)+1),2) = boundarySpot(3);
+    end
+    
 end
 
 %% Fit the two curves

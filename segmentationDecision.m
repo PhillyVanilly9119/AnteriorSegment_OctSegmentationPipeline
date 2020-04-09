@@ -19,6 +19,10 @@ for i = 1:2
             case 'No'
                 isEndo = 0;
         end
+        if ~isEndo
+            isOVD = 0;
+            return
+        end
     else
         answer = questdlg('Is the OVD boundary layer well enough identifiable for segmentation?', ...
             'Segmentation decision dialogue: OVD', 'Yes', 'No', 'Yes');

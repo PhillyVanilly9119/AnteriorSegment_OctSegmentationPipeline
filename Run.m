@@ -66,6 +66,8 @@ clear volume
 correctSz = size(OctDataCube);
 DataStruct.rawVolumeDims(3) = correctSz(3);
 
+%TODO: Add precheck for already segmented masks
+
 %Check if folder for masks exists &/ create it
 tmp = strsplit(DataStruct.currentDataPath, '\');
 DataStruct.maskFolder = fullfile(DataStruct.currentDataPath, 'Data', ...
@@ -106,9 +108,6 @@ while ~DataStruct.flag_isGoodImgQual
 end
 
 close all
-% %Debug
-% imshow(ProcessedOctCube(:,:,(DataStruct.loadedVolumeDims(3)/2)));
 
 %% Begin segmenatation
-% CAUTION!!! Still in manual trial-phase of implementation
 mainSegmentationLoop(DataStruct, ProcessedOctCube);

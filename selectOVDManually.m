@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [intPts] = selectOVDManually(image, n)
+function [pts] = selectOVDManually(image, n)
 
 sz = size(image);
 
@@ -49,8 +49,6 @@ hold off;
 if k < size(pts,2)
     pts = pts(:, 1:k);
 end
-
-intPts = interpolateSegmentedPoints(pts, sz(2), sz(1));
 
 close(gcf)
 
