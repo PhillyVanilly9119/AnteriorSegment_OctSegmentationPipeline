@@ -6,10 +6,13 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = saveCalculatedMask(DataStruct, curve, mask, image, maskFolder, bScanIDX)
+function [] = saveCalculatedMask(DataStruct, curve, mask, image, bScanIDX)
+
+maskFolder = DataStruct.maskFolder;
+binFolder = DataStruct.dataFolder;
 
 %Resize images to original 
-fac = DataStruct.loadedVolumeDims(1);
+% fac = DataStruct.loadedVolumeDims(1);
 
 %save mask to bin-file
 binID = sprintf('mask_of_bScanNo%0.0f.bin', bScanIDX);
@@ -22,8 +25,11 @@ f = figure('visible', 'off');
 imagesc(image); 
 colormap gray; 
 hold on, plot(curve); 
-imMask1 = sprintf('mask_of_bScanNo%0.0f.png', bScanIDX);
-saveas(f, fullfile(maskFolder, imMask1));
+maskNumber = sprintf('mask_of_bScanNo%0.0f.png', bScanIDX);
+saveas(f, fullfile(binFolder, maskNumber));
 close(f)
+
+%save mask as image
+imwrite(mask, fullfile(maskFolder, maskNumber));
 
 end

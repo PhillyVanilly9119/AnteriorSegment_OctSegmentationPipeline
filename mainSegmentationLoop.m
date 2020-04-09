@@ -8,12 +8,12 @@
 
 function [] = mainSegmentationLoop(DataStruct, cube)
 
-for i = 1:DataStruct.loadedVolumeDims(3)
+for i = 1:DataStruct.imageVolumeDims(3)
     b_Scan = cube(:,:,i);
     label = createSegmenationLabel(b_Scan);
     %No layer visible
     if label == 0
-        fprintf("No layers visible in b-Scan No.%0.0f", i);
+        fprintf("No layers visible in b-Scan No.%0.0f\n", i);
         continue
     else
         flag_segmentationSufficient = 0;
@@ -31,8 +31,8 @@ for i = 1:DataStruct.loadedVolumeDims(3)
             
             %Only Endothelium visible
             if label == 1
-                answer = questdlg('Was the Endothelium segmented correctly?',...
-                    'Please select one box',...
+                answer = questdlg('Was the Endothelium segmented correctly?\n',...
+                    'Please select one box\n',...
                     'Yes',...
                     'No',...
                     'Yes');
@@ -44,16 +44,12 @@ for i = 1:DataStruct.loadedVolumeDims(3)
                         %Endo
                         curve(:,1) = selectEndotheliumManually(b_Scan, 9);
                         %Fill boundary positions (only Endothelium) with ones
-                        for ii = 1:DataStruct.loadedVolumeDims(1)
-                            if curve(ii,1) ~= 0
-                                mask(curve(ii,1),ii) = 1;
-                            end
-                        end
+                        mask = mapCurveIntoMask(DataStruct, curve);
                 end
                 
                 %Both layers visible
             elseif label == 2
-                answer = questdlg('Were the boundary layers correctly segmented?','Please select one box',...
+                answer = questdlg('Were the boundary layers correctly segmented?\n','Please select one box\n',...
                     'Yes, both',...
                     'No, only Endothelium',...
                     'No, only OVD',...
@@ -65,61 +61,46 @@ for i = 1:DataStruct.loadedVolumeDims(3)
                     case 'No, only Endothelium'
                         %OVD
                         intPts = selectOVDManually(b_Scan,...
-                            round(DataStruct.loadedVolumeDims(2)/40));
+                            round(DataStruct.processingVolumeDims(2)/40));
                         while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
-                            disp('Points must be unique!')
+                            disp('Points must be unique!\n')
                             intPts = selectOVDManually(b_Scan,...
-                                round(DataStruct.loadedVolumeDims(2)/40));
+                                round(DataStruct.processingVolumeDims(2)/40));
                         end
                         curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
-                            DataStruct.loadedVolumeDims(2), DataStruct.loadedVolumeDims(1));
+                            DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (only OVD) with ones
-                        for ii = 1:DataStruct.loadedVolumeDims(1)
-                            if curve(i,2) ~= 0
-                                mask(curve(ii,2),ii) = 1;
-                            end
-                        end
+                        mask = mapCurveIntoMask(DataStruct, curve);
                     case 'No, only OVD'
                         %Endo
                         curve(:,1) = selectEndotheliumManually(b_Scan, 9);
                         %Fill boundary positions (only Endo) with ones
-                        for ii = 1:DataStruct.loadedVolumeDims(1)
-                            if curve(i,1) ~= 0
-                                mask(curve(ii,1),ii) = 1;
-                            end
-                        end
+                        mask = mapCurveIntoMask(DataStruct, curve);
                     case 'None'
                         %Endo
                         curve(:,1) = selectEndotheliumManually(b_Scan, 9);
                         %OVD
                         intPts = selectOVDManually(b_Scan,...
-                            round(DataStruct.loadedVolumeDims(2)/40));
+                            round(DataStruct.processingVolumeDims(2)/40));
                         while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
-                            disp('Points must be unique!')
+                            disp('Points must be unique!\n')
                             intPts = selectOVDManually(b_Scan,...
-                                round(DataStruct.loadedVolumeDims(2)/40));
+                                round(DataStruct.processingVolumeDims(2)/40));
                         end
                         curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
-                            DataStruct.loadedVolumeDims(2), DataStruct.loadedVolumeDims(1));
+                            DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (both layers) with ones
-                        for ii = 1:DataStruct.loadedVolumeDims(1)
-                            if curve(ii,1) ~= 0
-                                mask(curve(ii,1),ii) = 1;
-                            end
-                            if curve(i,2) ~= 0
-                                mask(curve(ii,2),ii) = 1;
-                            end
-                        end
+                        mask = mapCurveIntoMask(DataStruct, curve);
                 end
             else
-                disp("Unecpected value for label of layers...")
+                disp("Unecpected value for label of layers...\n")
                 return
             end
             close all
         end
         
         %Save the mask containing correctly segmented boundary layers
-        saveCalculatedMask(DataStruct, curve, mask, b_Scan, DataStruct.maskFolder, i);
+        saveCalculatedMask(DataStruct, curve, mask, b_Scan, i);
         
     end
     
