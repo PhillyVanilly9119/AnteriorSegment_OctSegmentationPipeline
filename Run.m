@@ -5,8 +5,6 @@
 %
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-<<<<<<< Updated upstream
 %% Define global vars (Struct)
 global DataStruct
 DataStruct.imageVolumeDims = [1024,512,128]; %default cude size
@@ -20,7 +18,6 @@ DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
 DataStruct.binFileName = 'octDataCube.bin';
 
 %% 1) Preprocessing: Loading Data
-=======
 %% Forward declarations and globals
 
 % Add main path of repository of search path
@@ -39,7 +36,6 @@ b = 512;
 c = 128;
 
 %% 1) Preprocessing
->>>>>>> Stashed changes
 % Check if a data stack is already in the workspace
 if exist('OctDataCube', 'var')
     answer = questdlg('There is already data in workspace. Would you like to load a new set?', ...

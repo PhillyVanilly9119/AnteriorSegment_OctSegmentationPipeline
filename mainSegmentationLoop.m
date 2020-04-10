@@ -10,7 +10,9 @@ function [] = mainSegmentationLoop(DataStruct, cube)
 
 for i = 1:DataStruct.imageVolumeDims(3)
     b_Scan = cube(:,:,i);
-    label = createSegmenationLabel(b_Scan);
+    %TODO: pass frames to the separate segmentaion function as additional
+    %param
+    [label, frames] = createSegmenationLabel(b_Scan);
     %No layer visible
     if label == 0
         fprintf("No layers visible in b-Scan No.%0.0f\n", i);
