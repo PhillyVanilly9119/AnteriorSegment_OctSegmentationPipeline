@@ -18,7 +18,6 @@ DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
 DataStruct.binFileName = 'octDataCube.bin';
 
 %% 1) Preprocessing: Loading Data
-%% Forward declarations and globals
 
 % Add main path of repository of search path
 %TODO: add all paths in a global struct from with all function gather info
@@ -28,8 +27,7 @@ warning("Change 'localGlobPath'-variable to your local path, were you keep the r
 localGlobPath = 'C:\Users\ZeissLab\Documents\Documents_Philipp\Code\AnteriorSegment_OctSegmenationPipeline';
 addpath(fullfile(localGlobPath, 'Code'));
 
-binFileOct = 'octDataCube.bin'; %P
-ut files in struct
+binFileOct = 'octDataCube.bin'; 
 maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
 a = 1024; %static for standard
 b = 512;
@@ -94,36 +92,7 @@ if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
 
-
-%% 2) Pre-segementation image-filter-options
-sz = size(OctDataCube);
-if isfield(DataStruct, 'flag_isGoodImgQual') && ~DataStruct.flag_isGoodImgQual
-    imshow(OctDataCube(:,:,round(DataStruct.imageVolumeDims(3)/2)));
-    title("Sample b-Scan of volume to evaluate image quality")
-    [DataStruct.flag_isGoodImgQual, ProcessedOctCube] = filterVolume(OctDataCube);
-else
-    ProcessedOctCube = OctDataCube;
-end
-
-while ~DataStruct.flag_isGoodImgQual
-    close all
-    imshow(ProcessedOctCube(:,:,round(sz(3)/2)));
-    title("B-Scan at the middle of the pre-processed volume")
-    pause(2);
-    
-    answer = questdlg('Would you like to continue to apply image filter?', ...
-        'Is the image qualitey satisfying to start segmentation?', 'Yes', 'No', 'No');
-    switch answer
-        case 'Yes'
-            [DataStruct.flag_isGoodImgQual, ProcessedOctCube] = filterVolume(ProcessedOctCube);
-        case 'No'
-            DataStruct.flag_isGoodImgQual = 1;
-    end
-    
-    close all
-    
-end
-
+%TODO: Put function here
 close all
 
 %% Begin segmenatation
