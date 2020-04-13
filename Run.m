@@ -80,7 +80,8 @@ end
 clear volume
 %TODO: shouldnt change for whole volumes
 correctSz = size(OctDataCube);
-DataStruct.imageVolumeDims(3) = correctSz(3);
+DataStruct.processingVolumeDims(2) = correctSz(2);
+DataStruct.processingVolumeDims(3) = correctSz(3);
 
 %TODO: Add precheck for already segmented masks
 
@@ -92,7 +93,7 @@ if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
 
-%TODO: Put function here
+ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'custom');
 close all
 
 %% Begin segmenatation

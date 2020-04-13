@@ -6,18 +6,17 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [filtVol] = applyCustomFilterForRESCAN(DataStruct, vol, label)
+function [filtered] = applyFixedFilters(vol)
 
+% Denoise with subtraction of 75% percentile values and then apply
+% openinng and closing
+sz = size(vol);
+filtered = zeros(sz(1), sz(2), sz(3));
 
-%Custom filtering
-if strcmp(label, 'user')
-    filtVol = customFilterOption(DataStruct, vol);
-    
-%Userinput filtering
-elseif strcmp(label, 'custom')
-    filtVol = applyFixedFilters(vol);
+for i = 1:sz(3)
+    tmpImg = denoiseBScan(single(vol(:,:,i)), 75);
+    filtered(:,:,i) = filterImageNoise(tmpImg, 'openAndClose', 5);
+end
+% Add additional filtering if neccesssary
 
-else
-    error("You\'ve selected an unknown string for filter option identification!");
-    
 end

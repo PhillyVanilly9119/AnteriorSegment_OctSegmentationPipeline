@@ -11,7 +11,9 @@
 % TODO: Try if different filter coeffs for both boarders
 % TODO: Rethink and test ranges in which layers are being calculated
 
-function [segmImg, curve] = segmentGradientImage(image, label)
+function [segmImg, curve] = segmentGradientImage(image, label, frames)
+
+%TODO: Add frames as boarders for "automatic" segmentation
 %% Preprocessing
 % globals
 sz = size(image);
