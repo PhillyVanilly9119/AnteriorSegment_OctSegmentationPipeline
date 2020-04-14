@@ -93,11 +93,15 @@ if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
 
+
+%% 2) Apply filter, to allow segmentation
 ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'custom');
 close all
 
-%% Begin segmenatation
+
+%% 3) Begin segmenatation
 mainSegmentationLoop(DataStruct, ProcessedOctCube);
+
 
 %% END
 close all

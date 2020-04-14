@@ -19,7 +19,7 @@ for i = 1:DataStruct.imageVolumeDims(3)
         continue
     else
         flag_segmentationSufficient = 0;
-        [mask, curve] = segmentGradientImage(b_Scan, label);
+        [mask, curve] = segmentGradientImage(b_Scan, label, frames);
         while ~flag_segmentationSufficient
             figure('units','normalized','outerposition',[0 0 1 1])
             imagesc(b_Scan);

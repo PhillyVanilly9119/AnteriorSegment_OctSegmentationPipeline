@@ -18,6 +18,7 @@ if isEndo && ~isOVD % case ONLY ENDOTHELIUM
     roi = drawrectangle;
     frames(:,1) = [round(roi.Position(1)), ...
         round(roi.Position(1) + roi.Position(3))];
+    frames(:,2) = [0,0];
 elseif isEndo && isOVD % case BOTH
     label = 2; %assuming all 3 layers
     %TODO: Put frame for OVD here and return as value

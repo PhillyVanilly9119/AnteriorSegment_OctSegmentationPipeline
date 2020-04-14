@@ -29,11 +29,11 @@ windowSize = 10;
 b = (1/windowSize)*ones(1,windowSize);
 
 filteredAScans = zeros(sz(1), sz(2));
-eigth = round(sz(1)/8);
-qtr = round(sz(1)/4);
-half = round(sz(1)/2);
-endoVec = half-qtr:(half+qtr-1);
-ovdVec = half-eigth:(half+eigth-1);
+% eigth = round(sz(1)/8);
+% qtr = round(sz(1)/4);
+% half = round(sz(1)/2);
+endoVec = frames(1,1):frames(2,1);
+ovdVec = frames(1,2):frames(2,2);
 
 nExt = 3; %3 layers: epi, endo and ovd
 
