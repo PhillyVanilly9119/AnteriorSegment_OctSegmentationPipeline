@@ -48,8 +48,6 @@ if exist('OctDataCube', 'var')
                 DataStruct.imageVolumeDims(2), 'bmp');
             %Change aspect ration of BScans to square
             OctDataCube = resizeOctCube(volume, DataStruct.aspectRatioFactor);
-%         case 'No'
-%             OctDataCube = OctDataCube;
     end
     
 else

@@ -8,15 +8,15 @@
 
 function [filtered] = applyFixedFilters(vol)
 
-% Denoise with subtraction of 75% percentile values and then apply
-% openinng and closing
+% Denoise with subtraction of high percentile of GVs and then apply
+% openinng and closing (morphological filtering)
+
 sz = size(vol);
 filtered = zeros(sz(1), sz(2), sz(3));
 
 for i = 1:sz(3)
-    tmpImg = denoiseBScan(single(vol(:,:,i)), 75);
-    filtered(:,:,i) = filterImageNoise(tmpImg, 'openAndClose', 5);
+    tmpImg = denoiseAndRescaleBScan(single(vol(:,:,i)), 90); % rescale based on histo-values (coarse)
+    filtered(:,:,i) = filterImageNoise(tmpImg, 'openAndClose', 6); % denoise (coarse);
 end
-% Add additional filtering if neccesssary
 
 end

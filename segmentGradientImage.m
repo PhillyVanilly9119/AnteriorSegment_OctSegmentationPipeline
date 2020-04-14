@@ -22,6 +22,8 @@ curve = zeros(sz(1), 2);
 segmImg = zeros(sz(1),sz(2));
 gradImg = createGradImg(single(image));
 
+
+%TODO: Add logic here 
 %% Filter bScan on aScan-basis
 %% Find extrema (i.e. bScans' boaders)
 a = 1;

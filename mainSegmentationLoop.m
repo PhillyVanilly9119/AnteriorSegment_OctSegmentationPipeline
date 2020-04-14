@@ -8,10 +8,8 @@
 
 function [] = mainSegmentationLoop(DataStruct, cube)
 
-for i = 1:DataStruct.imageVolumeDims(3)
+for i = 1:DataStruct.processingVolumeDims(3)
     b_Scan = cube(:,:,i);
-    %TODO: pass frames to the separate segmentaion function as additional
-    %param
     [label, frames] = createSegmenationLabel(b_Scan);
     %No layer visible
     if label == 0
@@ -19,7 +17,7 @@ for i = 1:DataStruct.imageVolumeDims(3)
         continue
     else
         flag_segmentationSufficient = 0;
-        [mask, curve] = segmentGradientImage(b_Scan, label, frames);
+        [mask, curve] = segmentaScanDerivative(b_Scan, label, frames);
         while ~flag_segmentationSufficient
             figure('units','normalized','outerposition',[0 0 1 1])
             imagesc(b_Scan);
@@ -55,14 +53,14 @@ for i = 1:DataStruct.imageVolumeDims(3)
             elseif label == 2
                 answer = questdlg('Were the boundary layers correctly segmented?','Please select one box',...
                     'Yes, both',...
-                    'No, only Endothelium',...
-                    'No, only OVD',...
+                    'No, Re-segment OVD',...
+                    'No, Re-segment Endothelium',...
                     'Yes, both');
                 switch answer
                     case 'Yes, both'
                         flag_segmentationSufficient = 1; %exit while-loop
                         continue
-                    case 'No, only Endothelium'
+                    case 'No, Re-segment OVD'
                         %OVD
                         intPts = selectOVDManually(b_Scan,...
                             round(DataStruct.processingVolumeDims(2)/40));
@@ -75,7 +73,7 @@ for i = 1:DataStruct.imageVolumeDims(3)
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (only OVD) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
-                    case 'No, only OVD'
+                    case 'No, Re-segment Endothelium'
                         %Endo
                         endPts = selectEndotheliumManually(b_Scan, 13);
                         curve(:,1) = interpolateQuadFctInRange(endPts,...
