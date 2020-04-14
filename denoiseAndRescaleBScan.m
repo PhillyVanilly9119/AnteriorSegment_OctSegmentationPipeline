@@ -6,11 +6,13 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [denoisedBScan] = denoiseAndRescaleBScan(bScan, scaleFac)
+function [denoisedBScan] = denoiseAndRescaleBScan(bScan, percentile)
 
 sz = size(bScan);
-% calculated noise on basis of 1% of lowest values in image
-noise = mean(bScan(bScan < mink(bScan, round(sz(1)*sz(2)/100))));
-denoisedBScan = uint8((255/scaleFac) .* (bScan-noise)); 
+onePercent = round(sz(1)*sz(2)/100);
+% calculated noise on basis of lowest pixel-values
+noise = mean(bScan(bScan < mink(bScan, onePercent*percentile)));
+
+denoisedBScan = bScan-noise; 
 
 end

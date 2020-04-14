@@ -10,7 +10,7 @@ function [label, frames] = createSegmenationLabel(image)
 
 [isEndo, isOVD] = segmentationDecision(image);
 
-imshow(image)
+imagesc(image)
 
 if isEndo && ~isOVD % case ONLY ENDOTHELIUM
     label = 1; %assuming ENDOthlium and EPIThelium
@@ -26,6 +26,9 @@ elseif isEndo && isOVD % case BOTH
     roi = drawrectangle;
     frames(:,1) = [round(roi.Position(1)), ...
         round(roi.Position(1) + roi.Position(3))];
+    close all;
+    pause(0.25)
+    imagesc(image)
     title('Please select area in which the OVD is clearly visible')
     roi = drawrectangle;
     frames(:,2) = [round(roi.Position(1)), ...
