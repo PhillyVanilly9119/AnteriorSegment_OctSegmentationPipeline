@@ -12,7 +12,7 @@ function [segmImg, curve] = segmentaScanDerivative(image, label, frames)
 
 % globals
 sz = size(image);
-offset = 5; %offset from found of ENDO-boundary
+offset = 30; %offset from found of ENDO-boundary
 curve = zeros(sz(1), 2);
 segmImg = zeros(sz(1),sz(2));
 
@@ -22,19 +22,23 @@ ovdVec = frames(1,2):frames(2,2);
 
 for i = 1:sz(1)
     aScan = abs(diff(image(:,i))); %calculate derivate along a-Scan
-   
+    
     % Map points in range of endothelium
     if all(i >= min(endoVec) & i <= max(endoVec)) && label ~= 0
-        [~, posesCornea] = maxk(aScan, 20);
+        [~, posesCornea] = maxk(aScan, 10); %TODO: once filters are working properly check whole aScan lenght
         posEndo = max(posesCornea); %find Endo in Cornea
-        curve(endoVec(i-min(endoVec)+1),1) = posEndo;
+        if ~isempty(posEndo)
+            curve(endoVec(i-min(endoVec)+1),1) = posEndo + offset;
+        end
     end
     
     % Map points in range of OVD
     if all(i >= min(ovdVec) & i <= max(ovdVec)) && label == 2
-        [~, posesOVD] = maxk(aScan(posEndo+offset:end),3); %find OVD
+        [~, posesOVD] = maxk(aScan(posEndo+offset:end), 3); %find OVD
         posOVD = min(posesOVD);
-        curve(ovdVec(i-min(ovdVec)+1),2) = posOVD + (posEndo+offset);
+        if ~isempty(posOVD)
+            curve(ovdVec(i-min(ovdVec)+1),2) = posOVD + (posEndo+offset);
+        end
     end
     
 end
@@ -42,8 +46,10 @@ end
 %% Fit the two curves
 %Endothel -> if == 0-vector, retuns still a 0-vector
 endoPolCoeffs = polyfit(endoVec, curve(endoVec,1)', 2);
-fittedEndothel = polyval(endoPolCoeffs, 1:sz(1));
-curve(:,1) = round(fittedEndothel);
+fittedEndothel = polyval(endoPolCoeffs, min(endoVec):max(endoVec));
+for i = min(endoVec):max(endoVec)
+    curve(i,1) = round(fittedEndothel(i-min(endoVec)+1));
+end
 curve(:,2) = round(curve(:,2));
 %value boundaries after segmentation
 curve(curve > 1024) = 1024;

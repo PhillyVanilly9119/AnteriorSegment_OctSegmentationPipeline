@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = saveCalculatedMask(DataStruct, curve, mask, image, bScanIDX)
+function [] = saveCalculatedMask(DataStruct, curve, mask, image, frames, bScanIDX)
 
 maskFolder = DataStruct.maskFolder;
 binFolder = DataStruct.dataFolder;
@@ -24,7 +24,9 @@ fclose(fileID);
 f = figure('visible', 'off');
 imagesc(image); 
 colormap gray; 
-hold on, plot(curve); 
+hold on
+plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) 
+plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
 maskNumber = sprintf('mask_of_bScanNo%0.0f.png', bScanIDX);
 saveas(f, fullfile(binFolder, maskNumber));
 close(f)

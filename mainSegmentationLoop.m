@@ -19,13 +19,15 @@ for i = 1:DataStruct.processingVolumeDims(3)
         flag_segmentationSufficient = 0;
         [mask, curve] = segmentaScanDerivative(b_Scan, label, frames);
         while ~flag_segmentationSufficient
+            %TODO: overwrite frames if manual additional segmentation took
+            %place
             figure('units','normalized','outerposition',[0 0 1 1])
             imagesc(b_Scan);
             colormap gray;
             hold on
             title('Segmented layer boundarys')
-            plot(curve(:,1)) %Endothelium
-            plot(curve(:,2)) %OVD
+            plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Endothelium
+            plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) %OVD
             %         legend({'Segmented Endothelium boundary layer', 'Segmented O0VD boundary layer'});
             pause(1)
             
@@ -106,7 +108,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
         end
         
         %Save the mask containing correctly segmented boundary layers
-        saveCalculatedMask(DataStruct, curve, mask, b_Scan, i);
+        saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
         
     end
     

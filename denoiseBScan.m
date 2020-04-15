@@ -8,13 +8,15 @@
 
 function [denoisedBScan] = denoiseBScan(bScan, percentile)
 
-sz = size(bScan);
-onePercent = round(sz(1)*sz(2)/100);
+% sz = size(bScan);
+% onePercent = round(sz(1)*sz(2)/100);
 % calculated noise on basis of lowest pixel-values
-noise = mean(bScan(bScan < mink(bScan, onePercent*percentile)));
+% noise = mean(bScan(bScan < mink(bScan, onePercent*percentile)));
+noise = percentile;
 
 denoisedBScan = bScan-noise; 
-fac = 255/(max(max(denoisedBScan)));
-denoisedBScan = fac .* denoisedBScan; 
+denoisedBScan(denoisedBScan < 0) = 0;
+% fac = 255/(max(max(denoisedBScan)));
+% denoisedBScan = fac .* denoisedBScan; 
 
 end

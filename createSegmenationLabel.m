@@ -35,8 +35,9 @@ elseif isEndo && isOVD % case BOTH
         round(roi.Position(1) + roi.Position(3))];
 else
     label = 0;
+    frames = zeros(2,2);
     disp("None of the layers of interest are visible");
-    return;
+    
 end
 
 close all

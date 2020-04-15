@@ -16,10 +16,9 @@ filtered = zeros(sz(1), sz(2), sz(3));
 
 for i = 1:sz(3)
     bScan = single(vol(:,:,i));
-    
-    tmpImg = denoiseAndRescaleBScan(bScan, 90); % rescale based on histo-values (coarse)
-    % maybe add additional filters
-    filtered(:,:,i) = filterImageNoise(tmpImg, 'openAndClose', 5); % denoise (coarse);
+    %Caution! Dont reuse denoiseBScan()
+    tmpImg = denoiseBScan(bScan, 50); % rescale based on histo-values (coarse)
+    filtered(:,:,i) = filterImageNoise(tmpImg, 'openAndClose', 2); % denoise (very fine);
     
 end
 
