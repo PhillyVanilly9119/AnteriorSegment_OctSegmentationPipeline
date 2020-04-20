@@ -8,6 +8,10 @@ Highest priority fixes that influence the useability of the **Pipeline**
 ### Beta devel fixes for **Pipeline** in intended use-case for OVD-thickness determination (Melli's BA)
 
 ##### Melli's Bug-Report
+- [ ] Ist es möglich das Fadenkreuz, mit dem die Punkte beim manuellen Segmentieren ausgewählt werden, in einer anderen Farbe z.B. gelb darzustellen? In Schwarz ist das Fadenkreuz auf dem schwarz-weiß OCT-Bild schwierig zu erkennen
+
+- [ ] Wenn bei erster Textbox (Abfrage ob Endothel und OVD-Schicht genügend sichtbar zur Segmentierung) ausgewählt wird, dass nur Endothel und nicht OVD sichtbar ist, springt es nicht zum nächsten Fenster, nachdem der Bildbereich ausgewählt wurde. 
+
 - [x] nachdem im ersten bScan beide Layer segmentiert wurden, springt es nicht automatisch zum nächsten BScan.  <br />
 -> gefixt: springt nach erfolgreicher Segmentierung zum nächsten b-Scan im Volumen
 
