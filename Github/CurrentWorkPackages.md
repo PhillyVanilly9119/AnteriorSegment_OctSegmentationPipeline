@@ -8,9 +8,13 @@ Highest priority fixes that influence the useability of the **Pipeline**
 ### Beta devel fixes for **Pipeline** in intended use-case for OVD-thickness determination (Melli's BA)
 
 ##### Melli's Bug-Report
-- [ ] Ist es möglich das Fadenkreuz, mit dem die Punkte beim manuellen Segmentieren ausgewählt werden, in einer anderen Farbe z.B. gelb darzustellen? In Schwarz ist das Fadenkreuz auf dem schwarz-weiß OCT-Bild schwierig zu erkennen
+- [x] Issue 1.1/1.2: Ist es möglich das Fadenkreuz, mit dem die Punkte beim manuellen Segmentieren ausgewählt werden, in einer anderen Farbe z.B. gelb darzustellen? In Schwarz ist das Fadenkreuz auf dem schwarz-weiß OCT-Bild schwierig zu erkennen. Feste Anzahl an Punkten sehr unvorteilhaft, da Grenzflächen von b-Scan zu b-Scan unterschiedlich lang sind  <br />
+-> 1.1 gefixt: Fadenkreuz ist jetzt doppellagig und weiß
+-> 1.2additional fix: keine feste Anzahl an Punkten mehr notwenig - User bestimmt mit Doppelklick das Ende der Segemtierung.
 
-- [ ] Wenn bei erster Textbox (Abfrage ob Endothel und OVD-Schicht genügend sichtbar zur Segmentierung) ausgewählt wird, dass nur Endothel und nicht OVD sichtbar ist, springt es nicht zum nächsten Fenster, nachdem der Bildbereich ausgewählt wurde. 
+- [ ] Wenn bei erster Textbox (Abfrage ob Endothel und OVD-Schicht genügend sichtbar zur Segmentierung) ausgewählt wird, dass nur Endothel und nicht OVD sichtbar ist, springt es nicht zum nächsten Fenster, nachdem der Bildbereich ausgewählt wurde.
+
+- [ ] Checken, ob bei reiner Endo-Segementierung die OVD Schicht berechnet wird und dann (fälschlicher Weise) in die Masken geschrieben wird
 
 - [x] nachdem im ersten bScan beide Layer segmentiert wurden, springt es nicht automatisch zum nächsten BScan.  <br />
 -> gefixt: springt nach erfolgreicher Segmentierung zum nächsten b-Scan im Volumen
@@ -32,5 +36,5 @@ Highest priority fixes that influence the useability of the **Pipeline**
 - [x] Masken können größer werden, als die eigentlichen Bilder.  <br />
 -> fixed: Masken werden anhand der Bildgrößen in gekapselten Funtionen erstellt
 
-- [ ] Implement lobal path and file-selection more dynamically, for making it work more easily on different machines and on different drives and directories. <br />
--> fixed: NO
+- [x] Implement lobal path and file-selection more dynamically, for making it work more easily on different machines and on different drives and directories. <br />
+-> fixed: takes the global variable

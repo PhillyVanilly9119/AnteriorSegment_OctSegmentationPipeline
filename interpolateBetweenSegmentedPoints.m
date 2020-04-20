@@ -10,7 +10,7 @@ function [curve] = interpolateBetweenSegmentedPoints(pts, imgWitdh, imgHeight)
 
 % pts = (2 x N) points
 % where first row is pos. in imgWidth and second row is pos. in imgHeight
-pts = round(pts);
+pts = pts';
 
 heightPts = interp1(pts(1,:), pts(2,:), min(pts(1,:)):max(pts(1,:)), 'PCHIP');
 

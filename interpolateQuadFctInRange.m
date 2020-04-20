@@ -9,14 +9,14 @@
 function [curve] = interpolateQuadFctInRange(pts, length)
 
 curve = zeros(length, 1);
+interval = min(pts(:,1)):max(pts(:,1));
 
-pts = round(pts);
-p = polyfit(pts(1,:), pts(2,:), 2);
-fit = round( polyval(p, (min(pts(1,:)):max(pts(1,:))) ) );
+p = polyfit(pts(:,1), pts(:,2), 2);
+fit = round( polyval(p, interval) );
 
 for i = 1:length
-    if all(i >= min(pts(1,:)) & i <= max(pts(1,:)))
-        curve(i) = fit(i-(min(pts(1,:)))+1);
+    if all( i >= min(interval) & i <= max(interval) )
+        curve(i) = fit( i-(min(pts(:,1)))+1 );
     else
         curve(i) = 0;
     end

@@ -44,7 +44,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         continue
                     case 'No'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan, 13);
+                        endPts = selectEndotheliumManually(b_Scan);
                         curve(:,1) = interpolateQuadFctInRange(endPts,...
                             DataStruct.processingVolumeDims(2));
                         %Fill boundary positions (only Endothelium) with ones
@@ -55,45 +55,42 @@ for i = 1:DataStruct.processingVolumeDims(3)
             elseif label == 2
                 answer = questdlg('Were the boundary layers correctly segmented?','Please select one box',...
                     'Yes, both',...
-                    'No, Re-segment OVD',...
-                    'No, Re-segment Endothelium',...
+                    'No, re-segment OVD',...
+                    'No, re-segment Endothelium',...
                     'Yes, both');
                 switch answer
                     case 'Yes, both'
                         flag_segmentationSufficient = 1; %exit while-loop
                         continue
-                    case 'No, Re-segment OVD'
+                    case 'No, re-segment OVD'
                         %OVD
-                        intPts = selectOVDManually(b_Scan,...
-                            round(DataStruct.processingVolumeDims(2)/40));
+                        intPts = selectOVDManually(b_Scan);
                         while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
                             disp('Points must be unique!\n')
-                            intPts = selectOVDManually(b_Scan,...
-                                round(DataStruct.processingVolumeDims(2)/40));
+                            intPts = selectOVDManually(b_Scan);
                         end
                         curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (only OVD) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
-                    case 'No, Re-segment Endothelium'
+                    case 'No, re-segment Endothelium'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan, 13);
+                        endPts = selectEndotheliumManually(b_Scan);
+                        figure, imagesc(b_Scan), hold on;
                         curve(:,1) = interpolateQuadFctInRange(endPts,...
                             DataStruct.processingVolumeDims(2));
                         %Fill boundary positions (only Endo) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
                     case 'None'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan, 13);
+                        endPts = selectEndotheliumManually(b_Scan);
                         curve(:,1) = interpolateQuadFctInRange(endPts,...
                             DataStruct.processingVolumeDims(2));
                         %OVD
-                        intPts = selectOVDManually(b_Scan,...
-                            round(DataStruct.processingVolumeDims(2)/40));
+                        intPts = selectOVDManually(b_Scan);
                         while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
                             disp('Points must be unique!\n')
-                            intPts = selectOVDManually(b_Scan,...
-                                round(DataStruct.processingVolumeDims(2)/40));
+                            intPts = selectOVDManually(b_Scan);
                         end
                         curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
