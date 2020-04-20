@@ -9,9 +9,9 @@
 function [pts] = selectEndotheliumManually(image)
 
 imshow(image)
-text = fprintf("Please select the Endothelium boundary layer with consecutive points\nOnce done, please end selection with a double click");
-title(text)
-
+title(["Select the Endothelium boundary through clicking with the cursor"...
+"\n" "Please only select unique, consecutive points" "\n"...
+"When the segmentation is complete, end it with a double click"])
 [x,y] = getpts;
 pts(:,1) = round(x);
 pts(:,2) = round(y);

@@ -25,8 +25,11 @@ f = figure('visible', 'off');
 imagesc(image); 
 colormap gray; 
 hold on
-plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) 
-plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
+plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1))
+% condition if ONLY Endothelium is visible
+if frames(1,2) ~= 0 && frames(2,2) ~= 0
+    plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
+end
 maskNumber = sprintf('mask_of_bScanNo%0.0f.png', bScanIDX);
 saveas(f, fullfile(binFolder, maskNumber));
 close(f)

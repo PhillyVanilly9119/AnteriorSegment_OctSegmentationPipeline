@@ -27,9 +27,11 @@ for i = 1:DataStruct.processingVolumeDims(3)
             hold on
             title('Segmented layer boundarys')
             plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Endothelium
-            plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) %OVD
-            %         legend({'Segmented Endothelium boundary layer', 'Segmented O0VD boundary layer'});
-            pause(1)
+            % condition if ONLY Endothelium is visible
+            if frames(1,2) ~= 0 && frames(2,2) ~= 0
+                plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) %OVD
+            end
+            pause(0.5)
             
             %Only Endothelium visible
             if label == 1
@@ -47,6 +49,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         endPts = selectEndotheliumManually(b_Scan);
                         curve(:,1) = interpolateQuadFctInRange(endPts,...
                             DataStruct.processingVolumeDims(2));
+                        curve(:,2) = 0;
                         %Fill boundary positions (only Endothelium) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
                 end
@@ -67,7 +70,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         intPts = selectOVDManually(b_Scan);
                         while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
                             disp('Points must be unique!\n')
-                            intPts = selectOVDManually(b_Scan);
+                            intPts = seletOVDManually(b_Scan);
                         end
                         curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
