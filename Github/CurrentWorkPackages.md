@@ -34,6 +34,22 @@ Highest priority fixes that influence the useability of the **Pipeline**
 
 - [ ] Issue 9: Wenn Endothel und OVD-Schicht nicht sichtbar (manchmal in Randbereichen der Kornea der Fall) und nicht segmentiert, wird da keine Maske ausgegeben. Ist es möglich, dennoch eine "leere" Maske zu generieren, damit später bei der Auswertung keine Lücke entsteht?
 
+- [ ] Issue 10: bei der manuellen Segmentierung passiert es öfters, dass es nicht zum nächsten Bscan weiterspringt, sondern mit folgender Fehlermeldung abbricht:
+      Unrecognized function or variable 'posEndo'.
+
+      Error in segmentaScanDerivative (line 37)
+        [~, posesOVD] = maxk(aScan(posEndo+offset:end), 3); %find OVD
+
+      Error in mainSegmentationLoop (line 20)
+        [mask, curve] = segmentaScanDerivative(b_Scan, label, frames);
+
+      Error in Run (line 101)
+      mainSegmentationLoop(DataStruct, ProcessedOctCube);
+
+      kann es daran liegen, dass der ausgewählte Bereich (wo die Schichten jeweils gut sichtbar sind) von Endothel kleiner ist als von der OVD-Schicht?
+
+- [ ] Issue 11: leider ist der Parabelfit des Endothels nur in den zentralen BScans passend und muss meist noch manuell segmentiert werden
+
 
 #### Phils Fix-suggestions
 - [x] Masken können größer werden, als die eigentlichen Bilder.  <br />
