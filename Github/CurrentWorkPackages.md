@@ -1,6 +1,6 @@
 # Work Packages
 ## Prio 1
-These work Packages should indicate the main developer(s) where and what should be implemented next, i.e. which fixes have to made or at least a description of the bug which has occured
+These work Packages should indicate the main developer(s) where and what should be implemented next, i.e. which fixes have to be made or at least a detailed description of the bug, where and when it occured and so on.
 
 Highest priority fixes that influence the useability of the **Pipeline**
 
