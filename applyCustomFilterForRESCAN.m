@@ -14,7 +14,7 @@ if strcmp(label, 'user')
     filtVol = customFilterOption(DataStruct, vol);
     
 %Userinput filtering
-elseif strcmp(label, 'custom')
+elseif strcmp(label, 'fixed')
     filtVol = applyFixedFilters(vol);
 
 else

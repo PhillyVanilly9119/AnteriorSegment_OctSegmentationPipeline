@@ -93,7 +93,7 @@ end
 
 
 %% 2) Apply filter, to allow segmentation
-ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'custom');
+ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'fixed');
 close all
 
 
