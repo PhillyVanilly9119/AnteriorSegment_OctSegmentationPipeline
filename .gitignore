@@ -10,3 +10,6 @@
 
 # Matlab images
 *.asv
+
+# Paths
+**/Github
