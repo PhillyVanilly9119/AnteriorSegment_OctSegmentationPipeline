@@ -27,10 +27,6 @@ thicknessMap = round(abs(imresize(thicknessMap, [128, 512], 'bicubic')));
 %%this case...
 % thicknessMap = abs(imresize(thicknessMap, [128, 512], 'bicubic'));
 
-Median_OvdThickness = median(nonzeros(thicknessMap))
-Mean_OvdThickness = mean(nonzeros(thicknessMap))
-NumberofValues_OvdThickness = numel(nonzeros(thicknessMap))
-
 figure
 %Change color map so that invalid points in thickness map are changes to a
 %grey shade
@@ -38,10 +34,22 @@ cmap = hot(256);
 cmap(1,:) = [0.5;0.5;0.5]; % grey
 colormap(cmap); % activate it
 imagesc(thicknessMap)
-
+colorbar
 axis square
 title('2D Falschfarbenprojektion der OVD-Schicht in µm (Z-HYALCOAT)')
 ylabel('BScans')
 
-% figure
-% surf(thicknessMap)
+
+figure
+cmap = hot(256);
+cmap(1,:) = [0.5;0.5;0.5]; % grey
+colormap(cmap);
+y = 1:64;
+x = 1:64;
+[X, Y] = meshgrid(x);
+F = imresize(thicknessMap, [64, 64], 'bicubic');
+surf(X,Y,F)
+colorbar
+
+
+
