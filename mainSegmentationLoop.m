@@ -17,7 +17,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
         continue
     else
         flag_segmentationSufficient = 0;
-        [mask, curve] = segmentaScanDerivative(b_Scan, label, frames);
+        [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
         while ~flag_segmentationSufficient
             %TODO: overwrite frames if manual additional segmentation took
             %place

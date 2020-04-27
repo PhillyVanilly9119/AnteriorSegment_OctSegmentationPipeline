@@ -8,7 +8,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [segmImg, curve] = segmentaScanDerivative(image, label, frames)
+function [segmImg, curve] = segmentAScanDerivative(image, label, frames)
 
 % globals
 sz = size(image);
@@ -42,6 +42,13 @@ for i = 1:sz(1)
     end
     
 end
+
+% nonZ = curve(curve(:,2)>0);
+% nonZ(nonZ<prctile(nonZ,75)) = prctile(nonZ,75);
+% windowWidth = 3; 
+% kernel = ones(windowWidth,1) / windowWidth;
+% out = filter(kernel, 1, nonZ);
+% curve(ovdVec-1,2) = out;
 
 %% Fit the two curves
 %Endothel -> if == 0-vector, retuns still a 0-vector
