@@ -27,6 +27,7 @@ thicknessMap = round(abs(imresize(thicknessMap, [128, 512], 'bicubic')));
 %%this case...
 % thicknessMap = abs(imresize(thicknessMap, [128, 512], 'bicubic'));
 
+% 2-D Plot of OVD-Thickness
 figure
 %Change color map so that invalid points in thickness map are changes to a
 %grey shade
@@ -36,10 +37,11 @@ colormap(cmap); % activate it
 imagesc(thicknessMap)
 colorbar
 axis square
-title('2D Falschfarbenprojektion der OVD-Schicht in µm (Z-HYALCOAT)')
+title('OCT OVD thickness map in µm (VISCOAT)')
 ylabel('BScans')
+xlabel('AScans')
 
-
+% 3-D Plot of OVD-Thickness
 figure
 cmap = hot(256);
 cmap(1,:) = [0.5;0.5;0.5]; % grey
@@ -51,5 +53,22 @@ F = imresize(thicknessMap, [64, 64], 'bicubic');
 surf(X,Y,F)
 colorbar
 
+% Count numbers within binranges
+figure
+ThicknessValueswithoutZero=nonzeros(thicknessMap);
+threshold_thickness = 200;
+treshold_mask = ThicknessValueswithoutZero > 200;
+bin_edges = 0:50:2000;
+histogram(ThicknessValueswithoutZero(treshold_mask),bin_edges, 'FaceColor', 'red');
+hold on
+histogram(ThicknessValueswithoutZero(~treshold_mask),bin_edges, 'FaceColor', 'black');
+hold off
+title('Histogram of OVD thickness')
+xlabel('OVD-Thickness in µm')
+ylabel('Absolute frequency')
 
+
+binranges=[0, threshold_thickness , 2000];
+[bincounts,ind] = histc(nonzeros(thicknessMap),binranges);
+percentage_thickness_greaterthan = bincounts(2,1)/numel(nonzeros(thicknessMap))
 
