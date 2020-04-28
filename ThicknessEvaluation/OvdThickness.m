@@ -37,7 +37,7 @@ colormap(cmap); % activate it
 imagesc(thicknessMap)
 colorbar
 axis square
-title('OCT OVD thickness map in µm (VISCOAT)')
+title('OCT OVD thickness map in µm (Z-HYALCOAT)')
 ylabel('BScans')
 xlabel('AScans')
 
@@ -67,9 +67,11 @@ hold off
 title('Histogram of OVD thickness')
 xlabel('OVD-Thickness in µm')
 ylabel('Absolute frequency')
-
+% relative frequency:
+% histogram(ThicknessValueswithoutZero(treshold_mask),bin_edges, 'Normalization', 'probability')
 
 binranges=[0, threshold_thickness , maxbin];
 [bincounts,ind] = histc(nonzeros(thicknessMap),binranges);
 percentage_thickness_greaterthan = bincounts(2,1)/numel(nonzeros(thicknessMap))
+
 
