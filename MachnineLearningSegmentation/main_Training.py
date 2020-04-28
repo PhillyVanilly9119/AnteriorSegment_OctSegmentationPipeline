@@ -5,31 +5,84 @@ Created on Mon Apr 27 16:14:31 2020
 @author: Philipp
 """
 
+import os
+import time
 import numpy as np
-from PIL import Image
+from PIL import Image 
+from tqdm import tqdm
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
-IMG_WIDTH = 128
-IMG_HEIGHT = 128
+""" GLOBALS """
+main_pth = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Training\Set1"
+IMG_WIDTH = 256 #TODO: Maybe net had to be adjusted to 1024x512 image sizes
+IMG_HEIGHT = 256
 IMG_CHANNELS = 1
     
-def prepareDataForTraining(path):
+def getValidationData(path, dims, flag_plot=False):
     
-# =============================================================================
-#     TODO: Return params from image loading function (also tbd)
-# =============================================================================
-    no_trn_smpls= 0
-    img_height, img_width, img_ch = 0, 0, 0
+    h, w = dims[0], dims[1]
+    file_path = os.path.join(path, 'validation')
+    files = os.listdir(file_path)
+    imgs_vali = []
     
-    X_train = np.zeros((len(no_trn_smpls), img_height, img_width, img_ch), dtype=np.uint8)
-    Y_train = np.zeros((len(no_trn_smpls), img_height, img_width, 1), dtype=np.bool)
+    for f in files:
+        im = Image.open(os.path.join(file_path, f))
+        new_img = im.resize((h,w))
+        imgs_vali.append(np.array(new_img)) 
     
-    return X_train, Y_train
+    imgs_vali = np.dstack(imgs_vali) 
+    imgs_vali = np.rollaxis(imgs_vali,-1)       
+    
+    if flag_plot:
+        fig, ax = plt.subplots(nrows=1, ncols=imgs_vali.shape[0])
+        for row in range(imgs_vali.shape[0]):
+            ax[row].imshow(imgs_vali[row], aspect='equal')
+            ax[row].axis('off')
+            ax[row].set_title(row+1)
+        
+    return imgs_vali
 
+
+def sanityCheckData(scans, masks):
+    if scans.shape[2] != masks.shape[2]:
+        print("Dimensions of data stacks do not match!")
+    for im in range(scans.shape[2]):
+        plt.ion()
+        plt.imshow(scans[:,:,im], 'gray', interpolation='none')
+        plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
+        plt.show()
+        plt.pause(0.125)
+        plt.clf()
+        
+    print("Done with displaying all images :)!")
+
+
+def prepareDataForTraining_ColSinglePix(path, dims):
+    
+    img_width, img_height = dims[0], dims[1]
+    scan_path = os.path.join(path, 'image')
+    mask_path = os.path.join(path, 'mask')
+    scan_files = os.listdir(scan_path)
+    mask_files = os.listdir(mask_path)
+    imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f))) for f in scan_files]
+    x_train = np.dstack(imgs_scan)
+    imgs_mask = [np.asarray(Image.open(os.path.join(mask_path, f)).resize((img_width, img_height))) for f in mask_files]
+    imgs_mask = np.array(imgs_mask, dtype=np.uint8)
+    imgs_mask = np.swapaxes(imgs_mask,0,2)
+    y_train = np.swapaxes(imgs_mask,0,1)
+
+    return x_train, y_train
+
+
+X_train, Y_train = prepareDataForTraining_ColSinglePix(main_pth, (512, 1024))
+sanityCheckData(X_train, Y_train)
 
 #Build the model
+# =============================================================================
+# TODO: Run with flag not in function
+# =============================================================================
 def createUNet(img_height, img_width, img_channels):
     
     inputs = tf.keras.layers.Input((img_height, img_width, img_channels))
@@ -90,5 +143,3 @@ def createUNet(img_height, img_width, img_channels):
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     model.summary()
-
-
