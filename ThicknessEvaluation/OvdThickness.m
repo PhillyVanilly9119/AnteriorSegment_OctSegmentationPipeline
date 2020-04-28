@@ -58,7 +58,8 @@ figure
 ThicknessValueswithoutZero=nonzeros(thicknessMap);
 threshold_thickness = 200;
 treshold_mask = ThicknessValueswithoutZero > 200;
-bin_edges = 0:50:2000;
+maxbin = max(thicknessMap, [], 'all');
+bin_edges = 0:50:maxbin;
 histogram(ThicknessValueswithoutZero(treshold_mask),bin_edges, 'FaceColor', 'red');
 hold on
 histogram(ThicknessValueswithoutZero(~treshold_mask),bin_edges, 'FaceColor', 'black');
@@ -68,7 +69,7 @@ xlabel('OVD-Thickness in µm')
 ylabel('Absolute frequency')
 
 
-binranges=[0, threshold_thickness , 2000];
+binranges=[0, threshold_thickness , maxbin];
 [bincounts,ind] = histc(nonzeros(thicknessMap),binranges);
 percentage_thickness_greaterthan = bincounts(2,1)/numel(nonzeros(thicknessMap))
 
