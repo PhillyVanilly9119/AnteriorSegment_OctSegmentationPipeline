@@ -7,6 +7,7 @@ Created on Mon Apr 27 16:14:31 2020
 
 import os
 import time
+import random
 import numpy as np
 from PIL import Image 
 from tqdm import tqdm
@@ -83,8 +84,10 @@ sanityCheckData(X_train, Y_train)
 # =============================================================================
 # TODO: Run with flag not in function
 # =============================================================================
-def createUNet(img_height, img_width, img_channels):
-    
+img_height, img_width, img_channels = 0,0,0
+flag_trainAndPredict = False
+
+if flag_trainAndPredict:    
     inputs = tf.keras.layers.Input((img_height, img_width, img_channels))
     conv_int = tf.keras.layers.Lambda(lambda x: x / 255)(inputs)
     
@@ -143,3 +146,28 @@ def createUNet(img_height, img_width, img_channels):
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     model.summary()
+    
+    
+    ################################
+    #Modelcheckpoint
+    checkpointer = tf.keras.callbacks.ModelCheckpoint('model_for_nuclei.h5', verbose=1, save_best_only=True)
+    
+    callbacks = [
+            tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_loss'),
+            tf.keras.callbacks.TensorBoard(log_dir='logs')]
+    
+    results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=16, epochs=25, callbacks=callbacks)
+    
+    ####################################
+    
+    idx = random.randint(0, len(X_train))
+    
+    preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
+    preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
+    preds_test = model.predict(X_test, verbose=1)
+    
+     
+    preds_train_t = (preds_train > 0.5).astype(np.uint8)
+    preds_val_t = (preds_val > 0.5).astype(np.uint8)
+    preds_test_t = (preds_test > 0.5).astype(np.uint8)
+    
