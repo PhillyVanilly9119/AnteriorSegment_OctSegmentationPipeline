@@ -2,11 +2,22 @@
 """
 Created on Mon Apr 27 16:14:31 2020
 
-@author: Philipp
+@author:    Philipp
+            philipp.matten@meduniwien.ac.at
+
+    ---> Main File containing functionality to train U-Net like NN
+
+                Basic archtecture was taken and modified from
+                
+                    Python for Microscopists by Sreeni (Youtube): 
+                    https://www.youtube.com/watch?v=68HR_eyzk00
+                    
+                    Check out his Github and feel free to cite Sreeni, 
+                    when you use his implementation
+
 """
 
 import os
-import time
 import random
 import numpy as np
 from PIL import Image 
@@ -17,10 +28,12 @@ import matplotlib.pyplot as plt
 
 """ GLOBALS """
 main_pth = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Training\Set1"
-IMG_WIDTH = 256 #TODO: Maybe net had to be adjusted to 1024x512 image sizes
-IMG_HEIGHT = 256
+IMG_WIDTH = 512 #TODO: Maybe net had to be adjusted to 1024x512 image sizes
+IMG_HEIGHT = 512
 IMG_CHANNELS = 1
     
+
+""" DATA PRE-PROCESSING """
 def getValidationData(path, dims, flag_plot=False):
     
     h, w = dims[0], dims[1]
@@ -45,7 +58,6 @@ def getValidationData(path, dims, flag_plot=False):
         
     return imgs_vali
 
-
 def sanityCheckData(scans, masks):
     if scans.shape[2] != masks.shape[2]:
         print("Dimensions of data stacks do not match!")
@@ -59,7 +71,6 @@ def sanityCheckData(scans, masks):
         
     print("Done with displaying all images :)!")
 
-
 def prepareDataForTraining_ColSinglePix(path, dims):
     
     img_width, img_height = dims[0], dims[1]
@@ -67,7 +78,7 @@ def prepareDataForTraining_ColSinglePix(path, dims):
     mask_path = os.path.join(path, 'mask')
     scan_files = os.listdir(scan_path)
     mask_files = os.listdir(mask_path)
-    imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f))) for f in scan_files]
+    imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f)).resize((img_width, img_height))) for f in scan_files]
     x_train = np.dstack(imgs_scan)
     imgs_mask = [np.asarray(Image.open(os.path.join(mask_path, f)).resize((img_width, img_height))) for f in mask_files]
     imgs_mask = np.array(imgs_mask, dtype=np.uint8)
@@ -77,20 +88,32 @@ def prepareDataForTraining_ColSinglePix(path, dims):
     return x_train, y_train
 
 
-X_train, Y_train = prepareDataForTraining_ColSinglePix(main_pth, (512, 1024))
+X_train, Y_train = prepareDataForTraining_ColSinglePix(main_pth, (IMG_WIDTH, IMG_HEIGHT))
 sanityCheckData(X_train, Y_train)
 
-#Build the model
-# =============================================================================
-# TODO: Run with flag not in function
-# =============================================================================
-img_height, img_width, img_channels = 0,0,0
-flag_trainAndPredict = False
 
+# =============================================================================
+# TRAINING PARAMS
+# =============================================================================
+flag_trainAndPredict = False
+img_h, img_w = IMG_HEIGHT, IMG_WIDTH
+
+#Build the model
 if flag_trainAndPredict:    
-    inputs = tf.keras.layers.Input((img_height, img_width, img_channels))
+    inputs = tf.keras.layers.Input((img_h, img_w, 1)) #3rd parameter is channels
     conv_int = tf.keras.layers.Lambda(lambda x: x / 255)(inputs)
     
+    """
+    
+    U-Net Layer structure:
+        
+    --> input (1024x512x1)                                                      --^ U6(NxMx32)->C7(NxMx32)
+        -> C1(NxMx1)                                                        --^ U6(NxMx32)->C7(NxMx32)
+            '--> P1(NxMx32)->C2(NxMx32)                                 --^ U6(NxMx32)->C7(NxMx32)
+                    '--> P2(NxMx32)->C3(NxMx32)                     --^ U6(NxMx32)->C7(NxMx32)
+                            '--> P3(NxMx32)->C4(NxMx32) ----> U6(NxMx32)->C7(NxMx32)
+                                        '--> P4(NxMx32) -> C5(NxMx32) --^
+    """
     #Contraction path
     c1 = tf.keras.layers.Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(conv_int)
     c1 = tf.keras.layers.Dropout(0.1)(c1)
