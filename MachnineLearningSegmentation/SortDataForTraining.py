@@ -13,8 +13,11 @@ from PIL import Image
 def sortAndAddTrainingData(main_path, train_dt_folder):
 # =============================================================================
 #     TODO: write logic to seamlessly add images to training data if numbers already exist
+#     TODO: Add user input sanity check of overlayed images -> call sanityCheckData()
 # =============================================================================
     bScan_path = main_path
+    png_extension = '.png'
+    bmp_extension = '.bmp'
     
     # folders for training data
     train_main_path = os.path.join(train_dt_folder, 'Set1') 
@@ -29,13 +32,12 @@ def sortAndAddTrainingData(main_path, train_dt_folder):
     if os.path.isdir(bScan_path) is True:
         bScan_list = glob.glob(os.path.join(bScan_path, "*.bmp"))
         # sort list after b-Scan #'s
-        scan_extension = '.bmp'
         bScan_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
         for infile in bScan_list:
-            number = infile.split('\\')[-1].split(scan_extension)[0]
+            number = infile.split('\\')[-1].split(bmp_extension)[0]
             im = Image.open(infile)
             if np.array(im).shape == (1024, 512): 
-                im.save(os.path.join(train_bScan_path, number + '.bmp')) 
+                im.save(os.path.join(train_bScan_path, number + png_extension)) 
     else:
         print("The mask folder: \"{}\" does not exist".format(bScan_path))
     
@@ -46,13 +48,12 @@ def sortAndAddTrainingData(main_path, train_dt_folder):
         mask_list = glob.glob(os.path.join(mask_path, "*.png"))
         # sort list after masks #'s
         mask_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
-        mask_extension = '.png'
         for infile in mask_list: 
-            number = infile.split('\\')[-1].split('No')[1].split(mask_extension)[0]
-            if infile.endswith(mask_extension):
+            number = infile.split('\\')[-1].split('No')[1].split(png_extension)[0]
+            if infile.endswith(png_extension):
                 im = Image.open(infile)
                 if np.array(im).shape == (1024, 1024): 
-                    im.save(os.path.join(train_mask_path, str(f'{int(number):03}') + '.bmp')) 
+                    im.save(os.path.join(train_mask_path, str(f'{int(number):03}') + png_extension)) 
     else:
         print("The mask folder: \"{}\" does not exist".format(mask_path))
 

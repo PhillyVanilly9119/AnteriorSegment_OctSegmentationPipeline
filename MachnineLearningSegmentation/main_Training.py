@@ -5,33 +5,89 @@ Created on Mon Apr 27 16:14:31 2020
 @author: Philipp
 """
 
+import os
+import time
+import random
 import numpy as np
-from PIL import Image
+from PIL import Image 
+from tqdm import tqdm
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
-IMG_WIDTH = 128
-IMG_HEIGHT = 128
+""" GLOBALS """
+main_pth = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Training\Set1"
+IMG_WIDTH = 256 #TODO: Maybe net had to be adjusted to 1024x512 image sizes
+IMG_HEIGHT = 256
 IMG_CHANNELS = 1
     
-def prepareDataForTraining(path):
+def getValidationData(path, dims, flag_plot=False):
     
-# =============================================================================
-#     TODO: Return params from image loading function (also tbd)
-# =============================================================================
-    no_trn_smpls= 0
-    img_height, img_width, img_ch = 0, 0, 0
+    h, w = dims[0], dims[1]
+    file_path = os.path.join(path, 'validation')
+    files = os.listdir(file_path)
+    imgs_vali = []
     
-    X_train = np.zeros((len(no_trn_smpls), img_height, img_width, img_ch), dtype=np.uint8)
-    Y_train = np.zeros((len(no_trn_smpls), img_height, img_width, 1), dtype=np.bool)
+    for f in files:
+        im = Image.open(os.path.join(file_path, f))
+        new_img = im.resize((h,w))
+        imgs_vali.append(np.array(new_img)) 
     
-    return X_train, Y_train
+    imgs_vali = np.dstack(imgs_vali) 
+    imgs_vali = np.rollaxis(imgs_vali,-1)       
+    
+    if flag_plot:
+        fig, ax = plt.subplots(nrows=1, ncols=imgs_vali.shape[0])
+        for row in range(imgs_vali.shape[0]):
+            ax[row].imshow(imgs_vali[row], aspect='equal')
+            ax[row].axis('off')
+            ax[row].set_title(row+1)
+        
+    return imgs_vali
 
+
+def sanityCheckData(scans, masks):
+    if scans.shape[2] != masks.shape[2]:
+        print("Dimensions of data stacks do not match!")
+    for im in range(scans.shape[2]):
+        plt.ion()
+        plt.imshow(scans[:,:,im], 'gray', interpolation='none')
+        plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
+        plt.show()
+        plt.pause(0.125)
+        plt.clf()
+        
+    print("Done with displaying all images :)!")
+
+
+def prepareDataForTraining_ColSinglePix(path, dims):
+    
+    img_width, img_height = dims[0], dims[1]
+    scan_path = os.path.join(path, 'image')
+    mask_path = os.path.join(path, 'mask')
+    scan_files = os.listdir(scan_path)
+    mask_files = os.listdir(mask_path)
+    imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f))) for f in scan_files]
+    x_train = np.dstack(imgs_scan)
+    imgs_mask = [np.asarray(Image.open(os.path.join(mask_path, f)).resize((img_width, img_height))) for f in mask_files]
+    imgs_mask = np.array(imgs_mask, dtype=np.uint8)
+    imgs_mask = np.swapaxes(imgs_mask,0,2)
+    y_train = np.swapaxes(imgs_mask,0,1)
+
+    return x_train, y_train
+
+
+X_train, Y_train = prepareDataForTraining_ColSinglePix(main_pth, (512, 1024))
+sanityCheckData(X_train, Y_train)
 
 #Build the model
-def createUNet(img_height, img_width, img_channels):
-    
+# =============================================================================
+# TODO: Run with flag not in function
+# =============================================================================
+img_height, img_width, img_channels = 0,0,0
+flag_trainAndPredict = False
+
+if flag_trainAndPredict:    
     inputs = tf.keras.layers.Input((img_height, img_width, img_channels))
     conv_int = tf.keras.layers.Lambda(lambda x: x / 255)(inputs)
     
@@ -90,5 +146,28 @@ def createUNet(img_height, img_width, img_channels):
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     model.summary()
-
-
+    
+    
+    ################################
+    #Modelcheckpoint
+    checkpointer = tf.keras.callbacks.ModelCheckpoint('model_for_nuclei.h5', verbose=1, save_best_only=True)
+    
+    callbacks = [
+            tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_loss'),
+            tf.keras.callbacks.TensorBoard(log_dir='logs')]
+    
+    results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=16, epochs=25, callbacks=callbacks)
+    
+    ####################################
+    
+    idx = random.randint(0, len(X_train))
+    
+    preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
+    preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
+    preds_test = model.predict(X_test, verbose=1)
+    
+     
+    preds_train_t = (preds_train > 0.5).astype(np.uint8)
+    preds_val_t = (preds_val > 0.5).astype(np.uint8)
+    preds_test_t = (preds_test > 0.5).astype(np.uint8)
+    
