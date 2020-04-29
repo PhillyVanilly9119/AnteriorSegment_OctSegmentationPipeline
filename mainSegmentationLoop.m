@@ -8,9 +8,17 @@
 
 function [] = mainSegmentationLoop(DataStruct, cube)
 
+% pre-allocate special masks
+continMask = zeros(DataStruct.processingVolumeDims(1),...
+            DataStruct.processingVolumeDims(2));
+thickMask = zeros(DataStruct.processingVolumeDims(1),...
+            DataStruct.processingVolumeDims(2));
+
 for i = 1:DataStruct.processingVolumeDims(3)
+    
     b_Scan = cube(:,:,i);
     [label, frames] = createSegmenationLabel(b_Scan);
+    
     %No layer visible
     if label == 0
         fprintf("No layers visible in b-Scan No.%0.0f\n", i);
@@ -18,6 +26,7 @@ for i = 1:DataStruct.processingVolumeDims(3)
     else
         flag_segmentationSufficient = 0;
         [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
+
         while ~flag_segmentationSufficient
             %TODO: overwrite frames if manual additional segmentation took
             %place
@@ -52,6 +61,8 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         curve(:,2) = 0;
                         %Fill boundary positions (only Endothelium) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
+                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
+                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                 end
                 
                 %Both layers visible
@@ -76,6 +87,8 @@ for i = 1:DataStruct.processingVolumeDims(3)
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (only OVD) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
+                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
+                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                     case 'No, re-segment Endothelium'
                         %Endo
                         endPts = selectEndotheliumManually(b_Scan);
@@ -84,6 +97,8 @@ for i = 1:DataStruct.processingVolumeDims(3)
                             DataStruct.processingVolumeDims(2));
                         %Fill boundary positions (only Endo) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
+                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
+                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                     case 'None'
                         %Endo
                         endPts = selectEndotheliumManually(b_Scan);
@@ -99,6 +114,8 @@ for i = 1:DataStruct.processingVolumeDims(3)
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (both layers) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
+                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
+                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                 end
             else
                 disp("Unecpected value for label of layers...\n")
@@ -107,8 +124,10 @@ for i = 1:DataStruct.processingVolumeDims(3)
             close all
         end
         
-        %Save the mask containing correctly segmented boundary layers
+        %Save the masks containing correctly segmented boundary layers)
         saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
+        saveContinMasks(DataStruct, continMask, i)
+        saveThickMasks(DataStruct, thickMask, i);
         
     end
     

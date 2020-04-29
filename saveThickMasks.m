@@ -6,14 +6,12 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = saveContAndThickMasks(DataStruct, contMask, thickMask, bScanIDX)
+function [] = saveThickMasks(DataStruct, mask, idx)
 
-contMaskFolder = DataStruct.contMaskFolder;
 thickMaskFolder = DataStruct.thickMaskFolder;
 
-name = sprintf('maskNo%0.0f.png', bScanIDX);
+name = sprintf('maskNo%0.0f.png', idx);
 
-imwrite(contMask, fullfile(contMaskFolder, name));
-imwrite(thickMask, fullfile(thickMaskFolder, name));
+imwrite(mask, fullfile(thickMaskFolder, name));
 
 end

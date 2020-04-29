@@ -13,18 +13,31 @@ mask = zeros(DataStruct.processingVolumeDims(1),...
 
 for i = 1:DataStruct.processingVolumeDims(1)
     if curve(i,1) ~= 0
-        mask(curve(i,1),i) = 1; % mask(px#,i)
-        % if next aScan contains segmented pixel -> interpolate continously
-        if (curve(i+1,1) ~= 0) && (i < (DataStruct.processingVolumeDims(1) - 1))
-            diff = curve(i,1)-curve(i+1,1); % distance in y between adjecent pixels
-            diffHalf = round(diff/2);
-            mask(curve(i,1):curve(i,1)+diffHalf,i) = 1;
-            mask(curve(i+1,1):curve(i+1,1)-diffHalf,i) = 1;
-        end
+        mask(curve(i,1)-1:curve(i,1)+1,i) = 1;
     end
     if curve(i,2) ~= 0
-        mask(curve(i,2),i) = 1;
+        mask(curve(i,2)-1:curve(i,2)+1,i) = 1; % mask(px#,i)
+        % if "next aScan contains continuous segmented pixel
+        % -> interpolate continously"
+        if (curve(i+1,2) ~= 0) && (i < (DataStruct.processingVolumeDims(1) - 1)) &&...
+                (curve(i+1,2) ~= curve(i,2) || curve(i+1,2) ~= curve(i,2)-1 || curve(i+1,2) ~= curve(i,2)+1)
+            diffHalf = round( (curve(i,2)-curve(i+1,2)) / 2 );
+            if diffHalf > 0 % positive slope of boundary layer
+                mask( curve(i,2) : curve(i,2) - diffHalf, i ) = 1;
+                mask( curve(i+1,2) + diffHalf : curve(i+1,2), i ) = 1;
+            else % negative slope of boundary layer
+                mask( curve(i,2) : curve(i,2) + diffHalf, i ) = 1;
+                mask( curve(i+1,2) : curve(i+1,2) - diffHalf, i ) = 1;
+            end
+        end
     end
 end
+
+intImg = interp2(double(mask));
+intImg(intImg>0) = 1;
+mask = interp2(double(intImg));
+mask(mask>0) = 1;
+mask = imresize(mask,[DataStruct.processingVolumeDims(1),...
+    DataStruct.processingVolumeDims(2)]);
 
 end
