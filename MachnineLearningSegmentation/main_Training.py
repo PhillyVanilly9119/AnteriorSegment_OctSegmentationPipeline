@@ -107,11 +107,11 @@ if flag_trainAndPredict:
     
     U-Net Layer structure:
         
-    --> input (1024x512x1)                                                      --^ U6(NxMx32)->C7(NxMx32)
-        -> C1(NxMx1)                                                        --^ U6(NxMx32)->C7(NxMx32)
-            '--> P1(NxMx32)->C2(NxMx32)                                 --^ U6(NxMx32)->C7(NxMx32)
-                    '--> P2(NxMx32)->C3(NxMx32)                     --^ U6(NxMx32)->C7(NxMx32)
-                            '--> P3(NxMx32)->C4(NxMx32) ----> U6(NxMx32)->C7(NxMx32)
+    --> [INPUT] (1024x512x1)                                                    ,--> C7(1024x512x32) [OUTPUT]
+        -> C1(NxMx1)                                                        ,--> U6(NxMx32)->C7(NxMx32)
+            '--> P1(NxMx32)->C2(NxMx32)                                 ,--> U6(NxMx32)->C7(NxMx32)
+                '--> P2(NxMx32)->C3(NxMx32)                     ,--> U6(NxMx32)->C7(NxMx32)
+                     '--> P3(NxMx32)->C4(NxMx32) ----> U6(NxMx32)->C7(NxMx32)
                                         '--> P4(NxMx32) -> C5(NxMx32) --^
     """
     #Contraction path
