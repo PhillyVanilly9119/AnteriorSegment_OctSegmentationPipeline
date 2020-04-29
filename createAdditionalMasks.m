@@ -32,18 +32,18 @@ for i = 1:sz(3)
     fileNameThick = sprintf('maskNo%0.0f.png', i);
     contiCurves = getCurves(maskStack(:,:,i));
     continMask = mapCurveIntoMasks(sz, contiCurves);
-    thickMask = thickenMask(maskStack(:,:,i));
+    thickMask = thickenMask(maskStack(:,:,i), maskDims);
     % Save images
     imwrite(continMask, fullfile(contMaskFolder, fileNamecont));
     imwrite(thickMask, fullfile(thickMaskFolder, fileNameThick));
 end
 
 
-    function [intMask] = thickenMask(mask)
+    function [intMask] = thickenMask(mask, maskDims)
         int1 = interp2(double(mask));
-        int1(int1>0) = 1;
         intMask = interp2(double(int1));
-        intMask(intMask>0) = 1;
+        intMask = imresize(intMask, [maskDims(1), maskDims(2)]);
+        intMask(intMask~=0) = 1;
     end
 
 
@@ -71,7 +71,8 @@ end
         mask = zeros(dims(1), dims(2));
         
         for j = 1:dims(2)
-            if curve(j,1) ~= 0 && curve(j+1,1) ~= 0
+            if curve(j,1) ~= 0 && curve(j+1,1) ~= 0 &&...
+                    ( round(0.02*dims(1)) > abs(curve(j+1,1)-curve(j,1)) )
                 mask(curve(j,1),j) = 1;
                 if curve(j,1) < curve(j+1,1)
                     mask(curve(j,1)+1:curve(j+1,1),j+1) = 1;
@@ -83,7 +84,8 @@ end
             end
             
             %if a-Scan and next a-Scan ~= 0
-            if curve(j,2) ~= 0 && curve(j+1,2) ~= 0
+            if curve(j,2) ~= 0 && curve(j+1,2) ~= 0 &&...
+                    ( round(0.02*dims(1)) > abs(curve(j+1,1)-curve(j,1)) )
                 mask(curve(j,2),j) = 1;
                 if curve(j,2) < curve(j+1,2)
                     mask(curve(j,2)+1:curve(j+1,2),j+1) = 1;
