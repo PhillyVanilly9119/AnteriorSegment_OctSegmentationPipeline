@@ -11,7 +11,7 @@ function [] = createAdditionalMasks()
 %Get mask directory
 maskDims = [1024, 1024];
 maskDir = uigetdir();
-tmp = strsplit(maskDir, '\masks_');
+tmp = strsplit(maskDir, 'masks_');
 %create direcotries for other two types of masks
 contMaskFolder = fullfile(tmp{1}, strcat('continuousMasks_',tmp{end}));
 if ~exist(contMaskFolder, 'dir')
@@ -33,11 +33,25 @@ for i = 1:sz(3)
     contiCurves = getCurves(maskStack(:,:,i));
     continMask = mapCurveIntoMasks(sz, contiCurves);
     thickMask = thickenMask(maskStack(:,:,i), maskDims);
-    % Save images
     imwrite(continMask, fullfile(contMaskFolder, fileNamecont));
     imwrite(thickMask, fullfile(thickMaskFolder, fileNameThick));
-end
+    
+%     composite = imfuse(continMask, thickMask, 'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
+%     imshow(composite)
+%     prompt = 'Press \"1\" if the image is good and \"0\" if not';
+%     x = input(prompt);
+%     if x == 1
+%         close all
+%         % Save images
+%         imwrite(continMask, fullfile(contMaskFolder, fileNamecont));
+%         imwrite(thickMask, fullfile(thickMaskFolder, fileNameThick));
+%     elseif x == 0
+%         close all
+%     else
+%         error("Invalid keyboard input. Select 1 if the image was good images and 0 if not");
+%     end
 
+end
 
     function [intMask] = thickenMask(mask, maskDims)
         int1 = interp2(double(mask));

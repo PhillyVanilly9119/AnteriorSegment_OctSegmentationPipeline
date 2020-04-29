@@ -66,16 +66,18 @@ def sanityCheckData(scans, masks):
         plt.imshow(scans[:,:,im], 'gray', interpolation='none')
         plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
         plt.show()
-        plt.pause(0.125)
+        plt.pause(0.25)
         plt.clf()
         
     print("Done with displaying all images :)!")
 
-def prepareDataForTraining_ColSinglePix(path, dims):
-    
+def prepareDataForTraining(path, dims):
+    """
+    call function multiple times on different files if you want to add training data from different cubes
+    """
     img_width, img_height = dims[0], dims[1]
-    scan_path = os.path.join(path, 'image')
-    mask_path = os.path.join(path, 'mask')
+    scan_path = os.path.join(path, 'images')
+    mask_path = os.path.join(path, 'masks')
     scan_files = os.listdir(scan_path)
     mask_files = os.listdir(mask_path)
     imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f)).resize((img_width, img_height))) for f in scan_files]
@@ -88,7 +90,7 @@ def prepareDataForTraining_ColSinglePix(path, dims):
     return x_train, y_train
 
 
-X_train, Y_train = prepareDataForTraining_ColSinglePix(main_pth, (IMG_WIDTH, IMG_HEIGHT))
+X_train, Y_train = prepareDataForTraining(main_pth, (IMG_WIDTH, IMG_HEIGHT))
 sanityCheckData(X_train, Y_train)
 
 
