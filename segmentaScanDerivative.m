@@ -33,7 +33,7 @@ for i = 1:sz(1)
     end
     
     % Map points in range of OVD
-    if all(i >= min(ovdVec) & i <= max(ovdVec)) && label == 2
+    if all(i >= min(ovdVec) & i <= max(ovdVec)) && label == 2 && exist('posEndo', 'var')
         [~, posesOVD] = maxk(aScan(posEndo+offset:end), 3); %find OVD
         posOVD = min(posesOVD);
         if ~isempty(posOVD)

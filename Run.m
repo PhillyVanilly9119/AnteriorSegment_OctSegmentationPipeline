@@ -83,14 +83,21 @@ DataStruct.processingVolumeDims(3) = correctSz(3);
 
 %TODO: Add precheck for already segmented masks
 
-%Check if folder for masks exists &/ create it
+%Check if FOLDERS for MASKS already exist &/ create it
 tmp = strsplit(DataStruct.currentDataPath, '\');
 DataStruct.dataFolder = fullfile(DataStruct.currentDataPath, 'Segmented_Data');
 DataStruct.maskFolder = fullfile(DataStruct.dataFolder, strcat('masks_',tmp{end}));
 if ~exist(DataStruct.maskFolder, 'dir')
     mkdir(DataStruct.maskFolder)
 end
-
+DataStruct.contMaskFolder = fullfile(DataStruct.dataFolder, strcat('continuousMasks_',tmp{end}));
+if ~exist(DataStruct.contMaskFolder, 'dir')
+    mkdir(DataStruct.contMaskFolder)
+end
+DataStruct.thickMaskFolder = fullfile(DataStruct.dataFolder, strcat('thickMasks_',tmp{end}));
+if ~exist(DataStruct.thickMaskFolder, 'dir')
+    mkdir(DataStruct.thickMaskFolder)
+end
 
 %% 2) Apply filter, to allow segmentation
 ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'fixed');
