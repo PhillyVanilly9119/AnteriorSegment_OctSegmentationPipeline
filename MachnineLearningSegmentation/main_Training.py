@@ -77,7 +77,7 @@ def prepareDataForTraining(path, dims):
     """
     img_width, img_height = dims[0], dims[1]
     scan_path = os.path.join(path, 'images')
-    mask_path = os.path.join(path, 'masks')
+    mask_path = os.path.join(path, 'masks_')
     scan_files = os.listdir(scan_path)
     mask_files = os.listdir(mask_path)
     imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f)).resize((img_width, img_height))) for f in scan_files]

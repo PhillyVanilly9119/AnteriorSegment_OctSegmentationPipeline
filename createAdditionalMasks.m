@@ -8,11 +8,11 @@
 
 function [] = createAdditionalMasks()
 
-%Get mask directory
+% Get mask directory
 maskDims = [1024, 1024];
 maskDir = uigetdir();
 tmp = strsplit(maskDir, 'masks_');
-%create direcotries for other two types of masks
+% Create direcotries for additional two types of masks
 contMaskFolder = fullfile(tmp{1}, strcat('continuousMasks_',tmp{end}));
 if ~exist(contMaskFolder, 'dir')
     mkdir(contMaskFolder)
@@ -22,11 +22,11 @@ if ~exist(thickMaskFolder, 'dir')
     mkdir(thickMaskFolder)
 end
 
-%Load all masks
-maskStack = loadOctImages(maskDir, maskDims(1), maskDims(2), 'png');
+% Load all (sorted!) masks
+maskStack = loadMasksFromFile(maskDir, maskDims(1), maskDims(2), 'png');
 sz = size(maskStack);
 
-%loop through masks
+% Loop through masks
 for i = 1:sz(3)
     fileNamecont = sprintf('maskNo%0.0f.png', i);
     fileNameThick = sprintf('maskNo%0.0f.png', i);
@@ -35,21 +35,6 @@ for i = 1:sz(3)
     thickMask = thickenMask(maskStack(:,:,i), maskDims);
     imwrite(continMask, fullfile(contMaskFolder, fileNamecont));
     imwrite(thickMask, fullfile(thickMaskFolder, fileNameThick));
-    
-%     composite = imfuse(continMask, thickMask, 'falsecolor','Scaling','joint','ColorChannels',[1 2 0]);
-%     imshow(composite)
-%     prompt = 'Press \"1\" if the image is good and \"0\" if not';
-%     x = input(prompt);
-%     if x == 1
-%         close all
-%         % Save images
-%         imwrite(continMask, fullfile(contMaskFolder, fileNamecont));
-%         imwrite(thickMask, fullfile(thickMaskFolder, fileNameThick));
-%     elseif x == 0
-%         close all
-%     else
-%         error("Invalid keyboard input. Select 1 if the image was good images and 0 if not");
-%     end
 
 end
 
