@@ -21,7 +21,14 @@ for i = 1:DataStruct.processingVolumeDims(3)
     
     %No layer visible
     if label == 0
-        fprintf("No layers visible in b-Scan No.%0.0f\n", i);
+        % save only empty masks in this interation
+        saveEmptyMask(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+            DataStruct.processingVolumeDims(2)), i);
+        saveContinMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+            DataStruct.processingVolumeDims(2)), i)
+        saveThickMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+            DataStruct.processingVolumeDims(2)), i);
+        fprintf("No layers visible in b-Scan No.%0.0f \nSaved empty a mask", i);
         continue
     else
         flag_segmentationSufficient = 0;
