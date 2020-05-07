@@ -34,10 +34,7 @@ for i = 1:DataStruct.processingVolumeDims(1)
 end
 
 % Thicken lines through 2x 2D-interpolation
-intImg = interp2(double(mask));
-mask = interp2(double(intImg));
-mask = imresize(mask,[DataStruct.processingVolumeDims(1),...
-    DataStruct.processingVolumeDims(2)]);
-mask(mask>0) = 1;
+mask = thickenMask(mask, [DataStruct.processingVolumeDims(1),...
+    DataStruct.processingVolumeDims(2)], 1);
 
 end
