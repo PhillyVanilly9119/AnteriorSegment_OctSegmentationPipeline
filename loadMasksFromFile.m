@@ -6,20 +6,21 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [octCube] = loadMasksFromFile(path, aScanLength, bScanLength, imgDtTypr)
+function [masks] = loadMasksFromFile(path, aScanLength, bScanLength, imgDtTypr)
 
 cd(path)
+delete *.bin
 files = dir(strcat('*.', imgDtTypr));
 cellStruct = struct2cell(files);
 unsorted = cellStruct(1,:);
 sorted = natsortfiles(unsorted);
-octCube = zeros(aScanLength, bScanLength, length(sorted));
+masks = zeros(aScanLength, bScanLength, length(sorted));
 
 for i = 1:length(sorted)
     if isfile(fullfile(path, sorted{i}))
         tmp = imread(sorted{i});
         if length(tmp(:,1)) == aScanLength && length(tmp(1,:)) == bScanLength
-            octCube(:,:,i) = tmp;
+            masks(:,:,i) = tmp;
         else
             fprintf("Image NO.%0.0f has a different size than was expected!\n", i);
         end
@@ -29,6 +30,6 @@ for i = 1:length(sorted)
    
 end
 
-octCube = uint8(octCube);
+masks = uint8(masks);
 
 end
