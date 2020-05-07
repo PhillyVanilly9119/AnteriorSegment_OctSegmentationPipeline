@@ -10,7 +10,7 @@ function [] = saveThickMasks(DataStruct, mask, idx)
 
 thickMaskFolder = DataStruct.thickMaskFolder;
 
-name = sprintf('maskNo%0.0f.png', idx);
+name = sprintf('maskNo%0.0f.png', idx-1);
 
 imwrite(mask, fullfile(thickMaskFolder, name));
 
