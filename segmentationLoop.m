@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = mainSegmentationLoop(DataStruct, cube)
+function [] = segmentationLoop(DataStruct, cube)
 
 % pre-allocate special masks
 continMask = zeros(DataStruct.processingVolumeDims(1),...
@@ -62,8 +62,8 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         continue
                     case 'No'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan);
-                        curve(:,1) = interpolateQuadFctInRange(endPts,...
+                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
+                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
                             DataStruct.processingVolumeDims(2));
                         curve(:,2) = 0;
                         %Fill boundary positions (only Endothelium) with ones
@@ -85,12 +85,12 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         continue
                     case 'No, re-segment OVD'
                         %OVD
-                        intPts = selectOVDManually(b_Scan);
-                        while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
+                        ovdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
+                        while numel(ovdPts(1,:))~= numel(unique(ovdPts(1,:)))
                             disp('Points must be unique!\n')
-                            intPts = seletOVDManually(b_Scan);
+                            ovdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
                         end
-                        curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
+                        curve(:,2) = interpolateBetweenSegmentedPoints(ovdPts,...
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (only OVD) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
@@ -98,9 +98,9 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                     case 'No, re-segment Endothelium'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan);
+                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
                         figure, imagesc(b_Scan), hold on;
-                        curve(:,1) = interpolateQuadFctInRange(endPts,...
+                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
                             DataStruct.processingVolumeDims(2));
                         %Fill boundary positions (only Endo) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
@@ -108,16 +108,16 @@ for i = 1:DataStruct.processingVolumeDims(3)
                         thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
                     case 'None'
                         %Endo
-                        endPts = selectEndotheliumManually(b_Scan);
-                        curve(:,1) = interpolateQuadFctInRange(endPts,...
+                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
+                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
                             DataStruct.processingVolumeDims(2));
                         %OVD
-                        intPts = selectOVDManually(b_Scan);
-                        while numel(intPts(1,:))~= numel(unique(intPts(1,:)))
+                        ocdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
+                        while numel(ocdPts(1,:))~= numel(unique(ocdPts(1,:)))
                             disp('Points must be unique!\n')
-                            intPts = selectOVDManually(b_Scan);
+                            ocdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
                         end
-                        curve(:,2) = interpolateBetweenSegmentedPoints(intPts,...
+                        curve(:,2) = interpolateBetweenSegmentedPoints(ocdPts,...
                             DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
                         %Fill boundary positions (both layers) with ones
                         mask = mapCurveIntoMask(DataStruct, curve);
