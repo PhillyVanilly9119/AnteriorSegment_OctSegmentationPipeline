@@ -16,6 +16,14 @@ DataStruct.processingVolumeDims =   [
     ];
 DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
 DataStruct.binFileName = 'octDataCube.bin';
+DataStruct.endoText = ["Select the Endothelium boundary through clicking with the cursor"...
+"Please only select unique, consecutive points"...
+"When the segmentation is complete, end it with a double click"];
+DataStruct.epiText = "Select the Epithelium boundary through clicking with the cursor";
+DataStruct.ovdText = ["Select the Endothelium boundary through clicking with the cursor"...
+"Please only select unique, consecutive points"...
+"When the segmentation is complete, end it with a double click"];
+
 
 %% 1) Preprocessing: Loading Data
 
@@ -105,7 +113,7 @@ close all
 
 
 %% 3) Begin segmenatation
-mainSegmentationLoop(DataStruct, ProcessedOctCube);
+segmentationLoop(DataStruct, ProcessedOctCube);
 
 
 %% END
