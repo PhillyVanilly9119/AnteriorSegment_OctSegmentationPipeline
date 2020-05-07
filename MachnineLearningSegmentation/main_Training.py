@@ -5,15 +5,15 @@ Created on Mon Apr 27 16:14:31 2020
 @author:    Philipp
             philipp.matten@meduniwien.ac.at
 
-    ---> Main File containing functionality to train U-Net like NN
+    ---> Main File containing functionality to train UNet-like-NN
 
-                Basic archtecture was taken and modified from
+            Basic archtecture was taken and modified from
                 
-                    Python for Microscopists by Sreeni (Youtube): 
-                    https://www.youtube.com/watch?v=68HR_eyzk00
+                Python for Microscopists by Sreeni (Youtube): 
+                https://www.youtube.com/watch?v=68HR_eyzk00
                     
-                    Check out his Github and feel free to cite Sreeni, 
-                    when you use his implementation
+                Check out his Github and feel free to cite Sreeni, 
+                when you use his implementation (i.e. for a publication)
 
 """
 
@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 
 
 """ GLOBALS """
-main_pth = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Training\Set1"
+main_pth = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1_SegmentedVolumes\Set7"
 IMG_WIDTH = 512 #TODO: Maybe net had to be adjusted to 1024x512 image sizes
 IMG_HEIGHT = 512
 IMG_CHANNELS = 1
@@ -77,7 +77,7 @@ def prepareDataForTraining(path, dims):
     """
     img_width, img_height = dims[0], dims[1]
     scan_path = os.path.join(path, 'images')
-    mask_path = os.path.join(path, 'masks_')
+    mask_path = os.path.join(path, 'masks')
     scan_files = os.listdir(scan_path)
     mask_files = os.listdir(mask_path)
     imgs_scan = [np.asarray(Image.open(os.path.join(scan_path, f)).resize((img_width, img_height))) for f in scan_files]
