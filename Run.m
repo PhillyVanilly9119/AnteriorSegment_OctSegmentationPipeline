@@ -106,6 +106,10 @@ DataStruct.thickMaskFolder = fullfile(DataStruct.dataFolder, strcat('thickMasks_
 if ~exist(DataStruct.thickMaskFolder, 'dir')
     mkdir(DataStruct.thickMaskFolder)
 end
+DataStruct.machineLearningFolder = fullfile(DataStruct.currentDataPath, "Data_Machine_Learning");
+if ~exist(DataStruct.machineLearningFolder, 'dir')
+    mkdir(DataStruct.machineLearningFolder)
+end
 
 %% 2) Apply filter, to allow segmentation
 ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'fixed');
@@ -113,7 +117,7 @@ close all
 
 
 %% 3) Begin segmenatation
-segmentationLoop(DataStruct, ProcessedOctCube);
+segmentationLoop(DataStruct, OctDataCube, ProcessedOctCube);
 
 
 %% END

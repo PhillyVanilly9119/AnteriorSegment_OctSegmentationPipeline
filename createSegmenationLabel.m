@@ -44,12 +44,12 @@ end
 close all
 
 if (min(frames(1,1)) < 1) || (max(frames(2,1)) > sz(2))
-    warning("OUT OF BOUNDS ERROR: ENDOTHELIUM-margins outsinde image -> setting boundaries on image-margins");
+    warning("OUT OF BOUNDS ERROR: ENDOTHELIUM-margins outsinde image -> setting boundaries at image-margins");
     frames(1,1) = 1;
     frames(2,1) = sz(2);
 end
 if (min(frames(1,2)) < 1) || (max(frames(2,2)) > sz(2))
-    warning("OUT OF BOUNDS ERROR: OVD-margins outsinde image -> setting boundaries on image-margins!");
+    warning("OUT OF BOUNDS ERROR: OVD-margins outsinde image -> setting boundaries at image-margins!");
     frames(1,2) = 1;
     frames(2,2) = sz(2);
 end

@@ -31,7 +31,7 @@ if frames(1,2) ~= 0 && frames(2,2) ~= 0
     plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
 end
 maskNumber = sprintf('maskNo%0.0f.png', bScanIDX-1);
-saveas(f, fullfile(binFolder, maskNumber));
+% saveas(f, fullfile(binFolder, maskNumber));
 close(f)
 
 %save mask as image

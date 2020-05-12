@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = segmentationLoop(DataStruct, cube)
+function [] = segmentationLoop(DataStruct, rawCube, cube)
 
 % pre-allocate special masks
 continuousMask = zeros(DataStruct.processingVolumeDims(1),...
@@ -15,115 +15,113 @@ thickMask = zeros(DataStruct.processingVolumeDims(1),...
     DataStruct.processingVolumeDims(2));
 
 % get created folders and start segmentation accordingly
-dirList = dir(mainDir);
-dirFlags = [dirList.isdir];
-subFolders = dirList(dirFlags);
-for k = 3 : length(subFolders)
-    existingFiles{k-2} = subFolders(k).name; % add valid dirs
-end
+[loopIdx,~] = checkForPresegmentedScans(DataStruct.machineLearningFolder);
 
-
-
-for i = 1:DataStruct.processingVolumeDims(3)
-    
-    b_Scan = cube(:,:,i);
-    [label, frames] = createSegmenationLabel(b_Scan);
-    
-    %No layer visible
-    if label == 0
-        % save all masks as "empty imges" in this case/ interation
-        saveEmptyMask(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i);
-        saveContinMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i)
-        saveThickMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i);
-        fprintf("No layers visible in b-Scan No.%0.0f \nSaved empty a mask", i);
-        continue
-    else
-        flag_segmentationSufficient = 0;
-        [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
+if loopIdx <= DataStruct.processingVolumeDims(3)
+    for i = loopIdx:DataStruct.processingVolumeDims(3)
         
-        while ~flag_segmentationSufficient
-            %TODO: overwrite frames if manual additional segmentation took
-            %place
-            figure('units','normalized','outerposition',[0 0 1 1])
-            imagesc(b_Scan);
-            colormap gray;
-            hold on
-            title('Segmented layer boundarys')
-            plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Epithelium
-            plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),2)) %Endothelium
-            % condition if ONLY Endothelium is visible
-            if frames(1,2) ~= 0 && frames(2,2) ~= 0
-                plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),3)) %OVD
-            end
-            pause(0.5)          
-%______________________________________________ 
-            % Only Epi- and Endothelium visible
-            if label == 1
-                answer = questdlg('Were the Cornea layers segmented correctly?',...
-                    'Please select one box',...
-                    'Yes',...
-                    'No, only Epithelium',...
-                    'No, only Endothelium',...
-                    'Yes');
-                switch answer   
-                    case 'Yes'
-                        flag_segmentationSufficient = 1;
-                        continue    
-                    %Re-segment EPITHELIUM    
-                    case 'No, only Endothelium'          
-                        flag_segmentationSufficient = 0;
-                        curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
-                        curve(:,3) = 0;
-                        [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
-                    % re-segment ENDOTHELIUM
-                    case 'No, only Epithelium'
-                        flag_segmentationSufficient = 0;
-                        curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
-                        curve(:,3) = 0;
-                        [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);                      
+        b_Scan = cube(:,:,i);
+        rawB_Scan = rawCube(:,:,i);
+        [label, frames] = createSegmenationLabel(b_Scan);
+        
+        %No layer visible
+        if label == 0
+            % save all masks as "empty imges" in this case/ interation
+            saveEmptyMask(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i);
+            saveContinMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i)
+            saveThickMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i);
+            fprintf("No layers visible in b-Scan No.%0.0f \nSaved empty a mask", i);
+            continue
+        else
+            flag_segmentationSufficient = 0;
+            [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
+            
+            while ~flag_segmentationSufficient
+                %TODO: overwrite frames if manual additional segmentation took
+                %place
+                figure('units','normalized','outerposition',[0 0 1 1])
+                imagesc(b_Scan);
+                colormap gray;
+                hold on
+                title('Segmented layer boundarys')
+                plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Epithelium
+                plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),2)) %Endothelium
+                % condition if ONLY Endothelium is visible
+                if frames(1,2) ~= 0 && frames(2,2) ~= 0
+                    plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),3)) %OVD
                 end
-%______________________________________________                
-            % All layers visible
-            elseif label == 2
-                answer = questdlg('Were the boundary layers correctly segmented?',...
-                    'Please select one box',...
-                    'Yes',...
-                    'No, re-segment OVD',...
-                    'No, re-segment Cornea',...
-                    'Yes');
-                switch answer
-                    case 'Yes'
-                        flag_segmentationSufficient = 1;
-                        continue
-                    case 'No, re-segment Cornea'
-                        flag_segmentationSufficient = 0;
-                        curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
-                        curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
-                        [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
-                    case 'No, re-segment OVD'
-                        flag_segmentationSufficient = 0;
-                        curve(:,3) = resegmentLayer(b_Scan, DataStruct, DataStruct.ovdText);
-                        [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                pause(0.5)
+                %______________________________________________
+                % Only Epi- and Endothelium visible
+                if label == 1
+                    answer = questdlg('Were the Cornea layers segmented correctly?',...
+                        'Please select one box',...
+                        'Yes',...
+                        'No, only Epithelium',...
+                        'No, only Endothelium',...
+                        'Yes');
+                    switch answer
+                        case 'Yes'
+                            flag_segmentationSufficient = 1;
+                            continue
+                            %Re-segment EPITHELIUM
+                        case 'No, only Endothelium'
+                            flag_segmentationSufficient = 0;
+                            curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
+                            curve(:,3) = 0;
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                            % re-segment ENDOTHELIUM
+                        case 'No, only Epithelium'
+                            flag_segmentationSufficient = 0;
+                            curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
+                            curve(:,3) = 0;
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                    end
+                    %______________________________________________
+                    % All layers visible
+                elseif label == 2
+                    answer = questdlg('Were the boundary layers correctly segmented?',...
+                        'Please select one box',...
+                        'Yes',...
+                        'No, re-segment OVD',...
+                        'No, re-segment Cornea',...
+                        'Yes');
+                    switch answer
+                        case 'Yes'
+                            flag_segmentationSufficient = 1;
+                            continue
+                        case 'No, re-segment Cornea'
+                            flag_segmentationSufficient = 0;
+                            curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
+                            curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                        case 'No, re-segment OVD'
+                            flag_segmentationSufficient = 0;
+                            curve(:,3) = resegmentLayer(b_Scan, DataStruct, DataStruct.ovdText);
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                    end
+                    %______________________________________________
+                    % All layers visible
+                else
+                    warning("Unexpected number layers detected!\n")
+                    return
                 end
-%______________________________________________        
-            % All layers visible
-            else
-                warning("Unexpected number layers detected!\n")
-                return
+                close all
             end
-            close all
+            %______________________________________________
+            %Save the masks containing correctly segmented boundary layers)
+            saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
+            saveContinMasks(DataStruct, continuousMask, i)
+            saveThickMasks(DataStruct, thickMask, i);
+            checkAndCreateDirsForDeepLearningData(DataStruct.machineLearningFolder,...
+                rawB_Scan, b_Scan, mask, thickMask, continuousMask);
+            % TODO: Add saving of every a-Scan for DL -> also create folder and
+            % so on make possible to start at a different volume index
+            
         end
-%______________________________________________  
-        %Save the masks containing correctly segmented boundary layers)
-        saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
-        saveContinMasks(DataStruct, continuousMask, i)
-        saveThickMasks(DataStruct, thickMask, i);
-        % TODO: Add saving of every a-Scan for DL -> also create folder and
-        % so on make possible to start at a different volume index
         
     end
-    
 end

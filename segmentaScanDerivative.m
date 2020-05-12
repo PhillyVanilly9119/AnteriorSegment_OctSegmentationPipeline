@@ -89,13 +89,13 @@ curve(curve < 0) = 0;
 %TODO: Write (all available i.e non-0 curves) into segemented mask (segmImg)
 for i = 1:sz(1)
     if curve(i,1) ~= 0
-        mask(curve(i,1),i) = 1;
+        mask(round(curve(i,1)),i) = 1;
     end
     if curve(i,2) ~= 0
-        mask(curve(i,2),i) = 1;
+        mask(round(curve(i,2)),i) = 1;
     end
     if curve(i,3) ~= 0
-        mask(curve(i,3),i) = 1;
+        mask(round(curve(i,3)),i) = 1;
     end
 end
 
