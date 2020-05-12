@@ -6,16 +6,13 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [pts] = selectOVDManually(image)
+function [interpolatedMask] = thickenMask(mask, maskDims, flag_keepRealValues)
 
-imshow(image)
-title(["Select the OVD boundary through clicking with the cursor"...
-"Please only select unique, consecutive points"...
-"When the segmentation is complete, end it with a double click"])
-[x,y] = getpts;
-pts(:,1) = round(x);
-pts(:,2) = round(y);
-
-close(gcf)
+int1 = interp2(double(mask));
+interpolatedMask = interp2(double(int1));
+interpolatedMask = imresize(interpolatedMask, [maskDims(1), maskDims(2)]);
+if flag_keepRealValues == 1
+    interpolatedMask(interpolatedMask~=0) = 1;
+end
 
 end

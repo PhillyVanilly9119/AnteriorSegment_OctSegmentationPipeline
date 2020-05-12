@@ -6,7 +6,7 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [masks] = loadMasksFromFile(path, aScanLength, bScanLength, imgDtTypr)
+function [masks] = loadMasksAndDeleteOldOnes(path, aScanLength, bScanLength, imgDtTypr)
 
 cd(path)
 delete *.bin
@@ -30,6 +30,7 @@ for i = 1:length(sorted)
    
 end
 
+%delete *.png % delete all current masks
 masks = uint8(masks);
 
 end

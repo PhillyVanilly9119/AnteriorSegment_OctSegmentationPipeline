@@ -15,7 +15,12 @@ sz = size(image);
 offset = 30; %offset from found of ENDO-boundary
 curve = zeros(sz(1), 2);
 segmImg = zeros(sz(1),sz(2));
-
+if (min(frames(1,1)) < 0) || (max(frames(2,1)) > sz(2))
+    error("OUT OF BOUNDS ERROR: ENDOTHELIUM - margins of the selected frames for segmentation!");
+end
+if (min(frames(1,2)) < 0) || (max(frames(2,2)) > sz(2))
+    error("OUT OF BOUNDS ERROR: OVD - margins of the selected frames for segmentation!");
+end
 %% Filter bScan on aScan-basis: Find extrema (i.e. bScans' layer boundaries)
 endoVec = frames(1,1):frames(2,1);
 ovdVec = frames(1,2):frames(2,2);

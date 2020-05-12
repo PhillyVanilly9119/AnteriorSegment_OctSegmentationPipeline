@@ -6,30 +6,28 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [masks] = loadMasksFromFile(path, aScanLength, bScanLength, imgDtTypr)
+function [octCube] = loadBScanImages(path, aScanLength, bScanLength, imgDtTypr)
 
 cd(path)
-delete *.bin
 files = dir(strcat('*.', imgDtTypr));
-cellStruct = struct2cell(files);
-unsorted = cellStruct(1,:);
-sorted = natsortfiles(unsorted);
-masks = zeros(aScanLength, bScanLength, length(sorted));
+delete *.xml *.jpg 
+if exist('enface.bmp', 'file')
+    delte enface.bmp
+end
+octCube = [];
 
-for i = 1:length(sorted)
-    if isfile(fullfile(path, sorted{i}))
-        tmp = imread(sorted{i});
+for i = 1:length(files)
+    if isfile(fullfile(path, files(i).name))
+        tmp = imread(files(i).name);
         if length(tmp(:,1)) == aScanLength && length(tmp(1,:)) == bScanLength
-            masks(:,:,i) = tmp;
+            octCube(:,:,i) = tmp;
         else
             fprintf("Image NO.%0.0f has a different size than was expected!\n", i);
         end
     else
         disp("Input path does not contain a or the right file!");
     end
-   
+    octCube = uint8(octCube);
 end
-
-masks = uint8(masks);
 
 end

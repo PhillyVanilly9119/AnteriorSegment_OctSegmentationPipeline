@@ -6,12 +6,10 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [pts] = selectEndotheliumManually(image)
+function [pts] = selectPointsManually(image, titleText)
 
 imshow(image)
-title(["Select the Endothelium boundary through clicking with the cursor"...
-"Please only select unique, consecutive points"...
-"When the segmentation is complete, end it with a double click"])
+title(titleText)
 [x,y] = getpts;
 pts(:,1) = round(x);
 pts(:,2) = round(y);

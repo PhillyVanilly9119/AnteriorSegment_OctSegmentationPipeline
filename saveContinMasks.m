@@ -10,7 +10,7 @@ function [] = saveContinMasks(DataStruct, mask, idx)
 
 contMaskFolder = DataStruct.contMaskFolder;
 
-name = sprintf('maskNo%0.0f.png', idx);
+name = sprintf('maskNo%0.0f.png', idx-1);
 
 imwrite(mask, fullfile(contMaskFolder, name));
 

@@ -15,7 +15,7 @@ binFolder = DataStruct.dataFolder;
 % fac = DataStruct.loadedVolumeDims(1);
 
 %save mask to bin-file
-binID = sprintf('mask_of_bScanNo%0.0f.bin', bScanIDX);
+binID = sprintf('mask_of_bScanNo%0.0f.bin', bScanIDX-1);
 fileID = fopen(fullfile(maskFolder, binID), 'w');
 fwrite(fileID, uint8(mask));
 fclose(fileID);
@@ -30,7 +30,7 @@ plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1))
 if frames(1,2) ~= 0 && frames(2,2) ~= 0
     plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
 end
-maskNumber = sprintf('mask_of_bScanNo%0.0f.png', bScanIDX);
+maskNumber = sprintf('maskNo%0.0f.png', bScanIDX-1);
 saveas(f, fullfile(binFolder, maskNumber));
 close(f)
 
