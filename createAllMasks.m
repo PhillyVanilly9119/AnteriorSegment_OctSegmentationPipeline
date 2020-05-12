@@ -6,16 +6,10 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [pts] = selectPointsManually(image, titleText)
+function [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve)
 
-imshow(image)
-title(titleText)
-[x,y] = getpts;
-pts(:,1) = round(x);
-pts(:,2) = round(y);
-
-pts(pts > 1024) = 1024;
-
-close(gcf)
+mask = mapCurveIntoMask(DataStruct, curve);
+continuousMask = mapContinousCurveIntoMask(DataStruct, curve);
+thickMask = thickenMask(continuousMask, DataStruct.processingVolumeDims, 1);
 
 end
