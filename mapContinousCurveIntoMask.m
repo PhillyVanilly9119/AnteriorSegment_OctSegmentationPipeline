@@ -11,8 +11,9 @@ function [mask] = mapContinousCurveIntoMask(DataStruct, curve)
 mask = zeros(DataStruct.processingVolumeDims(1),...
     DataStruct.processingVolumeDims(2));
 
-for i = 1:DataStruct.processingVolumeDims(1)
+for i = 1:DataStruct.processingVolumeDims(1)-1
     
+    %% Epithelium
     %if a-Scan and next a-Scan ~= 0
     if curve(i,1) ~= 0 && curve(i+1,1) ~= 0
         mask(curve(i,1),i) = 1;
@@ -25,6 +26,7 @@ for i = 1:DataStruct.processingVolumeDims(1)
         end
     end
     
+    %% Endothelium
     %if a-Scan and next a-Scan ~= 0
     if curve(i,2) ~= 0 && curve(i+1,2) ~= 0
         mask(curve(i,2),i) = 1;
@@ -36,8 +38,22 @@ for i = 1:DataStruct.processingVolumeDims(1)
             mask(curve(i,2),i) = 1;
         end
     end
+    
+    %% OVD
+    %if a-Scan and next a-Scan ~= 0
+    if curve(i,3) ~= 0 && curve(i+1,3) ~= 0
+        mask(curve(i,3),i) = 1;
+        if curve(i,3) < curve(i+1,3)
+            mask(curve(i,3)+1:curve(i+1,3),i+1) = 1;
+        elseif curve(i,3) > curve(i+1,3)
+            mask(curve(i+1,3)+1:curve(i,3),i+1) = 1;
+        else
+            mask(curve(i,3),i) = 1;
+        end
+    end
 end
 
+%% Draft for smoother mapping
 % delta = curve(i,2) - curve(i+1,2); % current-next (aScan) [fl2r]
 % 
 % if mod(abs(delta),2) == 0 && abs(delta) > 1 % even deltas, i.e. ISSUES with d/2

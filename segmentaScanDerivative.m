@@ -8,32 +8,46 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [segmImg, curve] = segmentAScanDerivative(image, label, frames)
+function [mask, curve] = segmentAScanDerivative(image, label, frames)
 
 % globals
 sz = size(image);
-offset = 30; %offset from found of ENDO-boundary
-curve = zeros(sz(1), 2);
-segmImg = zeros(sz(1),sz(2));
-if (min(frames(1,1)) < 0) || (max(frames(2,1)) > sz(2))
-    error("OUT OF BOUNDS ERROR: ENDOTHELIUM - margins of the selected frames for segmentation!");
-end
-if (min(frames(1,2)) < 0) || (max(frames(2,2)) > sz(2))
-    error("OUT OF BOUNDS ERROR: OVD - margins of the selected frames for segmentation!");
-end
+offset = 30; %offset from cornea-boundary
+curve = zeros(sz(1), 3);
+mask = zeros(sz(1),sz(2));
+qtr = round(sz(2)/4);
+hlf = round(sz(2)/2);
+polInt = hlf-qtr:hlf+qtr-1;
+% filter params
+windowWidthOVD = 21;
+windowWidthEpi = 35; 
+windowWidthEndo = 51; 
+kernelOVD = ones(windowWidthOVD,1) / windowWidthOVD ;
+kernelEpi = ones(windowWidthEpi,1) / windowWidthEpi;
+kernelEndo = ones(windowWidthEndo,1) / windowWidthEndo;
+
 %% Filter bScan on aScan-basis: Find extrema (i.e. bScans' layer boundaries)
-endoVec = frames(1,1):frames(2,1);
+corneaVec = frames(1,1):frames(2,1);
 ovdVec = frames(1,2):frames(2,2);
 
 for i = 1:sz(1)
     aScan = abs(diff(image(:,i))); %calculate derivate along a-Scan
     
+    % Map points in range of epithelium
+    if all(i >= min(corneaVec) & i <= max(corneaVec)) && label ~= 0
+        [~, posesCornea] = maxk(aScan, 20); %TODO: once filters are working properly check whole aScan lenght
+        posEndo = min(posesCornea); %find Endo in Cornea
+        if ~isempty(posEndo)
+            curve(corneaVec(i-min(corneaVec)+1),1) = posEndo + offset;
+        end
+    end
+    
     % Map points in range of endothelium
-    if all(i >= min(endoVec) & i <= max(endoVec)) && label ~= 0
-        [~, posesCornea] = maxk(aScan, 10); %TODO: once filters are working properly check whole aScan lenght
+    if all(i >= min(corneaVec) & i <= max(corneaVec)) && label ~= 0
+        [~, posesCornea] = maxk(aScan, 20); %TODO: once filters are working properly check whole aScan lenght
         posEndo = max(posesCornea); %find Endo in Cornea
         if ~isempty(posEndo)
-            curve(endoVec(i-min(endoVec)+1),1) = posEndo + offset;
+            curve(corneaVec(i-min(corneaVec)+1),2) = posEndo + offset;
         end
     end
     
@@ -42,28 +56,32 @@ for i = 1:sz(1)
         [~, posesOVD] = maxk(aScan(posEndo+offset:end), 3); %find OVD
         posOVD = min(posesOVD);
         if ~isempty(posOVD)
-            curve(ovdVec(i-min(ovdVec)+1),2) = posOVD + (posEndo+offset);
+            curve(ovdVec(i-min(ovdVec)+1),3) = posOVD + (posEndo+offset);
         end
     end
     
 end
 
-% nonZ = curve(curve(:,2)>0);
-% nonZ(nonZ<prctile(nonZ,75)) = prctile(nonZ,75);
-% windowWidth = 3; 
-% kernel = ones(windowWidth,1) / windowWidth;
-% out = filter(kernel, 1, nonZ);
-% curve(ovdVec-1,2) = out;
-
 %% Fit the two curves
-%Endothel -> if == 0-vector, retuns still a 0-vector
-endoPolCoeffs = polyfit(endoVec, curve(endoVec,1)', 2);
-fittedEndothel = polyval(endoPolCoeffs, min(endoVec):max(endoVec));
-for i = min(endoVec):max(endoVec)
-    curve(i,1) = round(fittedEndothel(i-min(endoVec)+1));
+% FILTER Epithelium
+curve(:,1) = filter(kernelEpi, 1, curve(:,1));
+curve(:,2) = filter(kernelEndo, 1, curve(:,2));
+
+% INTERPOLATE Cornea layers
+epiPolCoeffs = polyfit(polInt, curve(polInt,1)', 2);
+fittedEpithel = polyval(epiPolCoeffs, min(corneaVec):max(corneaVec));
+endoPolCoeffs = polyfit(polInt, curve(polInt,2)', 2);
+fittedEndothel = polyval(endoPolCoeffs, min(corneaVec):max(corneaVec));
+% round interpolated parabola values
+for i = min(corneaVec):max(corneaVec)
+    curve(i,1) = round(fittedEpithel(i-min(corneaVec)+1));
+    curve(i,2) = round(fittedEndothel(i-min(corneaVec)+1));
 end
-curve(:,2) = round(curve(:,2));
-%value boundaries after segmentation
+
+% filter and round OVD-boundary layer
+curve(:,3) = filter(kernelOVD, 1, curve(:,3));
+curve(:,3) = round(curve(:,3));
+% Catch out-of-image-size-errors
 curve(curve > 1024) = 1024;
 curve(curve < 0) = 0;
 
@@ -71,14 +89,17 @@ curve(curve < 0) = 0;
 %TODO: Write (all available i.e non-0 curves) into segemented mask (segmImg)
 for i = 1:sz(1)
     if curve(i,1) ~= 0
-        segmImg(curve(i,1),i) = 1;
+        mask(round(curve(i,1)),i) = 1;
     end
     if curve(i,2) ~= 0
-        segmImg(curve(i,2),i) = 1;
+        mask(round(curve(i,2)),i) = 1;
+    end
+    if curve(i,3) ~= 0
+        mask(round(curve(i,3)),i) = 1;
     end
 end
 
-sSz = size(segmImg);
+sSz = size(mask);
 if sSz(1) ~= sz(1) || sSz(2) ~= sz(2)
     disp("Segmented mask has wrong dimensions!")
     return

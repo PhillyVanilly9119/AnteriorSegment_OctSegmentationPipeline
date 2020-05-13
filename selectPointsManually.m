@@ -14,6 +14,8 @@ title(titleText)
 pts(:,1) = round(x);
 pts(:,2) = round(y);
 
+pts(pts > 1024) = 1024;
+
 close(gcf)
 
 end

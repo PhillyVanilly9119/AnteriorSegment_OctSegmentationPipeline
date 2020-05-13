@@ -6,136 +6,122 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = segmentationLoop(DataStruct, cube)
+function [] = segmentationLoop(DataStruct, rawCube, cube)
 
 % pre-allocate special masks
-continMask = zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2));
+continuousMask = zeros(DataStruct.processingVolumeDims(1),...
+    DataStruct.processingVolumeDims(2));
 thickMask = zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2));
+    DataStruct.processingVolumeDims(2));
 
-for i = 1:DataStruct.processingVolumeDims(3)
-    
-    b_Scan = cube(:,:,i);
-    [label, frames] = createSegmenationLabel(b_Scan);
-    
-    %No layer visible
-    if label == 0
-        % save only empty masks in this interation
-        saveEmptyMask(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i);
-        saveContinMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i)
-        saveThickMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
-            DataStruct.processingVolumeDims(2)), i);
-        fprintf("No layers visible in b-Scan No.%0.0f \nSaved empty a mask", i);
-        continue
-    else
-        flag_segmentationSufficient = 0;
-        [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
+% get created folders and start segmentation accordingly
+[loopIdx,~] = checkForPresegmentedScans(DataStruct.machineLearningFolder);
 
-        while ~flag_segmentationSufficient
-            %TODO: overwrite frames if manual additional segmentation took
-            %place
-            figure('units','normalized','outerposition',[0 0 1 1])
-            imagesc(b_Scan);
-            colormap gray;
-            hold on
-            title('Segmented layer boundarys')
-            plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Endothelium
-            % condition if ONLY Endothelium is visible
-            if frames(1,2) ~= 0 && frames(2,2) ~= 0
-                plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) %OVD
-            end
-            pause(0.5)
+if loopIdx <= DataStruct.processingVolumeDims(3)
+    for i = loopIdx:DataStruct.processingVolumeDims(3)
+        
+        b_Scan = cube(:,:,i);
+        rawB_Scan = rawCube(:,:,i);
+        [label, frames] = createSegmenationLabel(b_Scan);
+        
+        %No layer visible
+        if label == 0
+            % save all masks as "empty imges" in this case/ interation
+            saveEmptyMask(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i);
+            saveContinMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i)
+            saveThickMasks(DataStruct, zeros(DataStruct.processingVolumeDims(1),...
+                DataStruct.processingVolumeDims(2)), i);
+            fprintf("No layers visible in b-Scan No.%0.0f \nSaved empty a mask", i);
+            continue
+        else
+            flag_segmentationSufficient = 0;
+            [mask, curve] = segmentAScanDerivative(b_Scan, label, frames);
             
-            %Only Endothelium visible
-            if label == 1
-                answer = questdlg('Was the Endothelium segmented correctly?',...
-                    'Please select one box',...
-                    'Yes',...
-                    'No',...
-                    'Yes');
-                switch answer
-                    case 'Yes'
-                        flag_segmentationSufficient = 1; %exit while-loop
-                        continue
-                    case 'No'
-                        %Endo
-                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
-                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
-                            DataStruct.processingVolumeDims(2));
-                        curve(:,2) = 0;
-                        %Fill boundary positions (only Endothelium) with ones
-                        mask = mapCurveIntoMask(DataStruct, curve);
-                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
-                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
+            while ~flag_segmentationSufficient
+                %TODO: overwrite frames if manual additional segmentation took
+                %place
+                figure('units','normalized','outerposition',[0 0 1 1])
+                imagesc(b_Scan);
+                colormap gray;
+                hold on
+                title('Segmented layer boundarys')
+                plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),1)) %Epithelium
+                plot(frames(1,1):frames(2,1), curve(frames(1,1):frames(2,1),2)) %Endothelium
+                % condition if ONLY Endothelium is visible
+                if frames(1,2) ~= 0 && frames(2,2) ~= 0
+                    plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),3)) %OVD
                 end
-                
-                %Both layers visible
-            elseif label == 2
-                answer = questdlg('Were the boundary layers correctly segmented?','Please select one box',...
-                    'Yes, both',...
-                    'No, re-segment OVD',...
-                    'No, re-segment Endothelium',...
-                    'Yes, both');
-                switch answer
-                    case 'Yes, both'
-                        flag_segmentationSufficient = 1; %exit while-loop
-                        continue
-                    case 'No, re-segment OVD'
-                        %OVD
-                        ovdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
-                        while numel(ovdPts(1,:))~= numel(unique(ovdPts(1,:)))
-                            disp('Points must be unique!\n')
-                            ovdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
-                        end
-                        curve(:,2) = interpolateBetweenSegmentedPoints(ovdPts,...
-                            DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
-                        %Fill boundary positions (only OVD) with ones
-                        mask = mapCurveIntoMask(DataStruct, curve);
-                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
-                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
-                    case 'No, re-segment Endothelium'
-                        %Endo
-                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
-                        figure, imagesc(b_Scan), hold on;
-                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
-                            DataStruct.processingVolumeDims(2));
-                        %Fill boundary positions (only Endo) with ones
-                        mask = mapCurveIntoMask(DataStruct, curve);
-                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
-                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
-                    case 'None'
-                        %Endo
-                        endoPts = selectPointsManually(b_Scan, DataStruct.endoText);
-                        curve(:,1) = interpolateQuadFctInRange(endoPts,...
-                            DataStruct.processingVolumeDims(2));
-                        %OVD
-                        ocdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
-                        while numel(ocdPts(1,:))~= numel(unique(ocdPts(1,:)))
-                            disp('Points must be unique!\n')
-                            ocdPts = selectPointsManually(b_Scan, DataStruct.ovdText);
-                        end
-                        curve(:,2) = interpolateBetweenSegmentedPoints(ocdPts,...
-                            DataStruct.processingVolumeDims(2), DataStruct.processingVolumeDims(1));
-                        %Fill boundary positions (both layers) with ones
-                        mask = mapCurveIntoMask(DataStruct, curve);
-                        continMask = mapContinousCurveIntoMask(DataStruct, curve);
-                        thickMask = mapContinousThickCurveIntoMask(DataStruct, curve);
+                pause(0.5)
+                %______________________________________________
+                % Only Epi- and Endothelium visible
+                if label == 1
+                    answer = questdlg('Were the Cornea layers segmented correctly?',...
+                        'Please select one box',...
+                        'Yes',...
+                        'No, only Epithelium',...
+                        'No, only Endothelium',...
+                        'Yes');
+                    switch answer
+                        case 'Yes'
+                            flag_segmentationSufficient = 1;
+                            continue
+                            %Re-segment EPITHELIUM
+                        case 'No, only Endothelium'
+                            flag_segmentationSufficient = 0;
+                            curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
+                            curve(:,3) = 0;
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                            % re-segment ENDOTHELIUM
+                        case 'No, only Epithelium'
+                            flag_segmentationSufficient = 0;
+                            curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
+                            curve(:,3) = 0;
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                    end
+                    %______________________________________________
+                    % All layers visible
+                elseif label == 2
+                    answer = questdlg('Were the boundary layers correctly segmented?',...
+                        'Please select one box',...
+                        'Yes',...
+                        'No, re-segment OVD',...
+                        'No, re-segment Cornea',...
+                        'Yes');
+                    switch answer
+                        case 'Yes'
+                            flag_segmentationSufficient = 1;
+                            continue
+                        case 'No, re-segment Cornea'
+                            flag_segmentationSufficient = 0;
+                            curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
+                            curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                        case 'No, re-segment OVD'
+                            flag_segmentationSufficient = 0;
+                            curve(:,3) = resegmentLayer(b_Scan, DataStruct, DataStruct.ovdText);
+                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                    end
+                    %______________________________________________
+                    % All layers visible
+                else
+                    warning("Unexpected number layers detected!\n")
+                    return
                 end
-            else
-                disp("Unecpected value for label of layers...\n")
-                return
+                close all
             end
-            close all
+            %______________________________________________
+            %Save the masks containing correctly segmented boundary layers)
+            saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
+            saveContinMasks(DataStruct, continuousMask, i)
+            saveThickMasks(DataStruct, thickMask, i);
+            checkAndCreateDirsForDeepLearningData(DataStruct.machineLearningFolder,...
+                rawB_Scan, b_Scan, mask, thickMask, continuousMask);
+            % TODO: Add saving of every a-Scan for DL -> also create folder and
+            % so on make possible to start at a different volume index
+            
         end
         
-        %Save the masks containing correctly segmented boundary layers)
-        saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
-        saveContinMasks(DataStruct, continMask, i)
-        saveThickMasks(DataStruct, thickMask, i);
-        
     end
-    
 end

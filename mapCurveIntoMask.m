@@ -18,6 +18,9 @@ for i = 1:DataStruct.processingVolumeDims(1)
     if curve(i,2) ~= 0
         mask(curve(i,2),i) = 1;
     end
+    if curve(i,3) ~= 0
+        mask(curve(i,3),i) = 1;
+    end
 end
 
 end

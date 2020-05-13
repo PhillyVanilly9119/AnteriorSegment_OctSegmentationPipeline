@@ -9,16 +9,16 @@
 function [] = saveCalculatedMask(DataStruct, curve, mask, image, frames, bScanIDX)
 
 maskFolder = DataStruct.maskFolder;
-binFolder = DataStruct.dataFolder;
+% binFolder = DataStruct.dataFolder;
 
 %Resize images to original 
 % fac = DataStruct.loadedVolumeDims(1);
 
-%save mask to bin-file
-binID = sprintf('mask_of_bScanNo%0.0f.bin', bScanIDX-1);
-fileID = fopen(fullfile(maskFolder, binID), 'w');
-fwrite(fileID, uint8(mask));
-fclose(fileID);
+% % save mask to bin-file
+% binID = sprintf('mask_of_bScanNo%0.0f.bin', bScanIDX-1);
+% fileID = fopen(fullfile(maskFolder, binID), 'w');
+% fwrite(fileID, uint8(mask));
+% fclose(fileID);
 
 %save overlayed images of bScan
 f = figure('visible', 'off');
@@ -31,7 +31,7 @@ if frames(1,2) ~= 0 && frames(2,2) ~= 0
     plot(frames(1,2):frames(2,2), curve(frames(1,2):frames(2,2),2)) 
 end
 maskNumber = sprintf('maskNo%0.0f.png', bScanIDX-1);
-saveas(f, fullfile(binFolder, maskNumber));
+% saveas(f, fullfile(binFolder, maskNumber));
 close(f)
 
 %save mask as image

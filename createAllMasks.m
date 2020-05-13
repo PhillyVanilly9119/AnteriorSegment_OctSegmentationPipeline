@@ -6,22 +6,10 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [octSNR, octSNRDb] = calculateAvgSNR(octDataCube)
+function [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve)
 
-sz = size(octDataCube);
-for i = 1:sz(3)
-    snr(i) = calcSliceSnr(octDataCube(:,:,i));
-end
-
-octSNR = mean(snr);
-octSNRDb = 20 * log10(octSNR);
-
-end
-
-
-function [snrBScan] = calcSliceSnr(bScan)
-
-tmp = ((double(max(bScan))- mean(bScan)).^2) ./ std(double(bScan));
-snrBScan = mean(tmp);
+mask = mapCurveIntoMask(DataStruct, curve);
+continuousMask = mapContinousCurveIntoMask(DataStruct, curve);
+thickMask = thickenMask(continuousMask, DataStruct.processingVolumeDims, 1);
 
 end

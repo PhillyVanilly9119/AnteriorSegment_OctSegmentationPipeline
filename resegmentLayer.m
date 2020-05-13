@@ -6,9 +6,15 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [mask] = automaicallySegementedBinBoundry(image, row, col)
+function [curve] = resegmentLayer(image, DataStruct, text)
 
-binaryImage = imbinarize(image);
-mask = bwtraceboundary(binaryImage, [row, col], 'N');
+pts = selectPointsManually(image, text);
+while numel(pts(1,:))~= numel(unique(pts(1,:)))
+    disp('Points must be unique!\n')
+    pts = selectPointsManually(image, text);
+end
+curve = interpolateBetweenSegmentedPoints(pts,...
+    DataStruct.processingVolumeDims(2), ...
+    DataStruct.processingVolumeDims(1));
 
 end

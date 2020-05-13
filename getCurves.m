@@ -20,8 +20,8 @@ for ii = 1:maskSize(2)
         curve(ii,2) = max(c);
     elseif ~isempty(c) && length(c) == 3
         curve(ii,1) = min(c);
-        curve(ii,2) = max(c);
-        curve(ii,2) = max(c);
+        curve(ii,2) = min(max(c,2));
+        curve(ii,3) = max(max(c,2));
     else
         continue
     end
