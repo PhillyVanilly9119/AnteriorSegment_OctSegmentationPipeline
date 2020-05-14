@@ -15,7 +15,7 @@ thickMask = zeros(DataStruct.processingVolumeDims(1),...
     DataStruct.processingVolumeDims(2));
 
 % get created folders and start segmentation accordingly
-[loopIdx,~] = checkForPresegmentedScans(DataStruct.machineLearningFolder);
+loopIdx = checkForPresegmentedScans(DataStruct.machineLearningFolder);
 
 if loopIdx <= DataStruct.processingVolumeDims(3)
     for i = loopIdx:DataStruct.processingVolumeDims(3)
@@ -66,22 +66,23 @@ if loopIdx <= DataStruct.processingVolumeDims(3)
                     switch answer
                         case 'Yes'
                             flag_segmentationSufficient = 1;
+                            [mask, continuousMask, thickMask, binaryMask] = createAllMasks(DataStruct, curve);
                             continue
                             %Re-segment EPITHELIUM
                         case 'No, only Endothelium'
                             flag_segmentationSufficient = 0;
                             curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
                             curve(:,3) = 0;
-                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                            [mask, continuousMask, thickMask, binaryMask] = createAllMasks(DataStruct, curve);
                             % re-segment ENDOTHELIUM
                         case 'No, only Epithelium'
                             flag_segmentationSufficient = 0;
                             curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
                             curve(:,3) = 0;
-                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
+                            [mask, continuousMask, thickMask, binaryMask] = createAllMasks(DataStruct, curve);
                     end
-                    %______________________________________________
-                    % All layers visible
+                %______________________________________________
+                % All layers visible
                 elseif label == 2
                     answer = questdlg('Were the boundary layers correctly segmented?',...
                         'Please select one box',...
@@ -92,19 +93,18 @@ if loopIdx <= DataStruct.processingVolumeDims(3)
                     switch answer
                         case 'Yes'
                             flag_segmentationSufficient = 1;
+                            [mask, continuousMask, thickMask, binaryMask] = createAllMasks(DataStruct, curve);
                             continue
                         case 'No, re-segment Cornea'
                             flag_segmentationSufficient = 0;
                             curve(:,1) = resegmentLayer(b_Scan, DataStruct, DataStruct.epiText);
                             curve(:,2) = resegmentLayer(b_Scan, DataStruct, DataStruct.endoText);
-                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
                         case 'No, re-segment OVD'
                             flag_segmentationSufficient = 0;
                             curve(:,3) = resegmentLayer(b_Scan, DataStruct, DataStruct.ovdText);
-                            [mask, continuousMask, thickMask] = createAllMasks(DataStruct, curve);
                     end
-                    %______________________________________________
-                    % All layers visible
+                %______________________________________________
+                % All layers visible
                 else
                     warning("Unexpected number layers detected!\n")
                     return
@@ -117,7 +117,7 @@ if loopIdx <= DataStruct.processingVolumeDims(3)
             saveContinMasks(DataStruct, continuousMask, i)
             saveThickMasks(DataStruct, thickMask, i);
             checkAndCreateDirsForDeepLearningData(DataStruct.machineLearningFolder,...
-                rawB_Scan, b_Scan, mask, thickMask, continuousMask);
+                rawB_Scan, b_Scan, mask, thickMask, continuousMask, binaryMask);
             % TODO: Add saving of every a-Scan for DL -> also create folder and
             % so on make possible to start at a different volume index
             
