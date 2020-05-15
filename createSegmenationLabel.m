@@ -8,22 +8,22 @@
 
 function [label, frames] = createSegmenationLabel(image)
 
-[isEndo, isOVD] = segmentationDecision(image);
+[isCornea, isOVD] = segmentationDecision(image);
 
 sz = size(image);
 imagesc(image)
 
-if isEndo && ~isOVD % case ONLY ENDOTHELIUM
+if isCornea && ~isOVD % case ONLY CORNEA
     label = 1; %assuming ENDOthlium and EPIThelium
-    title('Please select area in which the Endothelium is clearly visible')
+    title('Please select area in which the Cornea is clearly visible')
     roi = drawrectangle;
     frames(:,1) = [round(roi.Position(1)), ...
         round(roi.Position(1) + roi.Position(3))];
     frames(:,2) = [0,0];
-elseif isEndo && isOVD % case BOTH
+elseif isCornea && isOVD % case BOTH
     label = 2; %assuming all 3 layers
     %TODO: Put frame for OVD here and return as value
-    title('Please select area in which the Endothelium is clearly visible')
+    title('Please select area in which the Cornea is clearly visible')
     roi = drawrectangle;
     frames(:,1) = [round(roi.Position(1)), ...
         round(roi.Position(1) + roi.Position(3))];

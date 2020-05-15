@@ -7,7 +7,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [currentMaxIdx] = checkAndCreateDirsForDeepLearningData(mainDir, rawBScan, ...
-    processedBScan, mask, thickOrigMask, thickMask, binaryMask)
+    processedBScan, mask, continuousMask, thickMask, binaryMask, inverseBinMask)
 
 currentMaxIdx = checkForPresegmentedScans(mainDir);
 folder = fullfile(mainDir, num2str(currentMaxIdx, '%04.f'));
@@ -19,8 +19,9 @@ end
 imwrite(rawBScan, fullfile(folder, 'raw_bScan.png'));
 imwrite(processedBScan, fullfile(folder, 'processed_bScan.png'));
 imwrite(mask, fullfile(folder, 'mask.png'));
-imwrite(thickOrigMask, fullfile(folder, 'thick_mask.png'));
-imwrite(thickMask, fullfile(folder, 'continuous_mask.png'));
+imwrite(continuousMask, fullfile(folder, 'continuous_mask.png'));
+imwrite(thickMask, fullfile(folder, 'thick_mask.png'));
 imwrite(binaryMask, fullfile(folder, 'binary_mask.png'));
+imwrite(inverseBinMask, fullfile(folder, 'inverse_bin_mask.png'));
 
 end
