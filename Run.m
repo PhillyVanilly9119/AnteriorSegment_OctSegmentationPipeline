@@ -29,7 +29,6 @@ DataStruct.ovdText = ["Select the Endothelium boundary through clicking with the
 %% 1) Preprocessing: Loading Data
 
 % Add main path of repository of search path
-%TODO: add all paths in a global struct from with all function gather info
 filePath = matlab.desktop.editor.getActiveFilename;
 
 warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
@@ -89,8 +88,6 @@ clear volume
 correctSz = size(OctDataCube);
 DataStruct.processingVolumeDims(2) = correctSz(2);
 DataStruct.processingVolumeDims(3) = correctSz(3);
-
-%TODO: Add precheck for already segmented masks
 
 %Check if FOLDERS for MASKS already exist &/ create it
 tmp = strsplit(DataStruct.currentDataPath, '\');
