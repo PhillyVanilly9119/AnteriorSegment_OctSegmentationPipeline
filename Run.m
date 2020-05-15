@@ -5,6 +5,7 @@
 %
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Define global vars (Struct)
 global DataStruct
 DataStruct.imageVolumeDims = [1024,512,128]; %default cude size
@@ -41,7 +42,7 @@ a = 1024; %static for standard
 b = 512;
 c = 128;
 
-%% 1) Preprocessing
+%% 2) Preprocessing
 % Check if a data stack is already in the workspace
 if exist('OctDataCube', 'var')
     answer = questdlg('There is already data in workspace. Would you like to load a new set?', ...
@@ -96,31 +97,31 @@ tmp = strsplit(DataStruct.currentDataPath, '\');
 DataStruct.dataFolder = fullfile(DataStruct.currentDataPath, 'Segmented_Data');
 DataStruct.maskFolder = fullfile(DataStruct.dataFolder, strcat('masks_',tmp{end}));
 if ~exist(DataStruct.maskFolder, 'dir')
-    mkdir(DataStruct.maskFolder)
+    mkdir(DataStruct.maskFolder);
 end
 DataStruct.contMaskFolder = fullfile(DataStruct.dataFolder, strcat('continuousMasks_',tmp{end}));
 if ~exist(DataStruct.contMaskFolder, 'dir')
-    mkdir(DataStruct.contMaskFolder)
+    mkdir(DataStruct.contMaskFolder);
 end
 DataStruct.thickMaskFolder = fullfile(DataStruct.dataFolder, strcat('thickMasks_',tmp{end}));
 if ~exist(DataStruct.thickMaskFolder, 'dir')
-    mkdir(DataStruct.thickMaskFolder)
+    mkdir(DataStruct.thickMaskFolder);
 end
 DataStruct.machineLearningFolder = fullfile(DataStruct.currentDataPath, "Data_Machine_Learning");
 if ~exist(DataStruct.machineLearningFolder, 'dir')
-    mkdir(DataStruct.machineLearningFolder)
+    mkdir(DataStruct.machineLearningFolder);
 end
 
-%% 2) Apply filter, to allow segmentation
+%% 3) Apply filter, to allow segmentation
 ProcessedOctCube = applyCustomFilterForRESCAN(DataStruct, OctDataCube, 'fixed');
 close all
 
 
-%% 3) Begin segmenatation
+%% 4) Begin segmenatation
 segmentationLoop(DataStruct, OctDataCube, ProcessedOctCube);
 
 
-%% END
+%% END - Clean Up
 close all
 
 fprintf('Done segmenting recorded volume \"%s\"! \n', tmp{end});
