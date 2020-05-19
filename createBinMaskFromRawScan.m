@@ -11,13 +11,18 @@ function [binaryMask] = createBinMaskFromRawScan(DataStruct, rawBScan)
 binaryMask = zeros(DataStruct.processingVolumeDims(1),...
     DataStruct.processingVolumeDims(2));
 
-%Histogram
-b = OctDataCube(:,:,1);
+% reduce hoise on basis of histogram 
+b = rawBScan;
 [pixelCounts, grayLevels] = imhist(b);
 [~,c] = max(pixelCounts(:));
-limit = grayLevels(c);
-b(b < std(double(b))+limit) = 0;
-% b(b > limit) = 1;
-imagesc(b)
+histBoundary = grayLevels(c);
+limit = mean(histBoundary + std(double(b)));
+% filter image and create binary mask
+b = filterImageNoise(b, 'openAndClose', 2);
+img = medfilt2(b);
+img = medfilt2(img);
+img(img < limit) = 0;
+img(img >= limit) = 1;
+imagesc(img)
 
 end
