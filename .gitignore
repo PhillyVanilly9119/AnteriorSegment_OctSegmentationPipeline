@@ -13,3 +13,8 @@
 
 # Paths
 **/Github
+
+# Machine Learning
+*.v2
+*.profile-empty
+*.trace
