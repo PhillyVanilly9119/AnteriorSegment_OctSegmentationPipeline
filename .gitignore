@@ -14,7 +14,9 @@
 # Paths
 **/Github
 
-# Machine Learning
+# Machine Learning logs 
 *.v2
 *.profile-empty
 *.trace
+*.h5
+*.json
