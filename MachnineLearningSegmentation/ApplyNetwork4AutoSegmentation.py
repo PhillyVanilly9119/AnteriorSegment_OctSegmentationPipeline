@@ -6,6 +6,7 @@ Created on Tue May 19 14:46:49 2020
 """
 
 import os
+from keras.models import load_model
 from tkinter.filedialog import askdirectory
 import matplotlib.pyplot as plt
 
@@ -27,13 +28,16 @@ def predict_segmentation(path, bscans):
     b_scans = applytrainedNet()
 
 def load_pretrained_net(path, file_name, network_name):
-# =============================================================================
-#     TODO: check wether .json or .h5 are available
-# =============================================================================
-    network_file = file_name + '.json'
-    if os.path.isfile(network_file):
-        model_path = os.path.join(path, network_file)
-        json_file = open(model_path, 'r')
+    json_file = os.path.join(path, file_name + '.json')
+    h5_file = os.path.join(path, network_name + '.h5')
+    # check if .h5-file exists, else load .json-file 
+    if os.path.isfile(h5_file):
+        # load file
+        model = load_model(h5_file)
+        print("Loaded model from disk")
+    elif os.path.isfile(network_file):
+        # load file
+        json_file = open(os.path.join(path, json_file), 'r')
         loaded_model_json = json_file.read()
         json_file.close()
         loaded_model = model_from_json(loaded_model_json)
@@ -41,9 +45,9 @@ def load_pretrained_net(path, file_name, network_name):
         model = loaded_model.load_weights(network_name + '.h5')
         print("Loaded model from disk")
     else:
-        pass
-    # ADD option to load from .h5-file alternatively
-    
+        print("Could not find the model you specified...")
+        break
+        
     return model
 
 def load_data_from_folder(path):
