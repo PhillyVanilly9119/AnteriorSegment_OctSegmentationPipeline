@@ -11,6 +11,7 @@ import glob
 import shutil
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 from tkinter.filedialog import askdirectory
 
 
@@ -43,7 +44,7 @@ def add_data_to_main_folder(flag_renameFilesTargetDir=False):
         rename_folders_in_dir(path_source)
     # check for any duplicates after renaming new data-folders
     print("Checking if target and source files are all unique...")
-    for name1 in path_target:
+    for name1 in tqdm(path_target):
         for name2 in path_source:
             if name1 == name2:
                 rename_folders_in_dir(path_source)
@@ -57,7 +58,7 @@ def add_data_to_main_folder(flag_renameFilesTargetDir=False):
     
     return path_updated_training_data
 
-add_data_to_main_folder(flag_renameFilesTargetDir=True)
+add_data_to_main_folder(flag_renameFilesTargetDir=False)
 
 
 ### DEPRECTAED ###
