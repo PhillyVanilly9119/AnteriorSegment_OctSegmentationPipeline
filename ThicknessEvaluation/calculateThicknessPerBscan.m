@@ -16,9 +16,19 @@ sz = size(onemask);
 thickness = NaN(1,sz(2));
 % thickness = zeros(1,sz(2));
 
+firstlayerindex = zeros(1, sz(2));
+% % make first layer (Epithelium) to zero -> not necesarry (only for
+% Machine Learning)
+%   onemask(  (find(onemask(:,i), 1, 'first')) , : ) = NaN;
+ for j = 1:sz(2)
+   firstlayerindex(1,j) = find(onemask(:,j), 1, 'first');
+   onemask(firstlayerindex(1,j), j) = 0;
+ end
+
+
 for i = 1:sz(2)
-%     if ~unique(onemask(:,i)==1)
-    if nnz(onemask(:,i)) == 2
+        
+    if nnz(onemask(:,i)) == 2      
         thickness(1,i) = scale * ( (find(onemask(:,i), 1, 'last')) - find(onemask(:,i), 1, 'first') ) / n_ovd ;
 %         if thickness(1,i) == 0
 %             thickness(1,i) = 1;

@@ -7,7 +7,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% type OVD name
-OVD_name= 'Z-HYALCAOT';
+OVD_name= 'DisCoVisc';
 
 %loading of the masks
 dir = uigetdir();

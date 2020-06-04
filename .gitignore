@@ -13,6 +13,8 @@
 
 # Paths
 **/Github
+**/ThicknessEvaluation
+**/RefractiveIndex
 
 # Machine Learning logs 
 *.v2
