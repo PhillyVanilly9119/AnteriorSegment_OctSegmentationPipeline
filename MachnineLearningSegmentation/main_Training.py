@@ -192,7 +192,7 @@ def build_and_train_network(img_height, img_width, img_channels,
     
     ################################
     # Modelcheckpoint
-    checkpointer = tf.keras.callbacks.ModelCheckpoint('model_for_nuclei.h5', verbose=1, save_best_only=True)
+    checkpointer = tf.keras.callbacks.ModelCheckpoint('model_for_segmentation.h5', verbose=1, save_best_only=True)
     
     callbacks = [
             tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_loss'),
@@ -201,11 +201,11 @@ def build_and_train_network(img_height, img_width, img_channels,
     results = model.fit(X_train, Y_train, validation_split=0.10, batch_size=4, epochs=25, callbacks=callbacks)
     
     if flag_saveModel:
-        model.save(train_path.split('\\training_data')[0])
+        model.save(os.path.join(train_path.split('\\training_data')[0], 'current_best_model'), save_format='h5')
 
-    return checkpointer, results
+    return model, checkpointer, results
 
-build_and_train_network(img_height, img_width, img_channels, X_train, Y_train, 
+model, *_ = build_and_train_network(img_height, img_width, img_channels, X_train, Y_train, 
                         train_path)      
 
 # =============================================================================
@@ -224,27 +224,10 @@ def show_predictions(model, X_test, Y_test):
         ax[1, img].imshow(preds_test_t[img,:,:])
         ax[1, img].set_title("Automatically segmented mask - PREDICTED")
         ax[2, img].imshow(X_test[img,:,:,0], cmap='jet')
-        ax[2, img].set_title("Filtered bScan (from which the net segmented the mask)")
+        ax[2, img].set_title("Filtered b-Scan (from which the net segmented the mask)")
         diff_img = np.absolute(np.subtract(Y_test[img,:,:,0], preds_test_t[img,:,:]))
         ax[3, img].imshow(diff_img)
         ax[3, img].set_title("Difference image of ground-trouth (mask) and predicted (mask)")
         # add saving logic with training params
 
-# =============================================================================
-# show_predictions(model, X_test, Y_test)  
-# print(results)
-# =============================================================================
-
-# =============================================================================
-# def save_model(model, model_name):
-#     # serialize model to JSON
-#     model_json = model.to_json()
-#     with open("model.json", "w") as json_file:
-#         json_file.write(model_json)
-#     # serialize weights to HDF5
-#     file_name_model = model_name + ".h5"
-#     model.save_model(file_name_model)
-#     print("Saved model to disk")
-#     
-# save_model(model, str(datetime.datetime.now()))
-# =============================================================================
+show_predictions(model, X_test, Y_test)  
