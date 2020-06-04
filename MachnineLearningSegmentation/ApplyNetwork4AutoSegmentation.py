@@ -96,7 +96,7 @@ class AutoSegmentation() :
         # Load (ONLY) b-Scans (with size = IMG_HEIGHT x IMG_WIDTH)
         scans = [np.asarray(Image.open(infile)) for infile in scan_list if np.shape(np.asarray(Image.open(infile))) == (self.raw_dims[0],self.raw_dims[1])]
         
-        return np.dstack(scans)
+        return np.dstack(scans), path
         
     def resize_img_stack(self, images, out_dims) :
         """
@@ -111,14 +111,14 @@ class AutoSegmentation() :
         
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=True) :
+    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=False) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
         assert scans.ndim == 3, "[PREDICTION ERROR - IMAGE SIZE] - please check image data!"
         scans = self.resize_img_stack(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
         if is_fixed_path_to_network:
-            path = r'C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1'
+            path = r'C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline\TrainedNetworks\Version1'
         else:
             path = askdirectory(title='Plese select file with trained net for [AUTO-SEGMENTATION]')
         model = keras.models.load_model(path)
@@ -129,7 +129,7 @@ class AutoSegmentation() :
         masks = (predictions> 0.5).astype(np.uint8)
         masks = np.moveaxis(masks, 0, -1)
         
-        return masks, path
+        return masks
         
     def check_predicted_masks(self, scans, masks, path) :
         """
@@ -165,6 +165,6 @@ class AutoSegmentation() :
         
        
 AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
-scans = AS.load_data_from_folder()
-masks, path = AS.apply_trained_net(scans)
-masks = AS.check_predicted_masks(scans, masks, path)
+scans, path = AS.load_data_from_folder()
+masks = AS.apply_trained_net(scans)
+AS.check_predicted_masks(scans, masks, path)
