@@ -111,16 +111,17 @@ class AutoSegmentation() :
         
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=False) :
+    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=True) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
         assert scans.ndim == 3, "[PREDICTION ERROR - IMAGE SIZE] - please check image data!"
         scans = self.resize_img_stack(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
         if is_fixed_path_to_network:
-            path = r'C:\Users\ZEISS Lab\Documents\MATLAB\AnteriorEyeSegmentationPipeline\TrainedNetworks\Version1'
+            path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\network_versions\current_best_model_version2_08062020_1225_acc9907_data1184'
         else:
             path = askdirectory(title='Plese select file with trained net for [AUTO-SEGMENTATION]')
+        print(path)            
         model = keras.models.load_model(path)
         predictions = np.squeeze(model.predict(np.expand_dims(np.rollaxis(scans, 2), axis=-1), verbose=1))
         #TODO: Write if condition to apply median-filter to probability maps
@@ -152,7 +153,7 @@ class AutoSegmentation() :
              #mng.window.showMaximized()
              plt.show()
              plt.pause(0.25)
-             key = input("Please press \"y\" if scan was segmented correctly and \"n\" if not")
+             key = input("Please press \"y\" if scan was segmented correctly and \"n\" if not  ")
              if key == 'y':
                  plt.imsave(os.path.join(path_good, str(im) + '.png'), masks[:,:,im]) 
              elif key == 'n':
@@ -163,8 +164,8 @@ class AutoSegmentation() :
      
         print("Done displaying images!")
         
-       
-AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
-scans, path = AS.load_data_from_folder()
-masks = AS.apply_trained_net(scans)
-AS.check_predicted_masks(scans, masks, path)
+if __name__ == '__main__' :
+    AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
+    scans, path = AS.load_data_from_folder()
+    masks = AS.apply_trained_net(scans)
+    AS.check_predicted_masks(scans, masks, path)

@@ -61,7 +61,7 @@ def add_data_to_main_folder(flag_renameFilesTargetDir=False):
 add_data_to_main_folder(flag_renameFilesTargetDir=False)
 
 
-### DEPRECTAED ###
+### DEPRECATED ###
 def sortAndAddTrainingData(main_path, train_dt_folder):
 # =============================================================================
 #     TODO: Add user input sanity check of overlayed images -> call sanityCheckData()

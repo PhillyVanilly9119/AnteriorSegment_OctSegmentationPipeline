@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 
 
 """ GLOBALS """
-train_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\training_data"
-vali_path = r'C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\validation_data'
+train_path = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
+vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
 img_width = 512 
 img_height = 512
 img_channels = 1
@@ -65,6 +65,30 @@ def load_data_from_files(path, dims, bscan_name, mask_name):
  
     return x_train, y_train
 
+def add_flipped_images(images, flag_add_yAxis_flipped=True, flag_add_xAxis_flipped=True) :
+        """
+        Primitive to add flipped images of both respective image axis to training data
+        """
+        stack = images
+        sizes = np.shape(images)
+        if flag_add_yAxis_flipped:
+            y_stack = [np.flip(images[:,:,i], 1) for i in range(sizes[2])]
+            y_stack = np.dstack(y_stack)
+        if flag_add_xAxis_flipped:
+            x_stack = [np.flip(images[:,:,i], 0) for i in range(sizes[2])]
+            x_stack = np.dstack(x_stack)
+         
+        if flag_add_xAxis_flipped and flag_add_yAxis_flipped:
+            stack = np.concatenate((np.concatenate((images, x_stack), axis=-1), y_stack), axis=-1)
+        elif flag_add_xAxis_flipped :
+            stack = np.concatenate((images, x_stack), axis=-1)
+        elif flag_add_yAxis_flipped :
+            stack = np.concatenate((images, y_stack), axis=-1)
+        else:
+            print("You have chosen to not add any flipped images")
+            
+        return stack
+    
 def sanity_check_training_data(scans, masks):
     """
     fast display of overlayed images of masks and corresponding raw scans to 
@@ -91,11 +115,16 @@ def create_bool_masks_from_bin_masks(masks):
     
     return bool_mask
 
-def prepare_data_for_network(path, dims, bscan_name='raw_bScan', mask_name='binary_mask', flag_checkDataMatch=False):
+def prepare_data_for_network(path, dims, bscan_name='raw_bScan', mask_name='binary_mask', 
+                             flag_checkDataMatch=False, flag_add_flipped_data=True):
     """
     loads, pre-processes and displays data for training
     """
     x, y = load_data_from_files(path, dims, bscan_name, mask_name)        
+    # Add flipped versions of the images to the training data
+    if flag_add_flipped_data:
+        print("Adding flipped images...")
+        x, y = add_flipped_images(x), add_flipped_images(y)
     if flag_checkDataMatch:
         sanity_check_training_data(x, y)   
     x = x[np.newaxis]
