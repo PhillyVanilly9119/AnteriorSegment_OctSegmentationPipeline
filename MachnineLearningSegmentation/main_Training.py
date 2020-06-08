@@ -25,7 +25,6 @@ from tqdm import tqdm
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-
 """ GLOBALS """
 train_path = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
 vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
@@ -38,111 +37,142 @@ IMG_CHANNELS = 1
 # =============================================================================
 # DATA PRE-PROCESSING - Training
 # =============================================================================
-
-def load_data_from_files(path, dims, bscan_name, mask_name):
-    """
-    >>> file structure of training data:
-        [Data for ML]
-            '->[001] (contaning all kinds of masks and their corresponding b-Scans)
-            '->[002] (-"-)
-            '->[003] (-"-)
-            ...
-            
-    >>> bscan_name and mask_name should be the scans mask with which training 
-        should be carried out, e.g. 'raw_bScan' and 'thick_mask'
+class DataPreprocessing() :
     
-    >>> default image data is .png and should remain so, since created 
-    segmented data is saved as .png from Matlab pipeline     
-    """
-    
-    img_dt = '.png'
-    h, w = dims[0], dims[1] #important for resizing the images and masks equaly
-    files = os.listdir(path)
-    bscan_img_stack = tqdm([np.asarray(Image.open(os.path.join(path, f, bscan_name + img_dt)).resize((h,w))) for f in files])
-    x_train = np.dstack(bscan_img_stack)
-    mask_img_stack = tqdm([np.asarray(Image.open(os.path.join(path, f, mask_name + img_dt)).resize((h,w))) for f in files])
-    y_train = np.dstack(mask_img_stack)
- 
-    return x_train, y_train
-
-def add_flipped_images(images, flag_add_yAxis_flipped=True, flag_add_xAxis_flipped=True) :
-        """
-        Primitive to add flipped images of both respective image axis to training data
-        """
-        stack = images
-        sizes = np.shape(images)
-        if flag_add_yAxis_flipped:
-            y_stack = [np.flip(images[:,:,i], 1) for i in range(sizes[2])]
-            y_stack = np.dstack(y_stack)
-        if flag_add_xAxis_flipped:
-            x_stack = [np.flip(images[:,:,i], 0) for i in range(sizes[2])]
-            x_stack = np.dstack(x_stack)
-         
-        if flag_add_xAxis_flipped and flag_add_yAxis_flipped:
-            stack = np.concatenate((np.concatenate((images, x_stack), axis=-1), y_stack), axis=-1)
-        elif flag_add_xAxis_flipped :
-            stack = np.concatenate((images, x_stack), axis=-1)
-        elif flag_add_yAxis_flipped :
-            stack = np.concatenate((images, y_stack), axis=-1)
-        else:
-            print("You have chosen to not add any flipped images")
-            
-        return stack
-    
-def sanity_check_training_data(scans, masks):
-    """
-    fast display of overlayed images of masks and corresponding raw scans to 
-    see if data import was carried out correctly
-    """
-    
-    print("Displaying images...")    
-    if scans.shape[2] != masks.shape[2]:
-        print("Dimensions of data stacks do not match!")
-    for im in tqdm(range(scans.shape[2])):
-        plt.ion()
-        plt.imshow(scans[:,:,im], 'gray', interpolation='none')
-        plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
-        plt.show()
-        plt.pause(0.5)
-        plt.clf()
+    # TODO: rethink constructor
+    def __init__(self, dims) :
+        self.dims = dims
         
-    print("Done displaying images!")
- 
-def create_bool_masks_from_bin_masks(masks):
+    def load_data_from_files(self, path, dims, bscan_name, mask_name) :
+        """
+        >>> file structure of training data:
+            [Data for ML]
+                '->[001] (contaning all kinds of masks and their corresponding b-Scans)
+                '->[002] (-"-)
+                '->[003] (-"-)
+                ...
+                
+        >>> bscan_name and mask_name should be the scans mask with which training 
+            should be carried out, e.g. 'raw_bScan' and 'thick_mask'
+        
+        >>> default image data is .png and should remain so, since created 
+        segmented data is saved as .png from Matlab pipeline     
+        """   
+        img_dt = '.png'
+        h, w = dims[0], dims[1] #important for resizing the images and masks equaly
+        files = os.listdir(path)
+        bscan_img_stack = tqdm([np.asarray(Image.open(os.path.join(path, f, bscan_name + img_dt)).resize((h,w))) for f in files])
+        x_train = np.dstack(bscan_img_stack)
+        mask_img_stack = tqdm([np.asarray(Image.open(os.path.join(path, f, mask_name + img_dt)).resize((h,w))) for f in files])
+        y_train = np.dstack(mask_img_stack)
+     
+        return x_train, y_train
     
-    dims = np.shape(masks)
-    bool_mask = [np.asarray(masks[:,:,img] <= 1, dtype=bool) for img in range(dims[2])]
+    def add_flipped_images(self, images, flag_add_yAxis_flipped=True, flag_add_xAxis_flipped=True) :
+            """
+            Primitive to add flipped images of both respective image axis to training data
+            """
+            stack = images
+            sizes = np.shape(images)        
+            if flag_add_yAxis_flipped and flag_add_yAxis_flipped(x) :
+                def_stack = np.dstack([np.flip(images[:,:,i]) for i in range(sizes[2])])
+                x_stack = np.dstack([np.flip(images[:,:,i], 0) for i in range(sizes[2])])
+                y_stack = np.dstack([np.flip(images[:,:,i], 1) for i in range(sizes[2])])
+                stack = np.concatenate(def_stack, 
+                                       (np.concatenate((np.concatenate((images, 
+                                                                        x_stack), axis=-1), 
+                                                        y_stack), axis=-1)), axis=-1)
+            if flag_add_xAxis_flipped and not flag_add_xAxis_flipped(x) : 
+                def_stack = np.dstack([np.flip(images[:,:,i]) for i in range(sizes[2])])
+                x_stack = np.dstack([np.flip(images[:,:,i], 0) for i in range(sizes[2])])  
+                stack = np.concatenate((def_stack, 
+                                        np.concatenate((images, 
+                                                        x_stack), axis=-1)), axis=-1)
+            if flag_add_yAxis_flipped and not flag_add_yAxis_flipped(x) :
+                def_stack = np.dstack([np.flip(images[:,:,i]) for i in range(sizes[2])])
+                y_stack = np.dstack([np.flip(images[:,:,i], 1) for i in range(sizes[2])]) 
+                stack = np.concatenate((def_stack, 
+                                        np.concatenate((images, 
+                                                        y_stack), axis=-1)), axis=-1)
+            if not flag_add_xAxis_flipped and flag_add_yAxis_flipped : 
+                print("You have chosen to not add any flipped images")
+                
+            return stack
+        
+    # TODO: maybe make it a static method    
+    def sanity_check_training_data(self, scans, masks):
+        """
+        fast display of overlayed images of masks and corresponding raw scans to 
+        see if data import was carried out correctly
+        """       
+        print("Displaying images...")    
+        if scans.shape[2] != masks.shape[2]:
+            print("Dimensions of data stacks do not match!")
+        for im in tqdm(range(scans.shape[2])):
+            plt.ion()
+            plt.imshow(scans[:,:,im], 'gray', interpolation='none')
+            plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
+            plt.show()
+            plt.pause(0.5)
+            plt.clf()    
+        print("Done displaying images!")
+     
+    def create_bool_masks_from_bin_masks(self, masks):
+        
+        dims = np.shape(masks)
+        bool_mask = [np.asarray(masks[:,:,img] <= 1, dtype=bool) for img in range(dims[2])]
+        
+        return bool_mask
     
-    return bool_mask
-
-def prepare_data_for_network(path, dims, bscan_name='raw_bScan', mask_name='binary_mask', 
-                             flag_checkDataMatch=False, flag_add_flipped_data=True):
-    """
-    loads, pre-processes and displays data for training
-    """
-    x, y = load_data_from_files(path, dims, bscan_name, mask_name)        
-    # Add flipped versions of the images to the training data
-    if flag_add_flipped_data:
-        print("Adding flipped images...")
-        x, y = add_flipped_images(x), add_flipped_images(y)
-    if flag_checkDataMatch:
-        sanity_check_training_data(x, y)   
-    x = x[np.newaxis]
-    x = np.swapaxes(x, 0, 3)
-    y = create_bool_masks_from_bin_masks(y) 
-    y = np.dstack(y)
-    y = y[np.newaxis]
-    y = np.swapaxes(y, 0, 3)
-
-    return x, y
+    # TODO: write logic 
+    def create_terts_mask_from_bin_mask(mask) :
+        """
+        Primitive to create masks that consist of 
+        """
+        dims = np.shape(mask)
+        tert_mask = []
+        # TODO: check dims and add logic for layer tracing
+        # after that, fill mask with 0-2 vals in corresponding regions
+        for i in range(dims[2]) :
+            pass
+        
+        return tert_mask
+    
+    def prepare_data_for_network(self, path, dims, bscan_name='raw_bScan', mask_name='binary_mask', 
+                                 flag_checkDataMatch=False, flag_add_flipped_data=True):
+        """
+        loads, pre-processes and displays data for training
+        """
+        x, y = self.load_data_from_files(path, dims, bscan_name, mask_name)        
+        # Add flipped versions of the images to the training data
+        if flag_add_flipped_data:
+            print("Adding flipped images...")
+            x, y = self.add_flipped_images(x), self.add_flipped_images(y)
+        if flag_checkDataMatch:
+            self.sanity_check_training_data(x, y)   
+        x = x[np.newaxis]
+        x = np.swapaxes(x, 0, 3)
+        y = create_bool_masks_from_bin_masks(y) 
+        y = np.dstack(y)
+        y = y[np.newaxis]
+        y = np.swapaxes(y, 0, 3)
+    
+        return x, y
 
 # =============================================================================
 # [1.)] LOAD DATA AND PREPROCESS
 # =============================================================================
-
-X_train, Y_train = prepare_data_for_network(train_path, dims)
-X_test, Y_test = prepare_data_for_network(vali_path, dims)
-print("Done pre-processing the data!")
+ if __name__ == '__main__':
+     DtPre = DataPreprocessing(dims)
+     X_train, Y_train = DtPre.prepare_data_for_network(train_path)
+     X_test, Y_test = DtPre.prepare_data_for_network(vali_path)
+     print("Done pre-processing the data!")
+         
+# =============================================================================
+# X_train, Y_train = prepare_data_for_network(train_path, dims)
+# X_test, Y_test = prepare_data_for_network(vali_path, dims)
+# print("Done pre-processing the data!")
+# =============================================================================
 
 # =============================================================================
 # TRAINING PARAMS
