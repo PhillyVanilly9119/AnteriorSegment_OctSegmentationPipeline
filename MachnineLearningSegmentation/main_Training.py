@@ -208,6 +208,9 @@ class DataPreprocessing() :
                     safe_singular_mask(masks[1,:,:], ovd_file)
                     safe_singular_mask(masks[2,:,:], bg_file)
                     print(f"\nSaved images from folder/ iteration No. {c}!")
+                    
+                trip_masks = self.resize_no_interpol(trip_masks, dims)
+                    
             else :
                 cornea = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[0] + dtype))).resize((dims[0], dims[1])))
                 ovd = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[1] + dtype))).resize((dims[0], dims[1])))
@@ -266,19 +269,19 @@ class DataPreprocessing() :
         x = self.load_images(self.path, bscan_name, (512,512))
         y = self.create_tripple_masks(self.path, dims=(512,512))
         
-# =============================================================================
-#         # Add flipped versions of the all b-Scans to the training data
-#         if flag_add_flipped_data:
-#             x = self.add_flipped_data(x)
-#             y = self.add_flipped_data(y)    
-#         # Sanity check if inconsistencies in the data were observed            
-#         if flag_check_for_matching_data:
-#             self.sanity_check_training_data(x, y)   
-#         x = x[np.newaxis]
-#         x = np.swapaxes(x, 0, 3)
-#         y = y[np.newaxis] 
-#         y = np.swapaxes(y, 0, 3)
-# =============================================================================
+        # Add flipped versions of the all b-Scans to the training data
+        if flag_add_flipped_data:
+            x = self.add_flipped_data(x)
+            y = self.add_flipped_data(y)
+            
+        # Sanity check if inconsistencies in the data were observed            
+        if flag_check_for_matching_data:
+            self.sanity_check_training_data(x, y) 
+            
+        x = x[np.newaxis]
+        x = np.swapaxes(x, 0, 3)
+        y = y[np.newaxis] 
+        y = np.swapaxes(y, 0, 3)
         
         print("[DONE PREPROCESSING] data for training")
         return x, y
@@ -288,13 +291,9 @@ class DataPreprocessing() :
 # =============================================================================
 if __name__ == '__main__':
     DtPreTrain = DataPreprocessing(train_path)
-    masks = DtPreTrain.create_tripple_masks(train_path)
-    #x_t, y_t = DtPreTrain.prepare_data_for_network()
-# =============================================================================
-#     X_train, Y_train = DtPreTrain.prepare_data_for_network()
-#     DtPreVali = DataPreprocessing(vali_path)
-#     X_test, Y_test = DtPreVali.prepare_data_for_network()
-# =============================================================================
+    X_train, Y_train = DtPreTrain.prepare_data_for_network()
+    DtPreVali = DataPreprocessing(vali_path)
+    X_test, Y_test = DtPreVali.prepare_data_for_network()
     
 # =============================================================================
 # TRAINING PARAMS
