@@ -17,61 +17,16 @@ from pathlib import Path
 from tensorflow import keras
 from tkinter.filedialog import askdirectory
 
+# =============================================================================
 # I/O Functions
-
-# Thickness evaluation
-def find_boundaries_in_mask(mask, w):
+# =============================================================================
+def find_ovd_thickness(mask) :
     """
-    Primitive to find the boundaries of the OVD area in a binary mask
-    >>> returns 3-element tuple containing the boundary spots
+    Evaluates the OVD thickness, based on UNets prediction of the mask 
     """
-    # add logic to move from bin-entries to (0,1)
-    # TODO: write a function for conversion: like, convert_to_uint8()
-    boundary_tuple = []
-    for i in range(w):
-        start_cornea = np.where(mask[:,i]==255)
-        start_cornea = np.squeeze(np.dstack(start_cornea))
-        if start_cornea.size != 0:
-            start_cornea = np.amin(start_cornea)
-            spots = np.squeeze(np.stack(np.argwhere(mask[:,i]==0)))
-            spots = np.split(spots, np.where(np.diff(spots) != 1)[0]+1)
-            assert np.size(spots) == 2, "No second layer detected"
-            end_cornea = spots[1][0]
-            start_ovd = spots[1][-1]
-            boundary_tuple.append([start_cornea, end_cornea, start_ovd])
-        else: 
-            boundary_tuple.append([0, 0, 0])
-            
-    return np.asarray(np.squeeze(np.dstack(boundary_tuple)))
-
-def calculate_thicknes_of_OVD(mask):
-    """
-    Primitive to calculate the thickness of a b-Scans'/masks' OVD-layer
-    - applys logic on a a-Scan basis (i.e. column-wise)
-    >>> returns the thickness of the OVD-layer in pixels, 
-    1023 if no OVD was marked in mask, i.e. MAX PNT or MAX THICKNESS
-    and -1 if invalid point, i.e. if no structure/cornea was visible in a-Scan
-    """
-    height, width = np.shape(mask)[0], np.shape(mask)[1] #[h,w]
-    boundary_tuple = find_boundaries_in_mask(mask, width)
-    thickness = []
-    for i in range(width):
-        if boundary_tuple[2,i] == 0: #invalid thickness
-            thickness.append(-1)
-        elif boundary_tuple[2,i] == (height-1): # max thickness
-            thickness.append(1023)
-        else: # regular thickness
-            thickness.append(boundary_tuple[2,i]-boundary_tuple[1,i])        
+    dims = np.shape(mask)
     
-    return np.asarray(thickness)
-
-def generate_thickness_maps(volume, path=r'C:\Users\Philipp\Desktop\MaskTestPython'):
-    #TODO: change path to were you loaded the data from
-    size = np.size(volume)
-    thickness_map = [calculate_thicknes_of_OVD[:,:,i] for i in size[2]]
-    full_path = os.path.join(path,'thickness_map.mat')
-    sio.savemat(full_path, {'thickness_map':thickness_map})
-    print(f"Created and saved OVD-thickness-map to *.matfile >>{full_path}<<")  
+    return thickness
     
 # =============================================================================
 # Functions for inference, i.e. apply prediction on raw scans
@@ -168,4 +123,62 @@ if __name__ == '__main__' :
     AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
     scans, path = AS.load_data_from_folder()
     masks = AS.apply_trained_net(scans)
-    AS.check_predicted_masks(scans, masks, path)
+    #AS.check_predicted_masks(scans, masks, path)
+    
+    
+# =============================================================================
+# TBD if deprecated - functions based on 1-channel UNet segmenation
+# =============================================================================
+# Thickness evaluation
+def find_boundaries_in_mask(mask, w):
+    """
+    Primitive to find the boundaries of the OVD area in a binary mask
+    >>> returns 3-element tuple containing the boundary spots
+    """
+    # add logic to move from bin-entries to (0,1)
+    # TODO: write a function for conversion: like, convert_to_uint8()
+    boundary_tuple = []
+    for i in range(w):
+        start_cornea = np.where(mask[:,i]==255)
+        start_cornea = np.squeeze(np.dstack(start_cornea))
+        if start_cornea.size != 0:
+            start_cornea = np.amin(start_cornea)
+            spots = np.squeeze(np.stack(np.argwhere(mask[:,i]==0)))
+            spots = np.split(spots, np.where(np.diff(spots) != 1)[0]+1)
+            assert np.size(spots) == 2, "No second layer detected"
+            end_cornea = spots[1][0]
+            start_ovd = spots[1][-1]
+            boundary_tuple.append([start_cornea, end_cornea, start_ovd])
+        else: 
+            boundary_tuple.append([0, 0, 0])
+            
+    return np.asarray(np.squeeze(np.dstack(boundary_tuple)))
+
+def calculate_thicknes_of_OVD(mask):
+    """
+    Primitive to calculate the thickness of a b-Scans'/masks' OVD-layer
+    - applys logic on a a-Scan basis (i.e. column-wise)
+    >>> returns the thickness of the OVD-layer in pixels, 
+    1023 if no OVD was marked in mask, i.e. MAX PNT or MAX THICKNESS
+    and -1 if invalid point, i.e. if no structure/cornea was visible in a-Scan
+    """
+    height, width = np.shape(mask)[0], np.shape(mask)[1] #[h,w]
+    boundary_tuple = find_boundaries_in_mask(mask, width)
+    thickness = []
+    for i in range(width):
+        if boundary_tuple[2,i] == 0: #invalid thickness
+            thickness.append(-1)
+        elif boundary_tuple[2,i] == (height-1): # max thickness
+            thickness.append(1023)
+        else: # regular thickness
+            thickness.append(boundary_tuple[2,i]-boundary_tuple[1,i])        
+    
+    return np.asarray(thickness)
+
+def generate_thickness_maps(volume, path=r'C:\Users\Philipp\Desktop\MaskTestPython'):
+    #TODO: change path to were you loaded the data from
+    size = np.size(volume)
+    thickness_map = [calculate_thicknes_of_OVD[:,:,i] for i in size[2]]
+    full_path = os.path.join(path,'thickness_map.mat')
+    sio.savemat(full_path, {'thickness_map':thickness_map})
+    print(f"Created and saved OVD-thickness-map to *.matfile >>{full_path}<<")  

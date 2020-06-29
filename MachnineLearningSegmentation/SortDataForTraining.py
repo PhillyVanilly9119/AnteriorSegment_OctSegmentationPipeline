@@ -107,10 +107,3 @@ def sortAndAddTrainingData(main_path, train_dt_folder):
                     im.save(os.path.join(train_mask_path, str(f'{int(number):03}') + png_extension)) 
     else:
         print("The mask folder: \"{}\" does not exist".format(mask_path))
-
-
-# =============================================================================
-# data_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\SegmentierteVolumen\VISCOAT_1_1_OD-2020-04-24_091514"
-# training_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Training"
-# sortAndAddTrainingData(data_path, training_path)
-# =============================================================================
