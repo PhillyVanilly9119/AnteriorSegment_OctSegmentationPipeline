@@ -15,6 +15,7 @@
 **/Github
 **/ThicknessEvaluation
 **/RefractiveIndex
+/MachnineLearningSegmentation/logs/*
 
 # Machine Learning logs 
 *.v2
