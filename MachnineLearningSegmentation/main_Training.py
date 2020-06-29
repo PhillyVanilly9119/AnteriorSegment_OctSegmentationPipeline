@@ -5,15 +5,20 @@ Created on Mon Apr 27 16:14:31 2020
 @author:    Philipp
             philipp.matten@meduniwien.ac.at
 
-    ---> Main File containing functionality to train UNet-like-NN
+    ---> Main File containing functionality to train an inplementation of UNet
 
-            Basic archtecture was taken and modified from
+            Basic archtecture was taken and modified (a lot!) from
                 
                 Python for Microscopists by Sreeni (Youtube): 
                 https://www.youtube.com/watch?v=68HR_eyzk00
                     
                 Check out his Github and feel free to cite Sreeni, 
                 when you use his implementation (i.e. for a publication)
+                
+                also check out Seths' Repository to semantic segmentation:
+                https://github.com/seth814/Semantic-Shapes    
+                This also a great source of inspiration for your own 
+                semantic segmentation projects ;)
 
 """
 
@@ -32,7 +37,6 @@ img_width = 512
 img_height = 512
 img_channels = 1
 dims = (img_height, img_width)
-IMG_CHANNELS = 1
     
 # =============================================================================
 # DATA PRE-PROCESSING - Training
@@ -52,6 +56,9 @@ class DataPreprocessing() :
         """
         self.path = path
         self.out_dims = out_dims # out-dims of data right before training
+        self.list_mask_files = ['mask_cornea', 
+                                'mask_ovd', 
+                                'mask_background']
         
     @staticmethod 
     def create_flipped_images(in_stack, axis=None) :
@@ -71,20 +78,21 @@ class DataPreprocessing() :
                              interpolation = cv2.INTER_AREA) for i in tqdm(range(in_dims[2])))]
     
     @staticmethod
-    def sanity_check_training_data(scans, masks):
+    def sanity_check_training_data(scans, masks, update_rate_Hz=2):
         """
         >>> Quick run-through of overlayed images (scans+masks) 
         to see if the scans and masks order matches in data stacks
+        REMARK: June 26th image dimensions in pre-processing := (n_img, h, w)
         """       
-        print("Displaying images...")    
+        print("Displaying images...")
         if scans.shape[2] != masks.shape[2]:
             print("Dimensions of data stacks do not match!")
-        for im in tqdm(range(scans.shape[2])):
+        for im in tqdm(range(scans.shape[0])):
             plt.ion()
-            plt.imshow(scans[:,:,im], 'gray', interpolation='none')
-            plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.7)
+            plt.imshow(scans[im,:,:], 'gray', interpolation='none')
+            plt.imshow(masks[im,:,:], 'jet', interpolation='none', alpha=0.7)
             plt.show()
-            plt.pause(0.5)
+            plt.pause(1/update_rate_Hz)
             plt.clf()    
         print("Done displaying images!")
 
@@ -183,17 +191,15 @@ class DataPreprocessing() :
         print("Prepocessing masks [GROUND TROUTH] for training...")
         trip_masks = [] 
         files = os.listdir(path)
-        list_mask_files = ['mask_cornea', 
-                           'mask_ovd', 
-                           'mask_background']
         for c, f in enumerate(tqdm(files)) :
             # Check if all the masks already exist load them, else create them
-            crn_file = os.path.join(path, f, str(list_mask_files[0] + dtype))
-            ovd_file = os.path.join(path, f, str(list_mask_files[1] + dtype))
-            bg_file = os.path.join(path, f, str(list_mask_files[2] + dtype))
+            crn_file = os.path.join(path, f, str(self.list_mask_files[0] + dtype))
+            ovd_file = os.path.join(path, f, str(self.list_mask_files[1] + dtype))
+            bg_file = os.path.join(path, f, str(self.list_mask_files[2] + dtype))
             if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file):
                 # Load line-segmented mask
-                raw_mask = np.asarray(Image.open(os.path.join(path, f, 'mask.png')).resize((dims[0], dims[1])))
+                # IMPORTANT: 
+                raw_mask = np.asarray(Image.open(os.path.join(path, f, 'mask.png')).resize((1024, 1024)))
                 # create and add all three masks in order
                 masks, _ = self.create_tripple_mask(raw_mask)
                 trip_masks.append(np.moveaxis(masks, 0, -1))
@@ -209,16 +215,16 @@ class DataPreprocessing() :
                     safe_singular_mask(masks[2,:,:], bg_file)
                     print(f"\nSaved images from folder/ iteration No. {c}!")
                     
-                trip_masks = self.resize_no_interpol(trip_masks, dims)
-                    
             else :
-                cornea = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[0] + dtype))).resize((dims[0], dims[1])))
-                ovd = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[1] + dtype))).resize((dims[0], dims[1])))
-                background = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[2] + dtype))).resize((dims[0], dims[1])))
+                cornea = np.asarray(Image.open(os.path.join(path, f, str(self.list_mask_files[0] + dtype))).resize((dims[0], dims[1])))
+                ovd = np.asarray(Image.open(os.path.join(path, f, str(self.list_mask_files[1] + dtype))).resize((dims[0], dims[1])))
+                background = np.asarray(Image.open(os.path.join(path, f, str(self.list_mask_files[2] + dtype))).resize((dims[0], dims[1])))
                 new_masks = np.dstack((cornea[:,:,0], ovd[:,:,0], background[:,:,0]))
-                print(np.shape(new_masks))
                 trip_masks.append(new_masks)
-                    
+       
+        if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file) :
+            trip_masks = self.resize_no_interpol(trip_masks, dims)
+            
         print("Done [LOADING] and/or creating [MASKS]!")
         # return dimensions are (n_img, height, width, n_masks)        
         return np.asarray(trip_masks, dtype=np.uint8)
@@ -260,7 +266,7 @@ class DataPreprocessing() :
         return stack
     
     def prepare_data_for_network(self, bscan_name='raw_bScan',  
-                                 flag_check_for_matching_data=False, flag_add_flipped_data=True):
+                                 flag_check_for_matching_data=False, flag_add_flipped_data=False):
         """
         loads, pre-processes and displays data for training
         """
@@ -271,36 +277,32 @@ class DataPreprocessing() :
         
         # Add flipped versions of the all b-Scans to the training data
         if flag_add_flipped_data:
+            #TODO: think of how the threre masks and the flipped pendants could work
             x = self.add_flipped_data(x)
             y = self.add_flipped_data(y)
-            
-        # Sanity check if inconsistencies in the data were observed            
-        if flag_check_for_matching_data:
-            self.sanity_check_training_data(x, y) 
-            
+                        
         x = x[np.newaxis]
         x = np.swapaxes(x, 0, 3)
-        y = y[np.newaxis] 
-        y = np.swapaxes(y, 0, 3)
+        
+        # Sanity check if inconsistencies in the data were observed            
+        if flag_check_for_matching_data:
+            self.sanity_check_training_data(x[:,:,:,0], y[:,:,:,2]) 
         
         print("[DONE PREPROCESSING] data for training")
         return x, y
  
-# =============================================================================
-# [1.)] LOAD DATA AND PREPROCESS
-# =============================================================================
+    
 if __name__ == '__main__':
     DtPreTrain = DataPreprocessing(train_path)
     X_train, Y_train = DtPreTrain.prepare_data_for_network()
     DtPreVali = DataPreprocessing(vali_path)
-    X_test, Y_test = DtPreVali.prepare_data_for_network()
+    X_test, Y_test = DtPreVali.prepare_data_for_network() 
     
 # =============================================================================
-# TRAINING PARAMS
+# UNet architecture and training structure
 # =============================================================================
-def build_and_train_uNet(img_height, img_width, img_channels, 
-                            X_train, Y_train,
-                            path_saved_model, flag_saveModel=True):
+def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model, 
+                         flag_saveModel=True, base_size = 4, n_classes = 3,):
     """    
     >>> U-Net Layer structure:
             
@@ -311,63 +313,72 @@ def build_and_train_uNet(img_height, img_width, img_channels,
                                      '--> P4(NxMx32) -> C5(NxMx32) --^
     """
    
+    if n_classes == 1:
+        loss_function = 'binary_crossentropy'
+        final_act = 'sigmoid'
+    elif n_classes > 1:
+        loss_function = 'categorical_crossentropy'
+        final_act = 'softmax'
+
+    b = base_size
+    layer_actication = 'relu'
     inputs = tf.keras.layers.Input((img_height, img_width, img_channels)) 
     conv_int = tf.keras.layers.Lambda(lambda x: x / 255)(inputs)
     
     #Contraction path
-    c1 = tf.keras.layers.Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(conv_int)
+    c1 = tf.keras.layers.Conv2D(2**b, (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (conv_int)
     c1 = tf.keras.layers.Dropout(0.1)(c1)
-    c1 = tf.keras.layers.Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c1)
+    c1 = tf.keras.layers.Conv2D(2**b, (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c1)
     p1 = tf.keras.layers.MaxPooling2D((2, 2))(c1)
     
-    c2 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(p1)
+    c2 = tf.keras.layers.Conv2D(2**(b+1), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (p1)
     c2 = tf.keras.layers.Dropout(0.1)(c2)
-    c2 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c2)
+    c2 = tf.keras.layers.Conv2D(2**(b+1), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c2)
     p2 = tf.keras.layers.MaxPooling2D((2, 2))(c2)
      
-    c3 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(p2)
+    c3 = tf.keras.layers.Conv2D(2**(b+2), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (p2)
     c3 = tf.keras.layers.Dropout(0.2)(c3)
-    c3 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c3)
+    c3 = tf.keras.layers.Conv2D(2**(b+2), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c3)
     p3 = tf.keras.layers.MaxPooling2D((2, 2))(c3)
      
-    c4 = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(p3)
+    c4 = tf.keras.layers.Conv2D(2**(b+3), (3, 3), activation=layer_actication,  kernel_initializer='he_normal', padding='same') (p3)
     c4 = tf.keras.layers.Dropout(0.2)(c4)
-    c4 = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c4)
+    c4 = tf.keras.layers.Conv2D(2**(b+3), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c4)
     p4 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(c4)
      
-    c5 = tf.keras.layers.Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(p4)
+    c5 = tf.keras.layers.Conv2D(2**(b+4), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (p4)
     c5 = tf.keras.layers.Dropout(0.3)(c5)
-    c5 = tf.keras.layers.Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c5)
+    c5 = tf.keras.layers.Conv2D(2**(b+4), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c5)
     
     #Expansive path 
-    u6 = tf.keras.layers.Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(c5)
+    u6 = tf.keras.layers.Conv2DTranspose(2**(b+3), (2, 2), strides=(2, 2), padding='same') (c5)
     u6 = tf.keras.layers.concatenate([u6, c4])
-    c6 = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u6)
+    c6 = tf.keras.layers.Conv2D(2**(b+3), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (u6)
     c6 = tf.keras.layers.Dropout(0.2)(c6)
-    c6 = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c6)
+    c6 = tf.keras.layers.Conv2D(2**(b+3), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c6)
      
-    u7 = tf.keras.layers.Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(c6)
+    u7 = tf.keras.layers.Conv2DTranspose(2**(b+2), (2, 2), strides=(2, 2), padding='same') (c6)
     u7 = tf.keras.layers.concatenate([u7, c3])
-    c7 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u7)
+    c7 = tf.keras.layers.Conv2D(2**(b+2), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (u7)
     c7 = tf.keras.layers.Dropout(0.2)(c7)
-    c7 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c7)
+    c7 = tf.keras.layers.Conv2D(2**(b+2), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c7)
      
-    u8 = tf.keras.layers.Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(c7)
+    u8 = tf.keras.layers.Conv2DTranspose(2**(b+1), (2, 2), strides=(2, 2), padding='same')(c7)
     u8 = tf.keras.layers.concatenate([u8, c2])
-    c8 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u8)
+    c8 = tf.keras.layers.Conv2D(2**(b+1), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (u8)
     c8 = tf.keras.layers.Dropout(0.1)(c8)
-    c8 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c8)
+    c8 = tf.keras.layers.Conv2D(2**(b+1), (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c8)
      
-    u9 = tf.keras.layers.Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same')(c8)
+    u9 = tf.keras.layers.Conv2DTranspose(2**b, (2, 2), strides=(2, 2), padding='same')(c8)
     u9 = tf.keras.layers.concatenate([u9, c1], axis=3)
-    c9 = tf.keras.layers.Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u9)
+    c9 = tf.keras.layers.Conv2D(2**b, (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (u9)
     c9 = tf.keras.layers.Dropout(0.1)(c9)
-    c9 = tf.keras.layers.Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c9)
+    c9 = tf.keras.layers.Conv2D(2**b, (3, 3), activation=layer_actication, kernel_initializer='he_normal', padding='same') (c9)
      
-    outputs = tf.keras.layers.Conv2D(1, (1, 1), activation='sigmoid')(c9)
+    outputs = tf.keras.layers.Conv2D(n_classes, (1, 1), activation=final_act) (c9)
      
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss=loss_function, metrics=['accuracy'])
     model.summary()
     
     ################################
@@ -383,13 +394,11 @@ def build_and_train_uNet(img_height, img_width, img_channels,
     if flag_saveModel:
         model.save(os.path.join(train_path.split('\\training_data')[0], 'current_best_model'), save_format='h5')
 
-    return model, checkpointer, results
-
-# =============================================================================
-# model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
-#                         train_path)      
-# =============================================================================
+    return model, checkpointer, results   
+   
     
+model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
+
 # =============================================================================
 #   Testing, Prediction and Saving Model
 # =============================================================================
@@ -413,9 +422,6 @@ def show_predictions(model, X_test, Y_test):
         # add saving logic with training params
 
 #show_predictions(model, X_test, Y_test)  
-
-
-
 
 # =============================================================================
 #     DEPRECATED
