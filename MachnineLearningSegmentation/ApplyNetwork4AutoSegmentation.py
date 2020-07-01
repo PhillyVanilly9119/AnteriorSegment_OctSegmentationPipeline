@@ -15,18 +15,20 @@ import matplotlib.pyplot as plt
 from PIL import Image  
 from pathlib import Path
 from tensorflow import keras
-from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askdirectory, askopenfilename 
 
 # =============================================================================
 # I/O Functions
 # =============================================================================
-def find_ovd_thickness(mask) :
-    """
-    Evaluates the OVD thickness, based on UNets prediction of the mask 
-    """
-    dims = np.shape(mask)
-    
-    return thickness
+# =============================================================================
+# def find_ovd_thickness(mask) :
+#     """
+#     Evaluates the OVD thickness, based on UNets prediction of the mask 
+#     """
+#     dims = np.shape(mask)
+#     
+#     return thickness
+# =============================================================================
     
 # =============================================================================
 # Functions for inference, i.e. apply prediction on raw scans
@@ -66,23 +68,23 @@ class AutoSegmentation() :
         
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=True) :
+    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=False) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
         assert scans.ndim == 3, "[PREDICTION ERROR - IMAGE SIZE] - please check image data!"
         scans = self.resize_img_stack(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
         if is_fixed_path_to_network:
-            path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\network_versions\current_best_model_version2_08062020_1225_acc9907_data1184'
+            path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\network_versions\final_network\current_best_model_version6_29062020_1459_acc9885'
         else:
-            path = askdirectory(title='Plese select file with trained net for [AUTO-SEGMENTATION]')
+            path = askopenfilename(title='Plese select file with trained net for [AUTO-SEGMENTATION]')
         print(path)            
         model = keras.models.load_model(path)
         predictions = np.squeeze(model.predict(np.expand_dims(np.rollaxis(scans, 2), axis=-1), verbose=1))
         #TODO: Write if condition to apply median-filter to probability maps
         
         #Threshold the masks for area-prediction
-        masks = (predictions> 0.5).astype(np.uint8)
+        masks = (predictions > 0.5).astype(np.uint8)
         masks = np.moveaxis(masks, 0, -1)
         
         return masks

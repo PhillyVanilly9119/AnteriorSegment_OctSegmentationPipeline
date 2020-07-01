@@ -31,8 +31,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 """ GLOBALS """
-train_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\training_data"
-vali_path = r'C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\validation_data'
+train_path = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
+vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
 img_width = 512 
 img_height = 512
 img_channels = 1
@@ -222,8 +222,10 @@ class DataPreprocessing() :
                 new_masks = np.dstack((cornea[:,:,0], ovd[:,:,0], background[:,:,0]))
                 trip_masks.append(new_masks)
        
-        if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file) :
-            trip_masks = self.resize_no_interpol(trip_masks, dims)
+# =============================================================================
+#         if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file) :
+#             trip_masks = self.resize_no_interpol(trip_masks, dims)
+# =============================================================================
             
         print("Done [LOADING] and/or creating [MASKS]!")
         # return dimensions are (n_img, height, width, n_masks)        
@@ -286,7 +288,7 @@ class DataPreprocessing() :
         
         # Sanity check if inconsistencies in the data were observed            
         if flag_check_for_matching_data:
-            self.sanity_check_training_data(x[:,:,:,0], y[:,:,:,2]) 
+            self.sanity_check_training_data(x[:,:,:,0], y[:,:,:,2], update_rate_Hz=1) 
         
         print("[DONE PREPROCESSING] data for training")
         return x, y
@@ -302,7 +304,7 @@ if __name__ == '__main__':
 # UNet architecture and training structure
 # =============================================================================
 def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model, 
-                         flag_saveModel=True, base_size = 4, n_classes = 3,):
+                         flag_saveModel=True, base_size = 4, n_classes = 3):
     """    
     >>> U-Net Layer structure:
             
@@ -389,7 +391,7 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
             tf.keras.callbacks.EarlyStopping(patience=2, monitor='val_loss'),
             tf.keras.callbacks.TensorBoard(log_dir='logs')]
     
-    results = model.fit(X_train, Y_train, validation_split=0.10, batch_size=4, epochs=25, callbacks=callbacks)
+    results = model.fit(X_train, Y_train, validation_split=0.2, batch_size=8, epochs=25, callbacks=callbacks)
     
     if flag_saveModel:
         model.save(os.path.join(train_path.split('\\training_data')[0], 'current_best_model'), save_format='h5')
@@ -410,7 +412,7 @@ def show_predictions(model, X_test, Y_test):
     size = np.shape(preds_test_t)[0]
     fig, ax = plt.subplots(4, size)
     for img in range(size):
-        ax[0, img].imshow(Y_test[img,:,:,0])
+        ax[0, img].imshow(Y_test[img,:,:,2])
         ax[0, img].set_title("Manually segmented mask - GROUND TRUTH")
         ax[1, img].imshow(preds_test_t[img,:,:])
         ax[1, img].set_title("Automatically segmented mask - PREDICTED")
@@ -421,45 +423,47 @@ def show_predictions(model, X_test, Y_test):
         ax[3, img].set_title("Difference image of ground-trouth (mask) and predicted (mask)")
         # add saving logic with training params
 
-#show_predictions(model, X_test, Y_test)  
+show_predictions(model, X_test, Y_test)  
 
 # =============================================================================
-#     DEPRECATED
+# # =============================================================================
+# #     DEPRECATED
+# # =============================================================================
+#     def create_bool_masks_from_bin_masks(self, masks):
+#         
+#         dims = np.shape(masks)
+#         bool_mask = [np.asarray(masks[:,:,img] <= 1, dtype=bool) for img in range(dims[2])]
+#         
+#         return bool_mask
+#         
+#     def preprocess_tss_masks(self, mask_name='tripple_masks', dtype='.bmp', dims=(1024,1024), flag_saveNewMasks=True):
+#         """
+#         >>> Go through all folders in path (each containing one training example/B-Scan)
+#         >> if "mask_file".PNG doesnt exist it is calculated from image "mask.PNG"
+#                 > it gets returned with size self.dims -> ready to be fed to network
+#                 > the 3-areas-mask (TSS = Tripple Semantic Segmentatation) then 
+#                 is saved in its folder as "mask_name.png" in its respective folder
+#                 with size = dims (functions parameter dims, not class var self.dims!)
+#         >> else, load mask from its file and add it to the pile
+#         """
+#         print("Prepocessing masks [GROUND TROUTH] for training...")
+#         tert_mask = [] # "air" and "ovd" get casted as "0" by default
+#         files = os.listdir(self.path)
+#         for f in tqdm(files) :
+#             # CREATE MASK: target mask (with 3 marked regions) doesn't already exist
+#             file_trip_mask = os.path.join(self.path, f, (mask_name + dtype))
+#             if not os.path.isfile(file_trip_mask) :
+#                 tmp_mask, mask_stack = self.create_tripple_mask(np.asarray(Image.open(os.path.join(self.path, f, 'mask.png'))))  
+#                 tmp_mask = self.resize_no_interpol(tmp_mask, (self.out_dims[0],self.out_dims[1]))
+#                 if flag_saveNewMasks:
+#                     plt.imsave(file_trip_mask, cv2.resize(tmp_mask, dims, interpolation = cv2.INTER_AREA), cmap='gray', format='bmp')       
+#                 tert_mask.append(tmp_mask)
+#             else : 
+#                 tmp_mask = self.resize_no_interpol(np.asarray(Image.open(file_trip_mask)), (self.out_dims[0],self.out_dims[1]))
+#                 tmp_mask = self.round_to_tripple_values(tmp_mask[:,:,0])
+#                 tert_mask.append(tmp_mask)
+#                 
+#         print("Done preprocessing masks!")        
+#         return np.dstack(np.asarray(tert_mask, dtype=np.uint8)), np.dstack(np.asarray(mask_stack, dtype=np.uint8))
+#  
 # =============================================================================
-    def create_bool_masks_from_bin_masks(self, masks):
-        
-        dims = np.shape(masks)
-        bool_mask = [np.asarray(masks[:,:,img] <= 1, dtype=bool) for img in range(dims[2])]
-        
-        return bool_mask
-        
-    def preprocess_tss_masks(self, mask_name='tripple_masks', dtype='.bmp', dims=(1024,1024), flag_saveNewMasks=True):
-        """
-        >>> Go through all folders in path (each containing one training example/B-Scan)
-        >> if "mask_file".PNG doesnt exist it is calculated from image "mask.PNG"
-                > it gets returned with size self.dims -> ready to be fed to network
-                > the 3-areas-mask (TSS = Tripple Semantic Segmentatation) then 
-                is saved in its folder as "mask_name.png" in its respective folder
-                with size = dims (functions parameter dims, not class var self.dims!)
-        >> else, load mask from its file and add it to the pile
-        """
-        print("Prepocessing masks [GROUND TROUTH] for training...")
-        tert_mask = [] # "air" and "ovd" get casted as "0" by default
-        files = os.listdir(self.path)
-        for f in tqdm(files) :
-            # CREATE MASK: target mask (with 3 marked regions) doesn't already exist
-            file_trip_mask = os.path.join(self.path, f, (mask_name + dtype))
-            if not os.path.isfile(file_trip_mask) :
-                tmp_mask, mask_stack = self.create_tripple_mask(np.asarray(Image.open(os.path.join(self.path, f, 'mask.png'))))  
-                tmp_mask = self.resize_no_interpol(tmp_mask, (self.out_dims[0],self.out_dims[1]))
-                if flag_saveNewMasks:
-                    plt.imsave(file_trip_mask, cv2.resize(tmp_mask, dims, interpolation = cv2.INTER_AREA), cmap='gray', format='bmp')       
-                tert_mask.append(tmp_mask)
-            else : 
-                tmp_mask = self.resize_no_interpol(np.asarray(Image.open(file_trip_mask)), (self.out_dims[0],self.out_dims[1]))
-                tmp_mask = self.round_to_tripple_values(tmp_mask[:,:,0])
-                tert_mask.append(tmp_mask)
-                
-        print("Done preprocessing masks!")        
-        return np.dstack(np.asarray(tert_mask, dtype=np.uint8)), np.dstack(np.asarray(mask_stack, dtype=np.uint8))
- 
