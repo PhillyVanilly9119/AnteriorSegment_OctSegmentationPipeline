@@ -68,20 +68,21 @@ class AutoSegmentation() :
         
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=False) :
+    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=True) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
         assert scans.ndim == 3, "[PREDICTION ERROR - IMAGE SIZE] - please check image data!"
         scans = self.resize_img_stack(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
         if is_fixed_path_to_network:
-            path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\network_versions\final_network\current_best_model_version6_29062020_1459_acc9885'
+            path = r'C:\Users\Philipp\Desktop\Network_Melli\current_best_model_version9_30602020_1413_acc9984'
         else:
-            path = askopenfilename(title='Plese select file with trained net for [AUTO-SEGMENTATION]')
-        print(path)            
+            path = askopenfilename(title='Plese select file with trained net for [AUTO-SEGMENTATION]')          
         model = keras.models.load_model(path)
         predictions = np.squeeze(model.predict(np.expand_dims(np.rollaxis(scans, 2), axis=-1), verbose=1))
+        
         #TODO: Write if condition to apply median-filter to probability maps
+        #filtered_images = []
         
         #Threshold the masks for area-prediction
         masks = (predictions > 0.5).astype(np.uint8)
@@ -93,7 +94,14 @@ class AutoSegmentation() :
         """
         Sort and check if automatically segmented b-Scans were segmented correctly
         """
-        assert np.shape(scans)[2] == np.shape(masks)[2], "Number of masks does not match the number of scans"
+        
+        # TODO: Add handle for start-index in loop if sorting was interrupted
+        # TODO: Add handle to check if same scan was good and bad -> logic
+        # TODO: Add another assertion to handle dimesionality of arrays
+        #assert np.shape(scans)[2] == np.shape(masks)[2], "Number of masks does not match the number of scans"
+        mask_prob = 2
+        
+        masks = np.moveaxis(masks, 2, -1)
         path_good = os.path.join(path, 'CorrectScans')
         Path(path_good).mkdir(parents=True, exist_ok=True)
         path_bad = os.path.join(path, 'IncorrectScans')
@@ -101,7 +109,8 @@ class AutoSegmentation() :
         print("Created paths for sorting")
         print("Please review automatically segmented images...")   
         scans = self.resize_img_stack(scans, (self.output_dims[0], self.output_dims[1]))
-        masks = self.resize_img_stack(masks, (self.output_dims[0], self.output_dims[1]))        
+        masks = self.resize_img_stack(masks[:,:,:,mask_prob], (self.output_dims[0], self.output_dims[1]))        
+        print(np.shape(masks))
         for im in range(np.shape(scans)[2]):
              plt.imshow(scans[:,:,im], 'gray', interpolation='none')
              plt.imshow(masks[:,:,im], 'jet', interpolation='none', alpha=0.33)
@@ -114,7 +123,7 @@ class AutoSegmentation() :
              if key == 'y':
                  plt.imsave(os.path.join(path_good, str(im) + '.png'), masks[:,:,im]) 
              elif key == 'n':
-                 plt.imsave(os.path.join(path_bad, str(im) + '.png'), scans[:,:,im])
+                 plt.imsave(os.path.join(path_bad, str(im) + '.png'), masks[:,:,im])
              else:
                  raise ValueError("You have hit the wrong key...")
              plt.clf()
@@ -125,7 +134,7 @@ if __name__ == '__main__' :
     AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
     scans, path = AS.load_data_from_folder()
     masks = AS.apply_trained_net(scans)
-    #AS.check_predicted_masks(scans, masks, path)
+    AS.check_predicted_masks(scans, masks, path)
     
     
 # =============================================================================
