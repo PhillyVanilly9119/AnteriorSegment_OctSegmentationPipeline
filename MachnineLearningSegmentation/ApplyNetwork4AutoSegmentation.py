@@ -122,13 +122,17 @@ class AutoSegmentation() :
             second_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
         if not first_list and not second_list :
             index = 0
-        else :
+        elif not first_list or not second_list :
             first_idx = first_list[-1]
             second_idx = second_list[-1]
             first_idx = int(first_idx.split('\\')[-1].split('.bmp')[0])
             second_idx = int(second_idx.split('\\')[-1].split('.bmp')[0])
             index = max(first_idx, second_idx)
+        else :
+            return ValueError("No Index could be found")
+        
         return index
+    
         
     def check_predicted_masks(self, scans, masks, path) :
         """
@@ -141,7 +145,7 @@ class AutoSegmentation() :
         path_bad = os.path.join(path, 'IncorrectScans')
         Path(path_bad).mkdir(parents=True, exist_ok=True)
         idx = self.find_max_idx(path_good, path_bad)
-        print("Created paths for sorting")
+        print("Created paths for sorting!")
         print("Please review automatically segmented images...")
         scans = self.resize_img_stack(scans, 
                                       (self.output_dims[0], self.output_dims[1]))
@@ -151,8 +155,8 @@ class AutoSegmentation() :
                                       (self.output_dims[0], self.output_dims[1]))
         background = self.resize_img_stack(masks[:,:,:,2], 
                                       (self.output_dims[0], self.output_dims[1]))
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
         for im in range(idx, np.shape(scans)[2]):
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
             ax1.imshow(scans[:,:,im], 'gray', interpolation='none')
             ax1.imshow(cornea[:,:,im], 'summer', interpolation='none', alpha=0.25)
             ax1.title.set_text(f'Predicted CORNEA-mask on original B-Scan No.{im}')
@@ -171,22 +175,22 @@ class AutoSegmentation() :
                 if self.check_for_duplicates(good_img_file, bad_img_file) :
                     # Create mask from which thickness determination should take place
                     img_save = np.zeros((np.shape(scans)[0], np.shape(scans)[1]))
-                    print(np.shape(ovd))
-                    img_save[cornea==1]
-                    img_save[ovd==1]
+                    img_save = np.add(cornea[:,:,im], ovd[:,:,im])
                     plt.imsave(good_img_file, img_save, cmap='gray') 
                 else :
                     print("[WARNING:] image with same number in both folders")  
                     continue
+                plt.close('all')
             elif key == 'n' or key == 'N':
                 if self.check_for_duplicates(good_img_file, bad_img_file) :
                     plt.imsave(bad_img_file, scans[:,:,im], cmap='gray') 
                 else :
                     print("[WARNING:] image with same number in both folders")
                     continue
+                plt.close('all')
             else :
                 print("You have pressed an invalid key... [EXITING LOOP]")
-                plt.clf()
+                plt.close('all')
                 sys.exit(0)
             
             plt.clf()
