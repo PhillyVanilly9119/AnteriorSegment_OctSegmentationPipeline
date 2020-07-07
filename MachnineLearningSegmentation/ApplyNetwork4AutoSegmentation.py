@@ -105,14 +105,14 @@ class AutoSegmentation() :
         Returns BOOL for if the file exists in both dirs
         """ 
         if os.path.isfile(path_one) and os.path.isfile(path_two) : 
-            return False
+            return True
         else :
-            return True    
+            return False    
 
     @staticmethod
     def find_max_idx(path_one, path_two) :
         """
-        Primitive to find highest number previous scan in sorted directories
+        Primitive to find highest numbered scan in sorted directories
         """
         if os.path.isdir(path_one) :
             first_list = glob.glob(os.path.join(path_one, "*.bmp"))
@@ -120,32 +120,33 @@ class AutoSegmentation() :
         if os.path.isdir(path_one) :
             second_list = glob.glob(os.path.join(path_two, "*.bmp"))
             second_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
-            
         if not first_list and not second_list :
             index = 0
         elif first_list and not second_list :
             first_idx = first_list[-1]
             index = int(first_idx.split('\\')[-1].split('.bmp')[0])
+            index += 1
         elif not first_list and second_list :
             second_idx = second_list[-1]
             index = int(second_idx.split('\\')[-1].split('.bmp')[0])
+            index += 1
         elif first_list and second_list :
             first_idx = first_list[-1]
             second_idx = second_list[-1]
             first_idx = int(first_idx.split('\\')[-1].split('.bmp')[0])
             second_idx = int(second_idx.split('\\')[-1].split('.bmp')[0])
             index = max(first_idx, second_idx)
+            index += 1
         else :
             return ValueError("No Index could be found")
-        
+        print(f"Found start index to be No.{index}")
         return index
     
-        
     def check_predicted_masks(self, scans, masks, path) :
         """
         Sort and check if automatically segmented b-Scans were segmented correctly
+        --> Input images dimensionality = [h,w,ch,num] (reshaping in function)        
         """
-        # TODO: Add another assertion to handle dimesionality of arrays
         masks = np.moveaxis(masks, 2, -1)
         path_good = os.path.join(path, 'CorrectScans')
         Path(path_good).mkdir(parents=True, exist_ok=True)
@@ -154,55 +155,39 @@ class AutoSegmentation() :
         idx = self.find_max_idx(path_good, path_bad)
         print("Created paths for sorting!")
         print("Please review automatically segmented images...")
-        scans = self.resize_img_stack(scans, 
-                                      (self.output_dims[0], self.output_dims[1]))
+        scans = self.resize_img_stack(scans, self.output_dims)
         cornea = self.resize_img_stack(masks[:,:,:,0], 
                                       (self.output_dims[0], self.output_dims[1]))
         ovd = self.resize_img_stack(masks[:,:,:,1], 
                                       (self.output_dims[0], self.output_dims[1]))
         background = self.resize_img_stack(masks[:,:,:,2], 
                                       (self.output_dims[0], self.output_dims[1]))
-        for im in range(idx, np.shape(scans)[2]):
-            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
-            plt.ion()
-            ax1.imshow(scans[:,:,im], 'gray', interpolation='none')
-            ax1.imshow(cornea[:,:,im], 'summer', interpolation='none', alpha=0.25)
-            ax1.title.set_text(f'Predicted CORNEA-mask on original B-Scan No.{im}')
-            ax2.imshow(scans[:,:,im], 'gray', interpolation='none')
-            ax2.imshow(ovd[:,:,im], 'autumn', interpolation='none', alpha=0.25)
-            ax2.title.set_text(f'Predicted OVD-mask on original B-Scan No.{im}')
-            ax3.imshow(scans[:,:,im], 'gray', interpolation='none')
-            ax3.imshow(background[:,:,im], 'winter', interpolation='none', alpha=0.25)
-            ax3.title.set_text(f'Predicted BACKGROUND-mask on original B-Scan No.{im}')
-            plt.pause(0.25)
-            plt.show()
-            plt.pause(0.25)
+        for im in range(idx, np.shape(scans)[2]) :            
             good_img_file = os.path.join(path_good, f'{im:03}' + '.bmp')
             bad_img_file = os.path.join(path_bad, f'{im:03}' + '.bmp')
-            key = input("Please press \"y\" if scan was segmented correctly and \"n\" if not  ")
-            if key == 'y' or key == 'Y':
-                if self.check_for_duplicates(good_img_file, bad_img_file) :
-                    # Create mask from which thickness determination should take place
-                    img_save = np.zeros_like(scans)
-                    img_save = np.add(cornea[:,:,im], ovd[:,:,im])
-                    plt.imsave(good_img_file, img_save, cmap='gray') 
+            current_img = np.concatenate((np.add(cornea[:,:,im],ovd[:,:,im]), background[:,:,im]),
+                                         axis=1)*255
+            cv2.imshow(f"Predicted BACKGROUND-mask on original B-Scan No.{im} - left hand side = overlayed Cornea and OVD boundary - right hand side = background",
+                       cv2.resize(current_img, (1920,1080), interpolation = cv2.INTER_AREA))
+            key = cv2.waitKey(0)
+            if key == ord('y') or key == ord('Y') :
+                if not self.check_for_duplicates(good_img_file, bad_img_file) :
+                    # Create and save mask from which thickness determination should take place
+                    cv2.imwrite(good_img_file, (np.add(cornea[:,:,im],ovd[:,:,im])*255)) 
                 else :
                     print("[WARNING:] image with same number in both folders")  
                     continue
-                #plt.close('all')
-            elif key == 'n' or key == 'N':
-                if self.check_for_duplicates(good_img_file, bad_img_file) :
-                    plt.imsave(bad_img_file, scans[:,:,im], cmap='gray') 
+            elif key == ord('n') or key == ord('N') :
+                if not self.check_for_duplicates(good_img_file, bad_img_file) :
+                    plt.imsave(bad_img_file, scans[:,:,im], cmap='gray')
                 else :
                     print("[WARNING:] image with same number in both folders")
                     continue
-                #plt.close('all')
             else :
                 print("You have pressed an invalid key... [EXITING LOOP]")
-                plt.close('all')
+                cv2.destroyAllWindows()
                 sys.exit(0)
-            
-            plt.clf()
+            cv2.destroyAllWindows()
         
         print("Done displaying images!")
         
