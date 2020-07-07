@@ -155,8 +155,8 @@ class AutoSegmentation() :
                                       (self.output_dims[0], self.output_dims[1]))
         background = self.resize_img_stack(masks[:,:,:,2], 
                                       (self.output_dims[0], self.output_dims[1]))
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
         for im in range(idx, np.shape(scans)[2]):
-            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
             ax1.imshow(scans[:,:,im], 'gray', interpolation='none')
             ax1.imshow(cornea[:,:,im], 'summer', interpolation='none', alpha=0.25)
             ax1.title.set_text(f'Predicted CORNEA-mask on original B-Scan No.{im}')
