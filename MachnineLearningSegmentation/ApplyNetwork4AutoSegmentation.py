@@ -174,7 +174,7 @@ class AutoSegmentation() :
             if key == 'y' or key == 'Y':
                 if self.check_for_duplicates(good_img_file, bad_img_file) :
                     # Create mask from which thickness determination should take place
-                    img_save = np.zeros((np.shape(scans)[0], np.shape(scans)[1]))
+                    img_save = np.zeros_like(scans)
                     img_save = np.add(cornea[:,:,im], ovd[:,:,im])
                     plt.imsave(good_img_file, img_save, cmap='gray') 
                 else :

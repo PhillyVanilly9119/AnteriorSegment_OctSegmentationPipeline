@@ -31,8 +31,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 """ GLOBALS """
-train_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\training_data"
-vali_path = r'C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\validation_data'
+train_path = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
+vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
 img_width = 512 
 img_height = 512
 img_channels = 1
@@ -233,6 +233,7 @@ class DataPreprocessing() :
             channels = 1 for B-Scans
         >> Change flag combination to add certain configuration of flipped images
         """
+        print("Adding flipped images to training data stack... ")
         stack = images # return at least input image stack
         sizes = np.shape(images)
         dims = np.size(sizes)
@@ -408,9 +409,7 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
     return model, checkpointer, results   
    
     
-# =============================================================================
-# model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
-# =============================================================================
+model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
 
 # =============================================================================
 #   Testing, Prediction and Saving Model
