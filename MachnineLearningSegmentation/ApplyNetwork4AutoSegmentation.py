@@ -119,10 +119,17 @@ class AutoSegmentation() :
             first_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
         if os.path.isdir(path_one) :
             second_list = glob.glob(os.path.join(path_two, "*.bmp"))
-            second_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
+            second_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
+            
         if not first_list and not second_list :
             index = 0
-        elif not first_list or not second_list :
+        elif first_list and not second_list :
+            first_idx = first_list[-1]
+            index = int(first_idx.split('\\')[-1].split('.bmp')[0])
+        elif not first_list and second_list :
+            second_idx = second_list[-1]
+            index = int(second_idx.split('\\')[-1].split('.bmp')[0])
+        elif first_list and second_list :
             first_idx = first_list[-1]
             second_idx = second_list[-1]
             first_idx = int(first_idx.split('\\')[-1].split('.bmp')[0])
@@ -155,8 +162,9 @@ class AutoSegmentation() :
                                       (self.output_dims[0], self.output_dims[1]))
         background = self.resize_img_stack(masks[:,:,:,2], 
                                       (self.output_dims[0], self.output_dims[1]))
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
         for im in range(idx, np.shape(scans)[2]):
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
+            plt.ion()
             ax1.imshow(scans[:,:,im], 'gray', interpolation='none')
             ax1.imshow(cornea[:,:,im], 'summer', interpolation='none', alpha=0.25)
             ax1.title.set_text(f'Predicted CORNEA-mask on original B-Scan No.{im}')
@@ -166,6 +174,7 @@ class AutoSegmentation() :
             ax3.imshow(scans[:,:,im], 'gray', interpolation='none')
             ax3.imshow(background[:,:,im], 'winter', interpolation='none', alpha=0.25)
             ax3.title.set_text(f'Predicted BACKGROUND-mask on original B-Scan No.{im}')
+            plt.pause(0.25)
             plt.show()
             plt.pause(0.25)
             good_img_file = os.path.join(path_good, f'{im:03}' + '.bmp')
@@ -180,14 +189,14 @@ class AutoSegmentation() :
                 else :
                     print("[WARNING:] image with same number in both folders")  
                     continue
-                plt.close('all')
+                #plt.close('all')
             elif key == 'n' or key == 'N':
                 if self.check_for_duplicates(good_img_file, bad_img_file) :
                     plt.imsave(bad_img_file, scans[:,:,im], cmap='gray') 
                 else :
                     print("[WARNING:] image with same number in both folders")
                     continue
-                plt.close('all')
+                #plt.close('all')
             else :
                 print("You have pressed an invalid key... [EXITING LOOP]")
                 plt.close('all')
