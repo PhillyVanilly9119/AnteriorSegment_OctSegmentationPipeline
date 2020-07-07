@@ -31,8 +31,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 """ GLOBALS """
-train_path = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
-vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
+train_path = r"C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\training_data"
+vali_path = r'C:\Users\Philipp\Documents\00_PhD_Stuff\90_Melli\ML_Data\Set1\validation_data'
 img_width = 512 
 img_height = 512
 img_channels = 1
@@ -59,15 +59,16 @@ class DataPreprocessing() :
         self.list_mask_files = ['mask_cornea', 
                                 'mask_ovd', 
                                 'mask_background']
-        
-    @staticmethod 
-    def create_flipped_images(in_stack, axis=None) :
-        print("Calculating flipped images...")
-        assert np.size(np.shape(in_stack)) == 3, '[DIMENSIONAL MISMATCH] for images'
-        images = np.shape(in_stack)[2]        
-        
-        print("Done calculating flipped images!")
-        return np.dstack([np.flip(in_stack[:,:,i], axis) for i in tqdm(range(images))])
+
+    @staticmethod    
+    def create_flipped_img_4d_tensor(images, axis=None) :
+        stack = np.zeros_like(images)
+        # GO THROUGH ALL IMAGES
+        for image in range(np.shape(images)[0]) :
+            # GO THROUGH ALL CHANNELS
+            for channel in range(np.shape(images)[-1]) :
+                stack[image,:,:,channel] = np.flip(images[image,:,:,channel], axis)
+        return stack
     
     def resize_img_stack_to_output_size(self, images) :
         assert images.ndim == 3, "[IMAGE RESIZING ERROR] Wrong dimensionality of image data!"
@@ -138,9 +139,8 @@ class DataPreprocessing() :
                 tripple_mask[bndry_spots[2]:, ascan] = 2
                 ovd[bndry_spots[2]:, ascan] = 255
             else :
-                pass # TODO: Maybe think of more sophisticated error handling
-                #raise ValueError("[STUMBLED UPON INVALID ASCAN]")
-           
+                print("[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
+                pass 
             # Create Masks for 3-channel segmentation
             masks = []
             masks.append(cornea) # Mask No.1
@@ -213,7 +213,7 @@ class DataPreprocessing() :
                     safe_singular_mask(masks[0,:,:], crn_file)
                     safe_singular_mask(masks[1,:,:], ovd_file)
                     safe_singular_mask(masks[2,:,:], bg_file)
-                    print(f"\nSaved images from folder/ iteration No. {c}!")
+                    print(f"\nSaved calculated masks from folder/ iteration No. {c}!")
                     
             else :
                 cornea = np.asarray(Image.open(os.path.join(path, f, str(self.list_mask_files[0] + dtype))).resize((dims[0], dims[1])))
@@ -221,54 +221,47 @@ class DataPreprocessing() :
                 background = np.asarray(Image.open(os.path.join(path, f, str(self.list_mask_files[2] + dtype))).resize((dims[0], dims[1])))
                 new_masks = np.dstack((cornea[:,:,0], ovd[:,:,0], background[:,:,0]))
                 trip_masks.append(new_masks)
-       
-# =============================================================================
-#         if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file) :
-#             trip_masks = self.resize_no_interpol(trip_masks, dims)
-# =============================================================================
-            
+                  
         print("Done [LOADING] and/or creating [MASKS]!")
         # return dimensions are (n_img, height, width, n_masks)        
         return np.asarray(trip_masks, dtype=np.uint8)
                    
-    def add_flipped_data(self, images, flag_add_xAxis_flipped=True, flag_add_yAxis_flipped=True) :
+    def add_flipped_data(self, images, x_flip=True, y_flip=True) :
         """
         >>> Adds flipped versions of the input data to the training data stack
-        >> Change flag configuaration to either add 
-        x-, y- and x-y-flip (TRUE & TRUE),
-        x- and x-y-flip (TRUE & FALSE) or
-        y- and x-y-flip (FALSE & TRUE)
+        --> image stack dimensions: [n_img, h, w, channels]; 
+            channels = 1 for B-Scans
+        >> Change flag combination to add certain configuration of flipped images
         """
-        stack = images
-        dims = np.shape(images)   
-        if flag_add_xAxis_flipped and flag_add_yAxis_flipped :
-            def_stack = self.create_flipped_images(images)
-            x_stack = self.create_flipped_images(images, axis=0)
-            y_stack = self.create_flipped_images(images, axis=1)
-            stack = np.concatenate((def_stack, 
-                                   (np.concatenate((np.concatenate((images, 
-                                                                    x_stack), axis=-1), 
-                                                    y_stack), axis=-1))), axis=-1)
-        elif flag_add_xAxis_flipped and not flag_add_yAxis_flipped : 
-            def_stack = self.create_flipped_images(images)
-            x_stack = self.create_flipped_images(images, axis=0)
-            stack = np.concatenate((def_stack, 
-                                    np.concatenate((images, 
-                                                    x_stack), axis=-1)), axis=-1)
-        elif not flag_add_xAxis_flipped and flag_add_yAxis_flipped :
-            def_stack = self.create_flipped_images(images)
-            y_stack = self.create_flipped_images(images, axis=1)
-            stack = np.concatenate((def_stack, 
-                                    np.concatenate((images, 
-                                                    y_stack), axis=-1)), axis=-1)
-        else : 
-            print("You have chosen to not add any flipped images")
+        stack = images # return at least input image stack
+        sizes = np.shape(images)
+        dims = np.size(sizes)
         
-        print(f"Added {np.shape(stack)[2]-dims[2]} images to data [THROUGH FLIPPING] original data!")
+        assert dims == 4, "Images are expected to be 4D-array with dims=[n,h,w,c]!"
+        
+        #(n,h,w,c)
+        if x_flip and y_flip :
+            stack = np.concatenate((images,
+                                    self.create_flipped_img_4d_tensor(images),
+                                    self.create_flipped_img_4d_tensor(images, axis=0),
+                                    self.create_flipped_img_4d_tensor(images, axis=1)
+                                    ))
+        elif x_flip and not y_flip : 
+            stack = np.concatenate((images,
+                                    self.create_flipped_img_4d_tensor(images, axis=0),
+                                    ))
+        elif not x_flip and y_flip :
+            stack = np.concatenate((images,
+                                    self.create_flipped_img_4d_tensor(images, axis=1)
+                                    ))
+        else :
+            print("You have chosen to not add any flipped images")        
+
+        print(f"Added {np.shape(stack)[0]-sizes[0]} images [THROUGH FLIPPING] to original data!")
         return stack
     
     def prepare_data_for_network(self, bscan_name='raw_bScan',  
-                                 flag_check_for_matching_data=False, flag_add_flipped_data=False):
+                                 flag_check_for_matching_data=False, flag_add_flipped_data=True):
         """
         loads, pre-processes and displays data for training
         """
@@ -276,15 +269,15 @@ class DataPreprocessing() :
         print("[STARTING PREPROCESSING] data for training...")
         x = self.load_images(self.path, bscan_name, (512,512))
         y = self.create_tripple_masks(self.path, dims=(512,512))
+                        
+        x = x[np.newaxis]
+        x = np.swapaxes(x, 0, 3)
         
         # Add flipped versions of the all b-Scans to the training data
         if flag_add_flipped_data:
             #TODO: think of how the threre masks and the flipped pendants could work
             x = self.add_flipped_data(x)
             y = self.add_flipped_data(y)
-                        
-        x = x[np.newaxis]
-        x = np.swapaxes(x, 0, 3)
         
         # Sanity check if inconsistencies in the data were observed            
         if flag_check_for_matching_data:
@@ -292,13 +285,29 @@ class DataPreprocessing() :
         
         print("[DONE PREPROCESSING] data for training")
         return x, y
- 
-    
+  
+# =============================================================================
+# DEPRECATED METHODS    
+# =============================================================================
+    @staticmethod # DEPRECATED
+    def calculate_flipped_images(in_stack, axis=None) :
+        print("Calculating flipped images...")
+        assert np.size(np.shape(in_stack)) == 3, '[DIMENSIONAL MISMATCH] for images'
+        images = np.shape(in_stack)[2]        
+        
+        print("Done calculating flipped images!")
+        return np.dstack([np.flip(in_stack[:,:,i], axis) for i in tqdm(range(images))])
+
+
+# =============================================================================
+                ############# MAIN / RUN #############   
+# =============================================================================
 if __name__ == '__main__':
     DtPreTrain = DataPreprocessing(train_path)
     X_train, Y_train = DtPreTrain.prepare_data_for_network()
     DtPreVali = DataPreprocessing(vali_path)
     X_test, Y_test = DtPreVali.prepare_data_for_network() 
+
     
 # =============================================================================
 # UNet architecture and training structure
@@ -308,11 +317,11 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
     """    
     >>> U-Net Layer structure:
             
-        -> [INPUT](NxMx3x1) -> C1(NxMx3x1)                                  ,--> U9(NxMx32)->C8(NxMx32)->[OUTPUT](NxMx1)
-                '--> P1(NxMx32)->C2(NxMx32)                         ,--> U8(512x512x32)->C8(NxMx32)
-                    '--> P2(NxMx32)->C3(NxMx32)                 ,--> U7(NxMx32)->C7(NxMx32)
-                         '--> P3(NxMx32)->C4(NxMx32) ----> U6(NxMx32)->C6(NxMx32)
-                                     '--> P4(NxMx32) -> C5(NxMx32) --^
+        -> [INPUT](NxMx1) -> C1(NxMx1)                                              ,--> U9(NxMx32)->C8(NxMx2^(b))->[OUTPUT](NxMx3)
+                '--> P1(NxMx2^(b))->C2(NxMx2^(b))                               ,--> U8(512x512x32)->C8(NxMx2^(b+1))
+                    '--> P2(NxMx2^(b+1))->C3(NxMx2^(b+1))                 ,--> U7(NxMx32)->C7(NxMx2^(b+2))
+                         '--> P3(NxMx2^(b+2))->C4(NxMx2^(b+2)) ----> U6(NxMx32)->C6(NxMx2^(b+3))
+                                     '--> P4(NxMx2^(b+4)) -> C5(NxMx2^(b+4)) --^
     """
    
     if n_classes == 1:
@@ -399,7 +408,9 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
     return model, checkpointer, results   
    
     
-model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
+# =============================================================================
+# model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
+# =============================================================================
 
 # =============================================================================
 #   Testing, Prediction and Saving Model
@@ -423,47 +434,6 @@ def show_predictions(model, X_test, Y_test):
         ax[3, img].set_title("Difference image of ground-trouth (mask) and predicted (mask)")
         # add saving logic with training params
 
-show_predictions(model, X_test, Y_test)  
-
 # =============================================================================
-# # =============================================================================
-# #     DEPRECATED
-# # =============================================================================
-#     def create_bool_masks_from_bin_masks(self, masks):
-#         
-#         dims = np.shape(masks)
-#         bool_mask = [np.asarray(masks[:,:,img] <= 1, dtype=bool) for img in range(dims[2])]
-#         
-#         return bool_mask
-#         
-#     def preprocess_tss_masks(self, mask_name='tripple_masks', dtype='.bmp', dims=(1024,1024), flag_saveNewMasks=True):
-#         """
-#         >>> Go through all folders in path (each containing one training example/B-Scan)
-#         >> if "mask_file".PNG doesnt exist it is calculated from image "mask.PNG"
-#                 > it gets returned with size self.dims -> ready to be fed to network
-#                 > the 3-areas-mask (TSS = Tripple Semantic Segmentatation) then 
-#                 is saved in its folder as "mask_name.png" in its respective folder
-#                 with size = dims (functions parameter dims, not class var self.dims!)
-#         >> else, load mask from its file and add it to the pile
-#         """
-#         print("Prepocessing masks [GROUND TROUTH] for training...")
-#         tert_mask = [] # "air" and "ovd" get casted as "0" by default
-#         files = os.listdir(self.path)
-#         for f in tqdm(files) :
-#             # CREATE MASK: target mask (with 3 marked regions) doesn't already exist
-#             file_trip_mask = os.path.join(self.path, f, (mask_name + dtype))
-#             if not os.path.isfile(file_trip_mask) :
-#                 tmp_mask, mask_stack = self.create_tripple_mask(np.asarray(Image.open(os.path.join(self.path, f, 'mask.png'))))  
-#                 tmp_mask = self.resize_no_interpol(tmp_mask, (self.out_dims[0],self.out_dims[1]))
-#                 if flag_saveNewMasks:
-#                     plt.imsave(file_trip_mask, cv2.resize(tmp_mask, dims, interpolation = cv2.INTER_AREA), cmap='gray', format='bmp')       
-#                 tert_mask.append(tmp_mask)
-#             else : 
-#                 tmp_mask = self.resize_no_interpol(np.asarray(Image.open(file_trip_mask)), (self.out_dims[0],self.out_dims[1]))
-#                 tmp_mask = self.round_to_tripple_values(tmp_mask[:,:,0])
-#                 tert_mask.append(tmp_mask)
-#                 
-#         print("Done preprocessing masks!")        
-#         return np.dstack(np.asarray(tert_mask, dtype=np.uint8)), np.dstack(np.asarray(mask_stack, dtype=np.uint8))
-#  
+# show_predictions(model, X_test, Y_test)  
 # =============================================================================
