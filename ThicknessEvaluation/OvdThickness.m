@@ -34,6 +34,10 @@ thicknessMap = round(abs(imresize(thicknessMap, [128, 512], 'bicubic')));
 figure
 %Change color map so that invalid points in thickness map are changes to a
 %grey shade
+
+load('MyColormap.mat', 'OVDcolormap')
+colormap(OVDcolormap)
+
 cmap = hot(256);
 cmap(1,:) = [1;1;1]; % grey
 colormap(cmap); % activate it
