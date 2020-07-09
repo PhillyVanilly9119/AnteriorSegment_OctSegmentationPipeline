@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 28 14:59:03 2020
+Created on Mon Apr 27 16:14:31 2020
 
-@author: Philipp
+@author:    Philipp
+            philipp.matten@meduniwien.ac.at
+
 """
 
 import os
