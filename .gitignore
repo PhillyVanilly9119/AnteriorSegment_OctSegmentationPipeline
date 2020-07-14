@@ -5,6 +5,9 @@
 *.png
 *.jpg
 
+# Files
+/MachnineLearningSegmentation/AuxTesting.py
+
 # Executables
 *.exe
 
