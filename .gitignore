@@ -13,6 +13,7 @@
 
 # Matlab images
 *.asv
+*.pyc
 
 # Paths
 **/Github
