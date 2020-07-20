@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 19 14:46:49 2020
+Created on Mon Apr 27 16:14:31 2020
 
-@author: Philipp
+@author:    Philipp
+            philipp.matten@meduniwien.ac.at
+
 """
 
 import os
@@ -19,15 +21,6 @@ from tkinter.filedialog import Tk, askdirectory, askopenfilename
 
 # =============================================================================
 # I/O Functions
-# =============================================================================
-# =============================================================================
-# def find_ovd_thickness(mask) :
-#     """
-#     Evaluates the OVD thickness, based on UNets prediction of the mask 
-#     """
-#     dims = np.shape(mask)
-#     
-#     return thickness
 # =============================================================================
     
 # =============================================================================
@@ -68,22 +61,19 @@ class AutoSegmentation() :
         
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, apply_median_filter=True, is_fixed_path_to_network=True) :
+    def apply_trained_net(self, scans, is_fixed_path_to_network=True) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
         assert scans.ndim == 3, "[PREDICTION ERROR - IMAGE SIZE] - please check image data!"
         scans = self.resize_img_stack(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
-        if is_fixed_path_to_network:
+        if is_fixed_path_to_network :
             path = r'C:\Users\Philipp\Desktop\Network_Melli\current_best_model_version9_30602020_1413_acc9984'
-        else:
+        else :
             path = askopenfilename(title='Plese select file with trained net for [AUTO-SEGMENTATION]')          
         model = keras.models.load_model(path)
         predictions = np.squeeze(model.predict(np.expand_dims(np.rollaxis(scans, 2), axis=-1), verbose=1))
-        
-        #TODO: Write if condition to apply median-filter to probability maps
-        #filtered_images = []
-        
+                
         #Threshold the masks for area-prediction
         masks = (predictions > 0.5).astype(np.uint8)
         masks = np.moveaxis(masks, 0, -1)
@@ -142,7 +132,7 @@ class AutoSegmentation() :
         print(f"Found start index to be No.{index}")
         return index
     
-    def check_predicted_masks(self, scans, masks, path) :
+    def check_predicted_masks(self, scans, masks, path, flag_apply_filter) :
         """
         Sort and check if automatically segmented b-Scans were segmented correctly
         --> Input images dimensionality = [h,w,ch,num] (reshaping in function)        
@@ -156,24 +146,21 @@ class AutoSegmentation() :
         print("Created paths for sorting!")
         print("Please review automatically segmented images...")
         scans = self.resize_img_stack(scans, self.output_dims)
-        cornea = self.resize_img_stack(masks[:,:,:,0], 
-                                      (self.output_dims[0], self.output_dims[1]))
-        ovd = self.resize_img_stack(masks[:,:,:,1], 
-                                      (self.output_dims[0], self.output_dims[1]))
-        background = self.resize_img_stack(masks[:,:,:,2], 
-                                      (self.output_dims[0], self.output_dims[1]))
+        cornea = self.resize_img_stack(masks[:,:,:,0], self.output_dims)
+        ovd = self.resize_img_stack(masks[:,:,:,1], self.output_dims)
+        background = self.resize_img_stack(masks[:,:,:,2], self.output_dims)
         for im in range(idx, np.shape(scans)[2]) :            
             good_img_file = os.path.join(path_good, f'{im:03}' + '.bmp')
             bad_img_file = os.path.join(path_bad, f'{im:03}' + '.bmp')
-            current_img = np.concatenate((np.add(cornea[:,:,im],ovd[:,:,im]), background[:,:,im]),
-                                         axis=1)*255
+            current_img = np.add(cornea[:,:,im],ovd[:,:,im])*255
+            disp_img = np.concatenate((current_img, background[:,:,im]*255), axis=1)
             cv2.imshow(f"Predicted BACKGROUND-mask on original B-Scan No.{im} - left hand side = overlayed Cornea and OVD boundary - right hand side = background",
-                       cv2.resize(current_img, (1920,1080), interpolation = cv2.INTER_AREA))
+                       cv2.resize(disp_img, (1920,1080), interpolation = cv2.INTER_AREA))
             key = cv2.waitKey(0)
             if key == ord('y') or key == ord('Y') :
                 if not self.check_for_duplicates(good_img_file, bad_img_file) :
                     # Create and save mask from which thickness determination should take place
-                    cv2.imwrite(good_img_file, (np.add(cornea[:,:,im],ovd[:,:,im])*255)) 
+                    cv2.imwrite(good_img_file, (np.add((cornea[:,:,im]*255),(ovd[:,:,im])*127))) 
                 else :
                     print("[WARNING:] image with same number in both folders")  
                     continue
