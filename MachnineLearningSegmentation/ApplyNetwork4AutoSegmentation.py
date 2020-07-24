@@ -70,7 +70,10 @@ class AutoSegmentation() :
         CONDITION 2:
         1) Find Epithelium
         2) Find Endothelium -> with fixed thickness for interpolation
-    
+        3) Hard set false positives in both areas
+        4) Find OVD Start (with a different continuity condition?)
+        5) calculate thickness  -> I) set to max, if y(1023) == 0, i.e. no OVD in path in lower boundary
+                                -> II) calc thickness in pxls
              
         """
         # TODO: Handle case accoring to input image size
