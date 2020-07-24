@@ -7,21 +7,20 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [renderVolume] = createAndSaveRenderVolume()
-
-% Globals
+%% Globals
 a = 1024;
 b = 1024;
 c = 128;
 renderVolume = zeros(a,b,c);
 
-% Load data
+%% Load data
 path = uigetdir();
 scans = loadOctImages(path, 1024, 512, 'bmp');
 scans = resizeOctCube(scans, 2);
 masks = loadMasksFromFile(uigetdir(path), a, b, 'png');
 masks(masks>0) = 255;
 
-% Make render-volume pretty
+%% Make render-volume pretty
 for i = 1:c
     renderVolume(:,:,i) = scans(:,:,i);
     mask = masks(:,:,i);
@@ -45,8 +44,19 @@ for i = 1:c
     % Normalize vals?
 end
 
+%% Interpolate rendered volume
+c = 1024;
+% renderVolume = uint8(renderVolume;
+outVol = zeros(a,b,c);
+for ii = 1:a
+    for jj = 1:b
+        outVol(i,j,:) = interp1(1:128, squeeze(renderVolume(ii,jj,:)), ...
+            linspace(1,128,1024), 'PCHIP');
+    end
+end
+
 % Save images
-saveDataCubeAsBinFile(path, strcat('renderVolume', '_', num2str(a), 'x', num2str(b), 'x', num2str(c),'.bin'), uint8(renderVolume));
+saveDataCubeAsBinFile(path, strcat('renderVolume_uint8', '_', num2str(a), 'x', num2str(b), 'x', num2str(c),'.bin'), uint8(outVol));
 disp('Saved Data Cube in selected path!')
 
 end
