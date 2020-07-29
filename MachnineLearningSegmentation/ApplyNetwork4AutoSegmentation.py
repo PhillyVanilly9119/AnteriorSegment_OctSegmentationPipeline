@@ -16,6 +16,7 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from PIL import Image  
+from tqdm import tqdm
 from pathlib import Path
 from tensorflow import keras
 from scipy import interpolate
@@ -41,13 +42,56 @@ class AutoSegmentation() :
     def determine_thickness_for_database(self) :        
         """
         TODOs/ necessary functions:
+            -> 
             "segment entire volume"
             "write map into path"
-            "go through all paths and subpaths and calc maps
-        """
-        main_path = AutoSegmentation.clean_path_selection("Select main")
-        
-    
+        """        
+        main_path = AutoSegmentation.clean_path_selection("Select main path of data to evaluate") 
+        # 1) List with all folders containing volume measurements
+        list_measurements = AutoSegmentation.fast_scandir(main_path)
+        # MAIN LOOP for thickness calcs
+        for c_folder, folder in tqdm(enumerate(list_measurements)) :
+            SCAN_LIST = []
+            # 1: Find and sort all B-Scans in order
+            list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp"))
+            list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+            for path in list_valid_bScans :
+                string = path.split('\\')[-1].split('.bmp')[0]
+                SCAN_LIST.append(int(string))
+            list_invalid_bScans = []
+            manual_folders = [f.path for f in os.scandir(os.path.join(folder,
+                                                                      'IncorrectScans',
+                                                                      'Data_Machine_Learning')) if f.is_dir()]
+            for ml_folder in manual_folders :
+                list_invalid_bScans.append(ml_folder)
+            list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
+            
+            THICKNESS_MAP = []
+            # Process every B-Scan in volume
+            counter_invalid = 0
+            counter_valid = 0
+            print(f"\nCalculating thickness for Volume No.{c_folder} in a total of {len(list_measurements)} measurements...")
+            for scan in tqdm(range(128)) :
+                if scan not in SCAN_LIST :
+                    # Load mask
+                    mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png')
+                    if os.path.isfile(mask_file) :
+                        mask = np.asarray(Image.open(mask_file))
+                        _, mask = AutoSegmentation.create_tripple_mask(mask)
+                        ## TODO: Rething saving
+                        #plt.imsave(os.path.join(list_invalid_bScans[counter_invalid], 'mask.png', mask, cmap='gray', format='bmp')
+                    #THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))   
+                    counter_invalid += 1
+                else :
+                    mask = np.asarray(Image.open(list_valid_bScans[scan]))
+                    #THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))
+                    counter_valid += 1
+                    
+            #THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16)        
+            plt.imshow(mask)
+            break
+
+        return list_invalid_bScans
 # =============================================================================
 #     AUXILIARY
 # =============================================================================
@@ -57,7 +101,19 @@ class AutoSegmentation() :
         for j in range(num): 
             res.append(random.randint(start, end)) 
         return np.array(res)
-        
+    
+    @staticmethod
+    def fast_scandir(dirname):
+        sub_folders = []
+        folders = [f.path for f in os.scandir(dirname) if f.is_dir()]
+        for subdir in folders :
+            for f in os.scandir(subdir) :
+                if f.is_dir() :
+                    sub_folders.append(f.path)
+        return sub_folders   
+    
+    @staticmethod
+
 # =============================================================================
 #     IMAGE FILTER 
 # =============================================================================
@@ -70,13 +126,53 @@ class AutoSegmentation() :
         assert image.dtype==np.uint8, "Image has wrong data type"
         # TODO: Set values to 0, 127 or 255
         return image
-# =============================================================================
-#     MASK PROCESSING
-# =============================================================================
+
     @staticmethod
     def consecutive(data, stepsize=1):
         return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
-
+# =============================================================================
+#     MASK PROCESSING
+# =============================================================================
+    #TODO: Import from main_training.py
+    @staticmethod
+    def create_tripple_mask(mask) :
+        """
+        Return two types of masks: 
+        """
+        dims = np.shape(mask) 
+        cornea = np.zeros((dims))
+        ovd = np.zeros((dims))
+        background = np.zeros((dims))
+        tripple_mask = np.zeros((dims))
+        
+        for ascan in range(dims[1]) : # iterate through A-Scans
+            bndry_spots = np.squeeze(np.where(mask[:,ascan]==np.amax(mask)))
+            if np.size(bndry_spots) == 2 : # case: only Cornea visible
+                start_crn = np.amin(bndry_spots)
+                end_crn = np.amax(bndry_spots)
+                # cornea = 1
+                tripple_mask[start_crn:end_crn, ascan] = 1
+                cornea[start_crn:end_crn, ascan] = 255
+            elif np.size(bndry_spots) == 3 :
+                # cornea = 1
+                tripple_mask[bndry_spots[0]:bndry_spots[1], ascan] = 1
+                cornea[bndry_spots[0]:bndry_spots[1], ascan] = 255
+                # "milk" = 2
+                tripple_mask[bndry_spots[2]:, ascan] = 2
+                ovd[bndry_spots[2]:, ascan] = 255
+            else :
+                print("[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
+                pass 
+            # Create Masks for 3-channel segmentation
+            masks = []
+            masks.append(cornea) # Mask No.1
+            masks.append(ovd) # Mask No.2
+            tmp = np.add(cornea, ovd)
+            _, background = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY_INV)
+            masks.append(background) # Mask No.3
+            
+        return masks, tripple_mask
+    
     @staticmethod
     def scale_value_range(X, x_min=0, x_max=1):
         nom = (X-X.min(axis=0))*(x_max-x_min)
@@ -192,7 +288,6 @@ class AutoSegmentation() :
         scan_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
         # Load (ONLY) b-Scans (with size = IMG_HEIGHT x IMG_WIDTH)
         scans = [np.asarray(Image.open(infile)) for infile in scan_list if np.shape(np.asarray(Image.open(infile))) == (self.raw_dims[0],self.raw_dims[1])]
-        
         return np.dstack(scans), path
         
     def resize_img_stack(self, images, out_dims) :
@@ -205,7 +300,6 @@ class AutoSegmentation() :
         images = [cv2.resize(images[:,:,i], 
                              (out_dims[0], out_dims[1]), 
                              interpolation = cv2.INTER_AREA) for i in range(in_dims[2])]
-        
         return np.dstack(images)
         
     def apply_trained_net(self, scans, is_fixed_path_to_network=True) :
@@ -233,7 +327,6 @@ class AutoSegmentation() :
         root.withdraw()
         path = askdirectory(title=text, mustexist=True)
         root.destroy()
-        
         return path
     
     @staticmethod    
@@ -327,7 +420,7 @@ class AutoSegmentation() :
         
 if __name__ == '__main__' :
     AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
-    AS.determine_thickness_for_database()
+    x = AS.determine_thickness_for_database()
      
 # =============================================================================
 # TBD if deprecated - functions based on 1-channel UNet segmenation
