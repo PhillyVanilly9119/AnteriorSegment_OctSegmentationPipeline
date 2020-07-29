@@ -36,17 +36,17 @@ class AutoSegmentation() :
         self.output_dims = output_dims  
     
 # =============================================================================
-#     TODO: Write static method for filtering the data staks/ images
 #     TODO: Check if normalization of masks is neccessary
 # =============================================================================
-    def determine_thickness_for_database() :        
+    def determine_thickness_for_database(self) :        
         """
         TODOs/ necessary functions:
             "segment entire volume"
             "write map into path"
             "go through all paths and subpaths and calc maps
         """
-        pass
+        main_path = AutoSegmentation.clean_path_selection("Select main")
+        
     
 # =============================================================================
 #     AUXILIARY
@@ -63,10 +63,13 @@ class AutoSegmentation() :
 # =============================================================================
     @staticmethod
     def open_and_close(image, kernel_size=3) :
-        # TODO: Crop ranges and round values to triplet (0,127,255)
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         return cv2.morphologyEx(cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel), cv2.MORPH_CLOSE, kernel)
     
+    def set_img_tripple_vals(image) : 
+        assert image.dtype==np.uint8, "Image has wrong data type"
+        # TODO: Set values to 0, 127 or 255
+        return image
 # =============================================================================
 #     MASK PROCESSING
 # =============================================================================
@@ -81,52 +84,39 @@ class AutoSegmentation() :
         return np.asarray(x_min + nom/denom, dtype=np.uint8)
     
     @staticmethod
-    def interpolate_curve(vector, valid, crn_thickness) :
+    def interpolate_curve(vector, valid) :
         vector = np.array(vector, dtype=np.uint16)
         valid = np.array(valid, dtype=bool)
         assert np.size(vector) == np.size(valid), "Dimensional mismatch of vectors"
         valid_x = np.squeeze(valid.nonzero())
         valid_y = vector[valid_x]
-        #valid_x = x[x.nonzero()]
-        return valid_x, valid_y
-# =============================================================================
-#         valid_y = y[y==True]
-#         valid_x = np.where(x[y==True])
-#         print(valid_x)
-#         new_x = np.linspace(0, 1023, 1024)
-#         coefs = np.polyfit(x,y,2)
-# =============================================================================
-
-# =============================================================================
-#         #assert np.shape(x)[0] == np.shape(y)[0], "Dimensional mismatch of input vectors"
-#         new_x = np.linspace(min(x), max(x), num=np.size(x))
-#         
-#         return np.array(np.polyval(coefs, new_x), dtype=np.uint16)
-# =============================================================================
+        poly = np.polyval(np.polyfit(valid_x, valid_y, 2), np.linspace(0, 1023, 1024))
+        return np.array(poly, dtype=np.uint16)
     
+    @staticmethod
     def check_for_continuity(vector, delta=5) :
         vector = np.asarray(vector, dtype=np.uint16)
         bool_curve = np.zeros(shape=(np.shape(vector)))
         bool_curve[0] = True
         for pix in range(1, np.shape(vector)[0]) :
             if ( (vector[pix]<vector[pix-1]+delta) & (vector[pix]>vector[pix-1]-delta) ) :
-                bool_curve[pix] = True
+                if vector[pix] < 5 :
+                    bool_curve[pix] = False
+                else :
+                    bool_curve[pix] = True
             else :
                 bool_curve[pix] = False
-        bool_curve = np.array(bool_curve, dtype=bool)
-        return bool_curve
+        return np.array(bool_curve, dtype=bool)
+
+    @staticmethod
+    def calculate_thickness(boundary1, boundary2) :
+        if boundary2 == 1023 :
+            return 1000
+        else :
+            return boundary2-boundary1
     
     @staticmethod    
     def find_boundaries_in_mask(mask, AScans=None) :
-        """
-        woi = width of interest (if only portion of A-Scans is supposed to be analized)
-        1) Find Cornea (ENDO) based on valid scans in left and right corners
-        2) Crop illogical pixels obove and below ENDO
-        # -1 if no pixel in aScan    
-        # if no OVD or ovd @1023 -> write max  value
-        """
-        assert np.ndim(mask)==2, "[MASK CREATION ERROR] - 2D-array is the expected input"
-     
         """
         CONDITION 1:
         CONDITION 2:
@@ -136,20 +126,26 @@ class AutoSegmentation() :
         4) Find OVD Start (with a different continuity condition?)
         5) calculate thickness  -> I) set to max, if y(1023) == 0, i.e. no OVD in path in lower boundary
                                 -> II) calc thickness in pxls
+                                -> III) -1 if no pixel in aScan    
+        # if no OVD or ovd @1023 -> write max  value
+        
         """
+        assert np.ndim(mask)==2, "[MASK CREATION ERROR] - 2D-array is the expected input"
         # TODO: Handle case accoring to input image size
-        crn_thickness = 200 # >>TBD<<
+        crn_thickness = 320 # >>TBD<<
         # TODO: round values in mask to 255, 127 and 0
         crn_val = 255
         milk_val = 127
         epithelium = []
         endothelium = []
+        milk = []
         OVD_THICKNESS = [] # final return value
 
         if AScans is None :
             AScans = np.shape(mask)[1]
 
-        # 1) FIND Epithelium
+        # 1) FIND Epithelium and 
+        # 2) Epithelium
         for aScan in range(AScans) :
             c_aScan = mask[:,aScan] 
             # Find positions, where cornea pixels are
@@ -159,29 +155,31 @@ class AutoSegmentation() :
                 epithelium.append(np.amin(c_spots))
                 endothelium.append(np.amax(c_spots))
             else :
-                epithelium.append(-1)
-                endothelium.append(-1)
-        
-        valid_epi = AutoSegmentation.check_for_continuity(endothelium)
-        x, y = AutoSegmentation.interpolate_curve(epithelium, valid_epi, crn_thickness)
-        return x, y
-        
-# =============================================================================
-#         for aScan in range(AScans) :
-#             c_mask = mask[:,aScan] 
-#             # Find positions, where milk area starts
-#             o_spots = np.where((c_mask < np.amax(mask)) & (c_mask > 0)) 
-#             if (np.size(o_spots) > 1) and (np.amin(o_spots) > ENDO[aScan]) :
-#                 MILK.append(np.amin(o_spots))
-#                 epithelium.append(np.amin(o_spots))
-#                 if np.amin(o_spots) <  np.amax(o_spots) :
-#                     OVD_THICKNESS.append(np.amax(o_spots)-np.amin(o_spots))
-#                 else :
-#                     OVD_THICKNESS.append(0)        
-#             else :
-#                 MILK.append(-1)
-# =============================================================================
-        
+                epithelium.append(0)
+                endothelium.append(0)               
+        valid_endo = AutoSegmentation.check_for_continuity(endothelium)
+        if np.count_nonzero(valid_endo) == np.shape(mask)[1] :
+            interp_endo = valid_endo 
+        else :
+            interp_endo = np.add(AutoSegmentation.interpolate_curve(epithelium, valid_endo),
+                                 crn_thickness)
+        averaged_endo = np.mean(np.vstack((endothelium, interp_endo)), axis=0, dtype=np.uint16)
+        # 3) hard-set false positives in mask
+        # >>TBD<<
+        # 4) Find OVD
+        for aScan in range(AScans) :
+            c_aScan = mask[:,aScan]
+            c_aScan[averaged_endo[aScan]:]
+            m_spots = np.where(c_aScan[averaged_endo[aScan]:]==milk_val)
+            if np.size(m_spots) > 1 :
+                milk.append(np.amin(m_spots)+averaged_endo[aScan])
+            else :
+                milk.append(1023)
+            # 5) Evaluate thickness 
+            OVD_THICKNESS.append(AutoSegmentation.calculate_thickness(averaged_endo[aScan], 
+                                                                      milk[aScan]))
+        return np.asarray(OVD_THICKNESS, dtype=np.uint16)
+    
     def load_data_from_folder(self) :
         """
         Primitive to load *.bmp-files of OCT b-Scans generated by ZEISS RESCAN
@@ -329,13 +327,7 @@ class AutoSegmentation() :
         
 if __name__ == '__main__' :
     AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
-    #scans, path = AS.load_data_from_folder()
-    #masks = AS.apply_trained_net(scans)
-    img_file = os.path.join("C:/Users/Philipp/Desktop/", 'Maske_Bsp.bmp')
-    mask = cv2.imread(img_file, cv2.IMREAD_GRAYSCALE)
-    x, y = AutoSegmentation.find_boundaries_in_mask(mask)  
-    #plt.plot(epi)
-    #AS.check_predicted_masks(scans, masks, path)
+    AS.determine_thickness_for_database()
      
 # =============================================================================
 # TBD if deprecated - functions based on 1-channel UNet segmenation
