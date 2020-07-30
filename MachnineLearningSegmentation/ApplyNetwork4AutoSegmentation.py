@@ -13,6 +13,7 @@ import cv2
 import glob 
 import random
 import numpy as np
+import scipy
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from PIL import Image  
@@ -20,12 +21,86 @@ from tqdm import tqdm
 from pathlib import Path
 from tensorflow import keras
 from scipy import interpolate
+from main_Training import DataPreprocessing as DP
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
 # =============================================================================
 # I/O Functions
 # =============================================================================
+def determine_thickness_for_database() :        
+    """
+    TODOs/ necessary functions:
+        -> 
+        "segment entire volume"
+        "write map into path"
+    """        
+    main_path = AutoSegmentation.clean_path_selection("Select main path of data to evaluate") 
+    # 1) List with all folders containing volume measurements
+    list_measurements = AutoSegmentation.fast_scandir(main_path)
+    SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData')
+    if not os.path.exists(SAVE_PATHS_MAPS):
+        os.makedirs(SAVE_PATHS_MAPS)
+    # MAIN LOOP for thickness calcs
+    for c_folder, folder in tqdm(enumerate(list_measurements)) :
+        SCAN_LIST = []
+        # 1: Find and sort all B-Scans in order
+        list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp"))
+        list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+        for path in list_valid_bScans :
+            string = path.split('\\')[-1].split('.bmp')[0]
+            SCAN_LIST.append(int(string))
+        list_invalid_bScans = []
+        manual_folders = [f.path for f in os.scandir(os.path.join(folder,
+                                                                  'IncorrectScans',
+                                                                  'Data_Machine_Learning')) if f.is_dir()]
+        for ml_folder in manual_folders :
+            list_invalid_bScans.append(ml_folder)
+        list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
+        
+        THICKNESS_MAP = []
+        # Process every B-Scan in volume
+        counter_invalid = 0
+        counter_valid = 0
+        print(f"\nCalculating thickness for Volume No.{c_folder+1} in a total of {len(list_measurements)} measurements...")
+        for scan in tqdm(range(128)) :
+            if scan not in SCAN_LIST :
+                # Load mask
+                mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png')
+                if os.path.isfile(mask_file) :
+                    mask = np.asarray(Image.open(mask_file))
+                    _, mask = DP.create_tripple_mask(mask)
+                    save_name = os.path.join(*list_valid_bScans[0].split('\\')[:-1])
+                    plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'), 
+                               mask, cmap='gray', format='bmp')
+                    THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))   
+                    counter_invalid += 1
+                else :
+                    print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                
+            else :
+                mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
+                THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))
+                counter_valid += 1
+                
+        THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16)
+        # Interpolate to square
+        x = np.arange(0, THICKNESS_MAP.shape[0])
+        fit = scipy.interpolate.interp1d(x, THICKNESS_MAP, axis=0)
+        INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
+        # Save all kinds of created thickness-data
+        name_measurement = folder.split('\\')[-1]
+        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bmp')), 
+                               np.asarray(THICKNESS_MAP,dtype=np.uint16), cmap='gray', format='bmp')
+        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bmp')), 
+                               np.asarray(INTERPOL_THICKNESS_MAP,dtype=np.uint16), cmap='gray', format='bmp')
+        THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bin')))
+        INTERPOL_THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bin')))
+        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.mat')), 
+                         {'THICKNESS_MAP': THICKNESS_MAP.astype(np.uint16)})
+        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')), 
+                         {'INTERPOL_THICKNESS_MAP': INTERPOL_THICKNESS_MAP.astype(np.uint16)})
     
+    print("Done Processing data base! :)")
+        
 # =============================================================================
 # Functions for inference, i.e. apply prediction on raw scans
 # =============================================================================
@@ -36,72 +111,7 @@ class AutoSegmentation() :
         self.raw_dims = raw_dims
         self.output_dims = output_dims  
     
-# =============================================================================
-#     TODO: Check if normalization of masks is neccessary
-# =============================================================================
-    def determine_thickness_for_database(self) :        
-        """
-        TODOs/ necessary functions:
-            -> 
-            "segment entire volume"
-            "write map into path"
-        """        
-        main_path = AutoSegmentation.clean_path_selection("Select main path of data to evaluate") 
-        # 1) List with all folders containing volume measurements
-        list_measurements = AutoSegmentation.fast_scandir(main_path)
-        # MAIN LOOP for thickness calcs
-        for c_folder, folder in tqdm(enumerate(list_measurements)) :
-            SCAN_LIST = []
-            # 1: Find and sort all B-Scans in order
-            list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp"))
-            list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
-            for path in list_valid_bScans :
-                string = path.split('\\')[-1].split('.bmp')[0]
-                SCAN_LIST.append(int(string))
-            list_invalid_bScans = []
-            manual_folders = [f.path for f in os.scandir(os.path.join(folder,
-                                                                      'IncorrectScans',
-                                                                      'Data_Machine_Learning')) if f.is_dir()]
-            for ml_folder in manual_folders :
-                list_invalid_bScans.append(ml_folder)
-            list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
-            
-            THICKNESS_MAP = []
-            # Process every B-Scan in volume
-            counter_invalid = 0
-            counter_valid = 0
-            print(f"\nCalculating thickness for Volume No.{c_folder} in a total of {len(list_measurements)} measurements...")
-            for scan in tqdm(range(128)) :
-                if scan not in SCAN_LIST :
-                    # Load mask
-                    mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png')
-                    if os.path.isfile(mask_file) :
-                        mask = np.asarray(Image.open(mask_file))
-                        _, mask = AutoSegmentation.create_tripple_mask(mask)
-                        ## TODO: Rething saving
-                        #plt.imsave(os.path.join(list_invalid_bScans[counter_invalid], 'mask.png', mask, cmap='gray', format='bmp')
-                    #THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))   
-                    counter_invalid += 1
-                else :
-                    mask = np.asarray(Image.open(list_valid_bScans[scan]))
-                    #THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))
-                    counter_valid += 1
-                    
-            #THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16)        
-            plt.imshow(mask)
-            break
-
-        return list_invalid_bScans
-# =============================================================================
-#     AUXILIARY
-# =============================================================================
-    @staticmethod
-    def rand(start, end, num): 
-        res = [] 
-        for j in range(num): 
-            res.append(random.randint(start, end)) 
-        return np.array(res)
-    
+    #AUXILIARY   
     @staticmethod
     def fast_scandir(dirname):
         sub_folders = []
@@ -112,11 +122,7 @@ class AutoSegmentation() :
                     sub_folders.append(f.path)
         return sub_folders   
     
-    @staticmethod
-
-# =============================================================================
-#     IMAGE FILTER 
-# =============================================================================
+    #IMAGE FILTER 
     @staticmethod
     def open_and_close(image, kernel_size=3) :
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
@@ -126,52 +132,6 @@ class AutoSegmentation() :
         assert image.dtype==np.uint8, "Image has wrong data type"
         # TODO: Set values to 0, 127 or 255
         return image
-
-    @staticmethod
-    def consecutive(data, stepsize=1):
-        return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
-# =============================================================================
-#     MASK PROCESSING
-# =============================================================================
-    #TODO: Import from main_training.py
-    @staticmethod
-    def create_tripple_mask(mask) :
-        """
-        Return two types of masks: 
-        """
-        dims = np.shape(mask) 
-        cornea = np.zeros((dims))
-        ovd = np.zeros((dims))
-        background = np.zeros((dims))
-        tripple_mask = np.zeros((dims))
-        
-        for ascan in range(dims[1]) : # iterate through A-Scans
-            bndry_spots = np.squeeze(np.where(mask[:,ascan]==np.amax(mask)))
-            if np.size(bndry_spots) == 2 : # case: only Cornea visible
-                start_crn = np.amin(bndry_spots)
-                end_crn = np.amax(bndry_spots)
-                # cornea = 1
-                tripple_mask[start_crn:end_crn, ascan] = 1
-                cornea[start_crn:end_crn, ascan] = 255
-            elif np.size(bndry_spots) == 3 :
-                # cornea = 1
-                tripple_mask[bndry_spots[0]:bndry_spots[1], ascan] = 1
-                cornea[bndry_spots[0]:bndry_spots[1], ascan] = 255
-                # "milk" = 2
-                tripple_mask[bndry_spots[2]:, ascan] = 2
-                ovd[bndry_spots[2]:, ascan] = 255
-            else :
-                print("[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
-                pass 
-            # Create Masks for 3-channel segmentation
-            masks = []
-            masks.append(cornea) # Mask No.1
-            masks.append(ovd) # Mask No.2
-            tmp = np.add(cornea, ovd)
-            _, background = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY_INV)
-            masks.append(background) # Mask No.3
-            
-        return masks, tripple_mask
     
     @staticmethod
     def scale_value_range(X, x_min=0, x_max=1):
@@ -226,8 +186,6 @@ class AutoSegmentation() :
         # if no OVD or ovd @1023 -> write max  value
         
         """
-        assert np.ndim(mask)==2, "[MASK CREATION ERROR] - 2D-array is the expected input"
-        # TODO: Handle case accoring to input image size
         crn_thickness = 320 # >>TBD<<
         # TODO: round values in mask to 255, 127 and 0
         crn_val = 255
@@ -236,7 +194,6 @@ class AutoSegmentation() :
         endothelium = []
         milk = []
         OVD_THICKNESS = [] # final return value
-
         if AScans is None :
             AScans = np.shape(mask)[1]
 
@@ -255,7 +212,7 @@ class AutoSegmentation() :
                 endothelium.append(0)               
         valid_endo = AutoSegmentation.check_for_continuity(endothelium)
         if np.count_nonzero(valid_endo) == np.shape(mask)[1] :
-            interp_endo = valid_endo 
+            interp_endo = np.add(valid_endo, crn_thickness)
         else :
             interp_endo = np.add(AutoSegmentation.interpolate_curve(epithelium, valid_endo),
                                  crn_thickness)
@@ -274,7 +231,7 @@ class AutoSegmentation() :
             # 5) Evaluate thickness 
             OVD_THICKNESS.append(AutoSegmentation.calculate_thickness(averaged_endo[aScan], 
                                                                       milk[aScan]))
-        return np.asarray(OVD_THICKNESS, dtype=np.uint16)
+        return np.asarray(OVD_THICKNESS)
     
     def load_data_from_folder(self) :
         """
@@ -419,40 +376,8 @@ class AutoSegmentation() :
         print("Done displaying images!")
         
 if __name__ == '__main__' :
-    AS = AutoSegmentation((512,512), (1024,512), (1024,1024))
-    x = AS.determine_thickness_for_database()
+    determine_thickness_for_database()
      
 # =============================================================================
 # TBD if deprecated - functions based on 1-channel UNet segmenation
-# =============================================================================
-# Thickness evaluation
-
-
-def calculate_thicknes_of_OVD(mask):
-    """
-    Primitive to calculate the thickness of a b-Scans'/masks' OVD-layer
-    - applys logic on a a-Scan basis (i.e. column-wise)
-    >>> returns the thickness of the OVD-layer in pixels, 
-    1023 if no OVD was marked in mask, i.e. MAX PNT or MAX THICKNESS
-    and -1 if invalid point, i.e. if no structure/cornea was visible in a-Scan
-    """
-    height, width = np.shape(mask)[0], np.shape(mask)[1] #[h,w]
-    boundary_tuple = find_boundaries_in_mask(mask, width)
-    thickness = []
-    for i in range(width):
-        if boundary_tuple[2,i] == 0: #invalid thickness
-            thickness.append(-1)
-        elif boundary_tuple[2,i] == (height-1): # max thickness
-            thickness.append(1023)
-        else: # regular thickness
-            thickness.append(boundary_tuple[2,i]-boundary_tuple[1,i])        
-    
-    return np.asarray(thickness)
-
-def generate_thickness_maps(volume, path=r'C:\Users\Philipp\Desktop\MaskTestPython'):
-    #TODO: change path to were you loaded the data from
-    size = np.size(volume)
-    thickness_map = [calculate_thicknes_of_OVD[:,:,i] for i in size[2]]
-    full_path = os.path.join(path,'thickness_map.mat')
-    sio.savemat(full_path, {'thickness_map':thickness_map})
-    print(f"Created and saved OVD-thickness-map to *.matfile >>{full_path}<<")  
+# ============================================================================= 

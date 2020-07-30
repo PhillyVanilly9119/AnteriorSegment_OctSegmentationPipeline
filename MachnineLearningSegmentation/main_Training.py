@@ -129,14 +129,12 @@ class DataPreprocessing() :
                 start_crn = np.amin(bndry_spots)
                 end_crn = np.amax(bndry_spots)
                 # cornea = 1
-                tripple_mask[start_crn:end_crn, ascan] = 1
+                tripple_mask[start_crn:end_crn, ascan] = 255
                 cornea[start_crn:end_crn, ascan] = 255
             elif np.size(bndry_spots) == 3 :
-                # cornea = 1
-                tripple_mask[bndry_spots[0]:bndry_spots[1], ascan] = 1
+                tripple_mask[bndry_spots[0]:bndry_spots[1], ascan] = 255
                 cornea[bndry_spots[0]:bndry_spots[1], ascan] = 255
-                # "milk" = 2
-                tripple_mask[bndry_spots[2]:, ascan] = 2
+                tripple_mask[bndry_spots[2]:, ascan] = 127
                 ovd[bndry_spots[2]:, ascan] = 255
             else :
                 print("[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
@@ -301,16 +299,6 @@ class DataPreprocessing() :
 
 
 # =============================================================================
-                ############# MAIN / RUN #############   
-# =============================================================================
-if __name__ == '__main__':
-    DtPreTrain = DataPreprocessing(train_path)
-    X_train, Y_train = DtPreTrain.prepare_data_for_network()
-    DtPreVali = DataPreprocessing(vali_path)
-    X_test, Y_test = DtPreVali.prepare_data_for_network() 
-
-    
-# =============================================================================
 # UNet architecture and training structure
 # =============================================================================
 def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model, 
@@ -409,8 +397,6 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
     return model, checkpointer, results   
    
     
-model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
-
 # =============================================================================
 #   Testing, Prediction and Saving Model
 # =============================================================================
@@ -431,7 +417,16 @@ def show_predictions(model, X_test, Y_test):
         diff_img = np.absolute(np.subtract(Y_test[img,:,:,0], preds_test_t[img,:,:]))
         ax[3, img].imshow(diff_img)
         ax[3, img].set_title("Difference image of ground-trouth (mask) and predicted (mask)")
-        # add saving logic with training params
+
+# =============================================================================
+                ############# MAIN / RUN #############   
+# =============================================================================
+if __name__ == '__main__':
+    DtPreTrain = DataPreprocessing(train_path)
+    X_train, Y_train = DtPreTrain.prepare_data_for_network()
+    DtPreVali = DataPreprocessing(vali_path)
+    X_test, Y_test = DtPreVali.prepare_data_for_network() 
+    model, *_ = build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, train_path)  
 
 # =============================================================================
 # show_predictions(model, X_test, Y_test)  
