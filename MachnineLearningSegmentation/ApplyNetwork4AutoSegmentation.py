@@ -76,7 +76,7 @@ def determine_thickness_for_database() :
                 if os.path.isfile(mask_file) :
                     mask = np.asarray(Image.open(mask_file))
                     _, mask = DP.create_tripple_mask(mask)
-                    save_name = os.path.join(*list_valid_bScans[0].split('\\')[:-1])
+                    save_name = os.path.join(folder, 'CorrectScans')
                     plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'), 
                                mask, cmap='gray', format='bmp')
                     THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))   
