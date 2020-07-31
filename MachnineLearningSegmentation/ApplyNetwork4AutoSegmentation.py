@@ -21,6 +21,7 @@ from tqdm import tqdm
 from pathlib import Path
 from tensorflow import keras
 from scipy import interpolate
+from scipy import ndimage
 from main_Training import DataPreprocessing as DP
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
@@ -45,17 +46,23 @@ def determine_thickness_for_database() :
         SCAN_LIST = []
         # 1: Find and sort all B-Scans in order
         list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp"))
-        list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
-        for path in list_valid_bScans :
-            string = path.split('\\')[-1].split('.bmp')[0]
-            SCAN_LIST.append(int(string))
+        if list_valid_bScans :
+            list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+            for path in list_valid_bScans :
+                string = path.split('\\')[-1].split('.bmp')[0]
+                SCAN_LIST.append(int(string))
         list_invalid_bScans = []
+        # ERROR HANDLE if ML-data-dir does not exist
+        folder_ml_data = os.path.join(folder, 'IncorrectScans', 'Data_Machine_Learning')
+        if not os.path.exists(folder_ml_data) :
+            os.mkdir(folder_ml_data)
         manual_folders = [f.path for f in os.scandir(os.path.join(folder,
                                                                   'IncorrectScans',
                                                                   'Data_Machine_Learning')) if f.is_dir()]
-        for ml_folder in manual_folders :
-            list_invalid_bScans.append(ml_folder)
-        list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
+        if manual_folders :
+            for ml_folder in manual_folders:
+                list_invalid_bScans.append(ml_folder)
+            list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))    
         
         THICKNESS_MAP = []
         # Process every B-Scan in volume
@@ -86,6 +93,8 @@ def determine_thickness_for_database() :
         x = np.arange(0, THICKNESS_MAP.shape[0])
         fit = scipy.interpolate.interp1d(x, THICKNESS_MAP, axis=0)
         INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
+        INTERPOL_THICKNESS_MAP = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP, 
+                                                             size=round(THICKNESS_MAP.shape[0]/50))
         # Save all kinds of created thickness-data
         name_measurement = folder.split('\\')[-1]
         plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bmp')), 
