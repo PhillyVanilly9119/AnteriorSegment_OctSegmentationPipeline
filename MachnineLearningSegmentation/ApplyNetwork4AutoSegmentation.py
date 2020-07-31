@@ -114,7 +114,7 @@ def determine_thickness_for_database() :
         scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')), 
                          {'INTERPOL_THICKNESS_MAP_SMOOTH': INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16)})
     
-    print("Done Processing data base! :)")
+    print("Done Processing data base! :) :) <3")
         
 # =============================================================================
 # Functions for inference, i.e. apply prediction on raw scans
