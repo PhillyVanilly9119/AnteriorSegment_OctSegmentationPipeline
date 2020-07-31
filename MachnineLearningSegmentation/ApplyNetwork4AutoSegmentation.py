@@ -93,20 +93,26 @@ def determine_thickness_for_database() :
         x = np.arange(0, THICKNESS_MAP.shape[0])
         fit = scipy.interpolate.interp1d(x, THICKNESS_MAP, axis=0)
         INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
-        INTERPOL_THICKNESS_MAP = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP, 
+        INTERPOL_THICKNESS_MAP_SMOOTH = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP, 
                                                              size=round(THICKNESS_MAP.shape[0]/50))
         # Save all kinds of created thickness-data
         name_measurement = folder.split('\\')[-1]
-        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bmp')), 
-                               np.asarray(THICKNESS_MAP,dtype=np.uint16), cmap='gray', format='bmp')
+        # Plots
         plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bmp')), 
                                np.asarray(INTERPOL_THICKNESS_MAP,dtype=np.uint16), cmap='gray', format='bmp')
+        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bmp')), 
+                               np.asarray(INTERPOL_THICKNESS_MAP_SMOOTH,dtype=np.uint16), cmap='gray', format='bmp')
+        # Binaries
         THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bin')))
         INTERPOL_THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bin')))
+        INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin')))
+        # *.MAT Files
         scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.mat')), 
                          {'THICKNESS_MAP': THICKNESS_MAP.astype(np.uint16)})
         scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')), 
                          {'INTERPOL_THICKNESS_MAP': INTERPOL_THICKNESS_MAP.astype(np.uint16)})
+        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')), 
+                         {'INTERPOL_THICKNESS_MAP_SMOOTH': INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16)})
     
     print("Done Processing data base! :)")
         
