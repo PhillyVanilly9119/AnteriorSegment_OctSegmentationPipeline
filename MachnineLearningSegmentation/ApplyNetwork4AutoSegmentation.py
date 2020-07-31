@@ -11,17 +11,13 @@ import os
 import sys
 import cv2
 import glob 
-import random
 import numpy as np
 import scipy
-import scipy.io as sio
 import matplotlib.pyplot as plt
 from PIL import Image  
 from tqdm import tqdm
 from pathlib import Path
 from tensorflow import keras
-from scipy import interpolate
-from scipy import ndimage
 from main_Training import DataPreprocessing as DP
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
@@ -94,7 +90,7 @@ def determine_thickness_for_database() :
         fit = scipy.interpolate.interp1d(x, THICKNESS_MAP, axis=0)
         INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
         INTERPOL_THICKNESS_MAP_SMOOTH = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP, 
-                                                             size=round(THICKNESS_MAP.shape[0]/50))
+                                                             size=round(INTERPOL_THICKNESS_MAP.shape[0]/75))
         # Save all kinds of created thickness-data
         name_measurement = folder.split('\\')[-1]
         # Plots
@@ -103,12 +99,9 @@ def determine_thickness_for_database() :
         plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bmp')), 
                                np.asarray(INTERPOL_THICKNESS_MAP_SMOOTH,dtype=np.uint16), cmap='gray', format='bmp')
         # Binaries
-        THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.bin')))
         INTERPOL_THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bin')))
         INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin')))
         # *.MAT Files
-        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('Thicknessmap_' + name_measurement + '.mat')), 
-                         {'THICKNESS_MAP': THICKNESS_MAP.astype(np.uint16)})
         scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')), 
                          {'INTERPOL_THICKNESS_MAP': INTERPOL_THICKNESS_MAP.astype(np.uint16)})
         scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')), 
@@ -193,9 +186,8 @@ class AutoSegmentation() :
         CONDITION 2:
         1) Find Epithelium
         2) Find Endothelium -> with fixed thickness for interpolation
-        3) Hard set false positives in both areas
-        4) Find OVD Start (with a different continuity condition?)
-        5) calculate thickness  -> I) set to max, if y(1023) == 0, i.e. no OVD in path in lower boundary
+        3) Find OVD Start (with a different continuity condition?)
+        4) calculate thickness  -> I) set to max, if y(1023) == 0, i.e. no OVD in path in lower boundary
                                 -> II) calc thickness in pxls
                                 -> III) -1 if no pixel in aScan    
         # if no OVD or ovd @1023 -> write max  value
@@ -227,14 +219,12 @@ class AutoSegmentation() :
                 endothelium.append(0)               
         valid_endo = AutoSegmentation.check_for_continuity(endothelium)
         if np.count_nonzero(valid_endo) == np.shape(mask)[1] :
-            interp_endo = np.add(valid_endo, crn_thickness)
+            interp_endo = np.add(epithelium, crn_thickness)
         else :
             interp_endo = np.add(AutoSegmentation.interpolate_curve(epithelium, valid_endo),
                                  crn_thickness)
-        averaged_endo = np.mean(np.vstack((endothelium, interp_endo)), axis=0, dtype=np.uint16)
-        # 3) hard-set false positives in mask
-        # >>TBD<<
-        # 4) Find OVD
+        averaged_endo = np.asarray(interp_endo, dtype=np.uint16)
+        # 3) Find OVD
         for aScan in range(AScans) :
             c_aScan = mask[:,aScan]
             c_aScan[averaged_endo[aScan]:]
@@ -243,7 +233,7 @@ class AutoSegmentation() :
                 milk.append(np.amin(m_spots)+averaged_endo[aScan])
             else :
                 milk.append(1023)
-            # 5) Evaluate thickness 
+            # 4) Evaluate thickness 
             OVD_THICKNESS.append(AutoSegmentation.calculate_thickness(averaged_endo[aScan], 
                                                                       milk[aScan]))
         return np.asarray(OVD_THICKNESS)
