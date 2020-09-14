@@ -96,21 +96,6 @@ class DataPreprocessing() :
             plt.pause(1/update_rate_Hz)
             plt.clf()    
         print("Done displaying images!")
-
-    @staticmethod 
-    def load_images(path, name, dims, img_dtype='.png') :
-        print(f"Loading all images >>{name+img_dtype}<< from >>{path}<<...")
-        assert np.size(dims)==2, f"[RESHAPING DIMENSIONS MISMATCH] Please enter tuple containing (height, width)"
-        h, w = dims[0], dims[1]
-        files = os.listdir(path)
-        try :
-            if any([os.path.isfile(os.path.join(path, f, name + img_dtype)) for f in files]) :
-                img_stack = [np.asarray(Image.open(os.path.join(path, f, name + img_dtype)).resize((h,w))) for f in tqdm(files)]
-        except FileNotFoundError :
-            print(f"There were no images named >>{name}<< found in any sub-directory of >>{path}<<")
-        
-        print("Done loading images!") 
-        return np.dstack(img_stack)
     
     @staticmethod
     def create_tripple_mask(mask) :
@@ -148,14 +133,6 @@ class DataPreprocessing() :
             masks.append(background) # Mask No.3
             
         return masks, tripple_mask
-    
-    @staticmethod
-    def resize_no_interpol(image, dims) :
-        assert np.size(dims) == 2, "[DIMENSION ERROR] please enter 2-D tuple as output-dimensions"
-        return cv2.resize(image,
-                          (dims[0], dims[1]), 
-                          fx = 0, fy = 0,
-                          interpolation=cv2.INTER_NEAREST)
     
     @staticmethod
     def show_images_in_subplots(images, num=None) :
@@ -284,19 +261,6 @@ class DataPreprocessing() :
         
         print("[DONE PREPROCESSING] data for training")
         return x, y
-  
-# =============================================================================
-# DEPRECATED METHODS    
-# =============================================================================
-    @staticmethod # DEPRECATED
-    def calculate_flipped_images(in_stack, axis=None) :
-        print("Calculating flipped images...")
-        assert np.size(np.shape(in_stack)) == 3, '[DIMENSIONAL MISMATCH] for images'
-        images = np.shape(in_stack)[2]        
-        
-        print("Done calculating flipped images!")
-        return np.dstack([np.flip(in_stack[:,:,i], axis) for i in tqdm(range(images))])
-
 
 # =============================================================================
 # UNet architecture and training structure
