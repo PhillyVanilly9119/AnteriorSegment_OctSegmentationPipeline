@@ -41,7 +41,7 @@ colormap(OVDcolormap)
 cmap = hot(256);
 cmap(1,:) = [1;1;1]; % grey
 colormap(cmap); % activate it
-imagesc(thicknessMap)
+imagesc(thickness)
 colorbar
 axis square
 title(['OVD thickness map in µm (' OVD_name ')'])
