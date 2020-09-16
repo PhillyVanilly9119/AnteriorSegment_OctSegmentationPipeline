@@ -11,6 +11,7 @@ import glob
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
 def open_and_close(image, kernel_size=3) :
@@ -53,7 +54,14 @@ def fast_scandir(dirname):
     return sub_folders   
 
 def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
-    return int(path.split('\\')[folder_idx].split(img_dtype)[0])
+    img_num = path.split('\\')[folder_idx].split(img_dtype)[0]
+    return int(img_num)
+
+def get_img_dirs(path) :
+    f = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        f.extend(filenames)
+    return f
 
 # =============================================================================
 # ### Main Processing ###
@@ -61,15 +69,30 @@ def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
 def create_new_masks_autoSegmented(path, dims=(1024,1024)) :
     assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
     dirs_vols = fast_scandir(path)
+    # Dir for created training data
+    target_dir = clean_path_selection("Please select target folder for new masks")
+    if not os.path.isdir(target_dir) :
+        os.mkdir(target_dir)
+    # Loop through volume measurements        
     for folder in dirs_vols :
         indices = []
-        print(folder)
-        for c_mask, mask in enumerate(folder) :
-            break
-            indices.append(get_img_idx(c_mask))
-        print(indices)
-        #curr_folder = sort_list_after_number(folder)
+        mask = []
+        b_scan = []
+        mask_files = get_img_dirs(folder)
+        for mask_file in mask_files :
+            curr_file = os.path.join(folder, mask_file)
+            mask.append(load_single_image(curr_file, dims=dims))
+            b_scan.append(load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims))
+            indices.append(get_img_idx(curr_file))        
+        b_scan = np.asarray(b_scan)
+        mask = np.asarray(mask)
 
+# =============================================================================
+#         for c_mask, mask in enumerate(dirs_masks) :
+#             print(dirs_masks[c_mask])
+# =============================================================================
+            
+            
 def create_new_masks_manuSegmented(path, dims=(1024,1024)) :
     pass
 
