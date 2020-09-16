@@ -10,6 +10,7 @@ import cv2
 import glob 
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
 def open_and_close(image, kernel_size=3) :
@@ -24,7 +25,7 @@ def load_images(path, name, dims, img_dtype='.png') :
     h, w = dims[0], dims[1]
     files = os.listdir(path)
     try :
-        if any([os.path.isfile(os.path.join(path, f, name + dtype)) for f in files]):
+        if any([os.path.isfile(os.path.join(path, f, name + img_dtype)) for f in files]):
             img_stack = [np.asarray(Image.open(os.path.join(path, f, name + img_dtype)).resize((h,w))) for f in tqdm(files)]
     except FileNotFoundError :
         print(f"There were no files named {name} in any (sub-)directory of {path}")
@@ -38,13 +39,38 @@ def load_single_image(path, dims) :
     image = Image.open(path).resize((h,w))
     return np.asarray(image, dtype=np.uint8)
 
+def sort_list_after_number(in_list) :
+    in_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+    return in_list
+
+def fast_scandir(dirname):
+    sub_folders = []
+    folders = [f.path for f in os.scandir(dirname) if f.is_dir()]
+    for subdir in folders :
+        for f in os.scandir(subdir) :
+            if f.is_dir() :
+                sub_folders.append(f.path)
+    return sub_folders   
+
+def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
+    return int(path.split('\\')[folder_idx].split(img_dtype)[0])
+
 # =============================================================================
 # ### Main Processing ###
 # =============================================================================
-def create_new_masks_autoSegmented(path, dims) :
-    pass
+def create_new_masks_autoSegmented(path, dims=(1024,1024)) :
+    assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
+    dirs_vols = fast_scandir(path)
+    for folder in dirs_vols :
+        indices = []
+        print(folder)
+        for c_mask, mask in enumerate(folder) :
+            break
+            indices.append(get_img_idx(c_mask))
+        print(indices)
+        #curr_folder = sort_list_after_number(folder)
 
-def create_new_masks_manuSegmented(path, dims) :
+def create_new_masks_manuSegmented(path, dims=(1024,1024)) :
     pass
 
 # =============================================================================

@@ -40,65 +40,6 @@ class AutoSegmentation() :
         assert image.dtype==np.uint8, "Image has wrong data type"
         # TODO: Set values to 0, 127 or 255
         return image
-        
-    @staticmethod    
-    def find_boundaries_in_mask(mask, AScans=None) :
-        """
-        CONDITION 1:
-        CONDITION 2:
-        1) Find Epithelium
-        2) Find Endothelium -> with fixed thickness for interpolation
-        3) Find OVD Start (with a different continuity condition?)
-        4) calculate thickness  -> I) set to max, if y(1023) == 0, i.e. no OVD in path in lower boundary
-                                -> II) calc thickness in pxls
-                                -> III) -1 if no pixel in aScan    
-        # if no OVD or ovd @1023 -> write max  value
-        
-        """
-        crn_thickness = 320 # >>TBD<<
-        # TODO: round values in mask to 255, 127 and 0
-        crn_val = 255
-        milk_val = 127
-        epithelium = []
-        endothelium = []
-        milk = []
-        OVD_THICKNESS = [] # final return value
-        if AScans is None :
-            AScans = np.shape(mask)[1]
-
-        # 1) FIND Epithelium and 
-        # 2) Epithelium
-        for aScan in range(AScans) :
-            c_aScan = mask[:,aScan] 
-            # Find positions, where cornea pixels are
-            c_spots = np.where(c_aScan==crn_val) # Find positions, where milk area is
-            # If there is a cornea value in the current A-Scan
-            if np.size(c_spots) > 1 :
-                epithelium.append(np.amin(c_spots))
-                endothelium.append(np.amax(c_spots))
-            else :
-                epithelium.append(0)
-                endothelium.append(0)               
-        valid_endo = AutoSegmentation.check_for_continuity(endothelium)
-        if np.count_nonzero(valid_endo) == np.shape(mask)[1] :
-            interp_endo = np.add(epithelium, crn_thickness)
-        else :
-            interp_endo = np.add(AutoSegmentation.interpolate_curve(epithelium, valid_endo),
-                                 crn_thickness)
-        averaged_endo = np.asarray(interp_endo, dtype=np.uint16)
-        # 3) Find OVD
-        for aScan in range(AScans) :
-            c_aScan = mask[:,aScan]
-            c_aScan[averaged_endo[aScan]:]
-            m_spots = np.where(c_aScan[averaged_endo[aScan]:]==milk_val)
-            if np.size(m_spots) > 1 :
-                milk.append(np.amin(m_spots)+averaged_endo[aScan])
-            else :
-                milk.append(1023)
-            # 4) Evaluate thickness 
-            OVD_THICKNESS.append(AutoSegmentation.calculate_thickness(averaged_endo[aScan], 
-                                                                      milk[aScan]))
-        return np.asarray(OVD_THICKNESS)
     
     def load_data_from_folder(self) :
         """
