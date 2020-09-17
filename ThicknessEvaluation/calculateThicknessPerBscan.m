@@ -18,7 +18,7 @@ thickness = NaN(1,sz(2));
 
 firstlayerindex = zeros(1, sz(2));
 % % make first layer (Epithelium) to zero -> not necesarry (only for
-% Machine Learning)
+% Machine Learning Data)
 %   onemask(  (find(onemask(:,i), 1, 'first')) , : ) = NaN;
  for j = 1:sz(2)
    firstlayerindex(1,j) = find(onemask(:,j), 1, 'first');

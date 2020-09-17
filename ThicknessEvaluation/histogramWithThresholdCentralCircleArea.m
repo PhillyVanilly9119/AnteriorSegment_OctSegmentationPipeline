@@ -7,7 +7,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% histogram with threshold and central circle area 
-%%% type title of histogram
+%%% type title of histogram: (OVD (eye - measurement repetition))
 OVD_name_measurement_number= 'VISCOAT (6-2)';
 
 %% set threshold
@@ -46,6 +46,7 @@ bin_edges = 0:200:3000;
 histogram(central_map_circle(threshold_mask),bin_edges, 'FaceColor', 'black'); hold on
 histogram(central_map_circle(~threshold_mask),bin_edges, 'FaceColor', 'red'); hold off
 
+%% format plot
 title(['OVD Schichtdickenwerte: ' OVD_name_measurement_number ' '])
 xlabel('OVD Schichtdicke in µm')
 xticks([0, 200, 600, 1000, 1400, 1800, 2200, 2700]);
@@ -53,6 +54,6 @@ xticklabels({'0','200','600','1000','1400','1800','2200','>2800'});
 ylabel('Absolute Häufigkeit')
 % ylim([0 18000000])
 
-% plot calculate percantage in histogramm 
+%% plot calculate percantage in histogramm 
 NE = [max(xlim) max(ylim)]-[diff(xlim) diff(ylim)]*0.05;
 text(NE(1), NE(2), [num2str(percentage_greater_than_threshold*100, '%.1f')  '%'],  'VerticalAlignment','top', 'HorizontalAlignment','right', 'color', 'black')

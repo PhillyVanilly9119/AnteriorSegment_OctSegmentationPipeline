@@ -6,6 +6,10 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Calculate OVD thickness per single B-Scan and put all Scans together to one map
+%  not necessary anymore... Evaluated data output is already a map, not
+%  single B-Scans
+
 %%% type OVD name
 OVD_name= 'DisCoVisc';
 
@@ -32,8 +36,8 @@ thicknessMap = round(abs(imresize(thicknessMap, [128, 512], 'bicubic')));
 
 %% 2-D Plot of OVD-Thickness
 figure
-%Change color map so that invalid points in thickness map are changes to a
-%grey shade
+% Change color map so that invalid points in thickness map are changes to a
+% grey shade
 
 load('MyColormap.mat', 'OVDcolormap')
 colormap(OVDcolormap)
@@ -92,14 +96,16 @@ percentage_thickness_greaterthan = bincounts(2,1)/numel(nonzeros(thicknessMap))
 
 % plot calculate percantage in histogramm 
 NE = [max(xlim) max(ylim)]-[diff(xlim) diff(ylim)]*0.05;
-text(NE(1), NE(2), [num2str(percentage_thickness_greaterthan*100) '%'],  'VerticalAlignment','top', 'HorizontalAlignment','right', 'color', 'red')
+text(NE(1), NE(2), [num2str(percentage_thickness_greaterthan*100) '%'],  
+   'VerticalAlignment','top', 'HorizontalAlignment','right', 'color', 'red')
 
-% relative frequency:
+%% relative frequency:
 % histogram(ThicknessValueswithoutZero(threshold_mask),bin_edges, 'Normalization', 'probability')
+% doesn't work with histogram, which are plotted in two steps
+% --> relative frequency isn't correct in this case
 
 
-
-%% Histogramm with all valid values in centre area (3 mm diameter)
+%% Histogramm with all valid values in centre circle area (3 mm diameter)
 % Count numbers within binranges
 figure
 ThicknessValueswithoutZero=nonzeros(thicknessMap(43:86, 171:342));

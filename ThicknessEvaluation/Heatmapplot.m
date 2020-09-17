@@ -6,25 +6,39 @@
 %   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% plot heatmap with colorbar
+% field of view 6x6 mm
+% load the thicknessmap [µm] (line 24) into workspace and choose title
 
-%%% type OVD name
-OVD_name= 'DUOVISC ()';
 
+%% type OVD name
+OVD_name             = 'DUOVISC ()';
+
+%% load colormap: 
+% "mymap" is specified with threshold at 200 µm and maximum value at 2800 µm
 figure 
 load('MyColormap.mat', 'mymap')
 colormap(mymap)
 
-whole_map = interpol_thickness_map_smooth_micron_VISCOAT_9_1; 
+%% load thicknessmap
+whole_map            = interpol_thickness_map_smooth_micron_VISCOAT_9_1; 
 imagesc(whole_map)
 
+%% format plot
 caxis([0 2830])
+
+%  colorbar values
 colorbar
-colorbar('Ticks',[0, 200, 600, 1000, 1400, 1800, 2200, 2600, 2830], 'TickLabels',{'0','200','600','1000','1400','1800','2200','2600','>2800'});
-
-t = sgtitle('[µm]            ');
+colorbar('Ticks',[0, 200, 600, 1000, 1400, 1800, 2200, 2600, 2830], 
+  'TickLabels',{'0','200','600','1000','1400','1800','2200','2600','>2800'});
+  
+%  title of colorbar
+t                     = sgtitle('[µm]            ');
 t.HorizontalAlignment = 'right';
-t.FontSize = 9;
+t.FontSize            = 9;
 
+% format x- and y-axis
+% title and ticks for [mm] values
 axis square
 title(['OVD Schichtdicke: ' OVD_name ''])
 ylabel('y [mm]')
