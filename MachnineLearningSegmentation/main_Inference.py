@@ -7,6 +7,7 @@ Created on Mon Apr 27 16:14:31 2020
 
 """
 
+# Global imports
 import os
 import sys
 import cv2
@@ -19,8 +20,8 @@ from pathlib import Path
 from tensorflow import keras
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
+# Custom imports
 import BackendFunctions as OctProc
-#import SortDataForTraining
 from main_Training import DataPreprocessing as DP
 # =============================================================================
 # I/O Functions
@@ -133,7 +134,7 @@ class AutoSegmentation() :
         print("Done displaying images!")
         
 if __name__ == '__main__' :
-    path = r"C:\Users\phili\Desktop\TestScans\automatisch_segmentiert"
+    path = r"C:\Users\Philipp\Desktop\NewMasks\automatisch_segmentiert"
     masks = OctProc.create_new_masks_autoSegmented(path)
      
  

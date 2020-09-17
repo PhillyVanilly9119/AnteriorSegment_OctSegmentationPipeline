@@ -2,11 +2,13 @@
 """
 Created on Tue Sep 15 08:52:56 2020
 
-@author: Philipp
+@author:    Philipp
+            philipp.matten@meduniwien.ac.at
 """
 
 import os 
 import cv2
+import uuid
 import glob 
 import numpy as np
 from PIL import Image
@@ -40,6 +42,9 @@ def load_single_image(path, dims) :
     image = Image.open(path).resize((h,w))
     return np.asarray(image, dtype=np.uint8)
 
+def save_single_image(file_name, img, c_map='gray') :
+    plt.imsave(file_name, img, cmap=c_map)
+
 def sort_list_after_number(in_list) :
     in_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
     return in_list
@@ -63,35 +68,62 @@ def get_img_dirs(path) :
         f.extend(filenames)
     return f
 
+def create_dir(directory) :
+    if not os.path.isdir(directory) :
+            os.mkdir(directory)
+
+def recalcualte_auto_mask_boundaries(mask) : 
+    crn_pix_val = np.amax(mask)
+    milk_pix_val = int(np.floor(np.amax(mask)/2))
+    out_mask = np.zeros_like(mask)
+    for aScan in range(np.shape(mask)[1]) :
+        c_aScan = mask[:,aScan] 
+        epi = np.amin(np.where(c_aScan==crn_pix_val))
+        crn_spot = np.amax(np.where(c_aScan==crn_pix_val)) # Find positions, where milk area is
+        milk_spots = np.where(c_aScan==milk_pix_val)[0]
+        milk_spots[milk_spots > crn_spot]
+        milk_spot = np.amin(milk_spots[milk_spots > crn_spot])
+        out_mask[epi:milk_spot, aScan] = crn_pix_val
+        out_mask[milk_spot:, aScan] = milk_pix_val
+    return out_mask
+
+def recalcualte_manu_mask_boundaries(mask) : 
+    pass
+    
+
 # =============================================================================
 # ### Main Processing ###
 # =============================================================================
-def create_new_masks_autoSegmented(path, dims=(1024,1024)) :
+def create_new_masks_autoSegmented(path, dims=(1024,1024), is_select_target_dir=True) :
     assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
     dirs_vols = fast_scandir(path)
     # Dir for created training data
-    target_dir = clean_path_selection("Please select target folder for new masks")
-    if not os.path.isdir(target_dir) :
-        os.mkdir(target_dir)
+    if is_select_target_dir :
+        target_dir = clean_path_selection("Please select target folder for new masks")
+        create_dir(target_dir)
     # Loop through volume measurements        
     for folder in dirs_vols :
         indices = []
-        mask = []
-        b_scan = []
+        #mask = []
+        #b_scan = []
         mask_files = get_img_dirs(folder)
         for mask_file in mask_files :
+            curr_dir = os.path.join(target_dir, str(uuid.uuid4().hex))
+            create_dir(curr_dir)
             curr_file = os.path.join(folder, mask_file)
-            mask.append(load_single_image(curr_file, dims=dims))
-            b_scan.append(load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims))
-            indices.append(get_img_idx(curr_file))        
-        b_scan = np.asarray(b_scan)
-        mask = np.asarray(mask)
-
-# =============================================================================
-#         for c_mask, mask in enumerate(dirs_masks) :
-#             print(dirs_masks[c_mask])
-# =============================================================================
+            curr_mask = load_single_image(curr_file, dims=dims)
+            #mask.append(curr_mask)
+            curr_scan = load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims)
+            #b_scan.append(curr_scan)
+            indices.append(get_img_idx(curr_file))
+            # Create new mask
+            new_mask = recalcualte_auto_mask_boundaries(curr_mask)
+            # Save masks and scan to folder
+            save_single_image(os.path.join(curr_dir, 'raw_bScan.bmp'), curr_scan)
+            save_single_image(os.path.join(curr_dir, mask_file), new_mask)
             
+        #b_scan = np.asarray(b_scan)
+        #mask = np.asarray(mask)
             
 def create_new_masks_manuSegmented(path, dims=(1024,1024)) :
     pass
