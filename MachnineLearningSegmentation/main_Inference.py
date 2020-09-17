@@ -21,11 +21,8 @@ from tensorflow import keras
 from tkinter.filedialog import Tk, askdirectory, askopenfilename 
 
 # Custom imports
-import BackendFunctions as OctProc
+import BackendFunctions as Backend
 from main_Training import DataPreprocessing as DP
-# =============================================================================
-# I/O Functions
-# =============================================================================
         
 # =============================================================================
 # Functions for inference, i.e. apply prediction on raw scans
