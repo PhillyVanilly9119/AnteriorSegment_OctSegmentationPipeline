@@ -134,7 +134,7 @@ class AutoSegmentation() :
         print("Done displaying images!")
         
 if __name__ == '__main__' :
-    path = r"C:\Users\Philipp\Desktop\NewMasks\automatisch_segmentiert"
-    masks = OctProc.create_new_masks_autoSegmented(path)
+    path = r"C:\Users\Philipp\Desktop\NewMasks\manuell_segmentiert"
+    masks = OctProc.create_new_masks_manu_segmented(path)
      
  

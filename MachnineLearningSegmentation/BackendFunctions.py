@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from tkinter.filedialog import Tk, askdirectory, askopenfilename 
+from tkinter.filedialog import Tk, askdirectory
 
 def open_and_close(image, kernel_size=3) :
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
@@ -71,66 +71,7 @@ def get_img_dirs(path) :
 def create_dir(directory) :
     if not os.path.isdir(directory) :
             os.mkdir(directory)
-
-def recalcualte_auto_mask_boundaries(mask) : 
-    crn_pix_val = np.amax(mask)
-    milk_pix_val = int(np.floor(np.amax(mask)/2))
-    out_mask = np.zeros_like(mask)
-    for aScan in range(np.shape(mask)[1]) :
-        c_aScan = mask[:,aScan] 
-        epi = np.amin(np.where(c_aScan==crn_pix_val))
-        crn_spot = np.amax(np.where(c_aScan==crn_pix_val)) # Find positions, where milk area is
-        milk_spots = np.where(c_aScan==milk_pix_val)[0]
-        milk_spots[milk_spots > crn_spot]
-        milk_spot = np.amin(milk_spots[milk_spots > crn_spot])
-        out_mask[epi:milk_spot, aScan] = crn_pix_val
-        out_mask[milk_spot:, aScan] = milk_pix_val
-    return out_mask
-
-def recalcualte_manu_mask_boundaries(mask) : 
-    pass
-    
-
-# =============================================================================
-# ### Main Processing ###
-# =============================================================================
-def create_new_masks_autoSegmented(path, dims=(1024,1024), is_select_target_dir=True) :
-    assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
-    dirs_vols = fast_scandir(path)
-    # Dir for created training data
-    if is_select_target_dir :
-        target_dir = clean_path_selection("Please select target folder for new masks")
-        create_dir(target_dir)
-    # Loop through volume measurements        
-    for folder in dirs_vols :
-        indices = []
-        #mask = []
-        #b_scan = []
-        mask_files = get_img_dirs(folder)
-        for mask_file in mask_files :
-            curr_dir = os.path.join(target_dir, str(uuid.uuid4().hex))
-            create_dir(curr_dir)
-            curr_file = os.path.join(folder, mask_file)
-            curr_mask = load_single_image(curr_file, dims=dims)
-            #mask.append(curr_mask)
-            curr_scan = load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims)
-            #b_scan.append(curr_scan)
-            indices.append(get_img_idx(curr_file))
-            # Create new mask
-            new_mask = recalcualte_auto_mask_boundaries(curr_mask)
-            # Save masks and scan to folder
-            save_single_image(os.path.join(curr_dir, 'raw_bScan.bmp'), curr_scan)
-            save_single_image(os.path.join(curr_dir, mask_file), new_mask)
             
-        #b_scan = np.asarray(b_scan)
-        #mask = np.asarray(mask)
-            
-def create_new_masks_manuSegmented(path, dims=(1024,1024)) :
-    pass
-
-# =============================================================================
-# ### MOVED ###
-# =============================================================================
 def resize_img_stack(images, out_dims, is_print_func_call=False) :
     assert images.ndim == 3, "[IMAGE RESIZING ERROR >>resize_img_stack()<<]"
     in_dims = np.shape(images)
@@ -155,8 +96,8 @@ def check_for_duplicates(path_one, path_two) :
     if os.path.isfile(path_one) and os.path.isfile(path_two) : 
         return True
     else :
-        return False    
-
+        return False   
+    
 def find_max_idx(path_one, path_two) :
     """
     Primitive to find highest numbered scan in sorted directories
@@ -188,3 +129,84 @@ def find_max_idx(path_one, path_two) :
         return ValueError("No Index could be found")
     print(f"Found start index to be No.{index}")
     return index
+
+# =============================================================================
+# MASK CREATION
+# =============================================================================
+def create_new_masks_auto_segmented(path, dims=(1024,1024), is_select_target_dir=True) :
+    assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
+    dirs_vols = fast_scandir(path)
+    if is_select_target_dir :
+        target_dir = clean_path_selection("Please select target folder for new masks")
+        create_dir(target_dir)
+    else :
+        target_dir = path
+    # Loop through volume measurements        
+    for folder in tqdm(dirs_vols) :
+        mask_files = get_img_dirs(folder)
+        for mask_file in tqdm(mask_files) :
+            curr_dir = os.path.join(target_dir, str(uuid.uuid4().hex))
+            create_dir(curr_dir)
+            curr_file = os.path.join(folder, mask_file)
+            curr_mask = load_single_image(curr_file, dims=dims)
+            curr_scan = load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims)
+            # Create new mask
+            new_mask = recalcualte_auto_mask_boundaries(curr_mask)
+            # Save mask and scan to folder
+            save_single_image(os.path.join(curr_dir, 'raw_bScan.bmp'), curr_scan)
+            save_single_image(os.path.join(curr_dir, 'mask.bmp'), new_mask)
+            
+def create_new_masks_manu_segmented(path, dims=(1024,1024), is_select_target_dir=True) :
+    assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
+    dirs_data = fast_scandir(path)
+    if is_select_target_dir :
+        target_dir = clean_path_selection("Please select target folder for new masks")
+        create_dir(target_dir)
+    else :
+        target_dir = path
+    # Loop through volume measurements   
+    for folder in tqdm(dirs_data) :
+        mask_files = get_img_dirs(folder)
+        mask_path = os.path.join(folder, mask_files[3])
+        scan_path = os.path.join(folder, mask_files[-2])
+        target_dir_curr_file = os.path.join(target_dir, str(uuid.uuid4().hex))
+        create_dir(target_dir_curr_file)
+        curr_mask = load_single_image(mask_path, dims=dims)
+        curr_scan = load_single_image(scan_path, dims)
+        # Create new mask
+        new_mask = recalcualte_manu_mask_boundaries(curr_mask)
+        # Save mask and scan to folder
+        save_single_image(os.path.join(target_dir_curr_file, 'raw_bScan.bmp'), curr_scan)
+        save_single_image(os.path.join(target_dir_curr_file, 'mask.bmp'), new_mask)
+
+def recalcualte_auto_mask_boundaries(mask) : 
+    crn_pix_val = np.amax(mask)
+    milk_pix_val = int(np.floor(np.amax(mask)/2))
+    out_mask = np.zeros_like(mask)
+    for aScan in range(np.shape(mask)[1]) :
+        c_aScan = mask[:,aScan] 
+        epi = np.amin(np.where(c_aScan==crn_pix_val))
+        crn_spot = np.amax(np.where(c_aScan==crn_pix_val)) # Find positions, where milk area is
+        milk_spots = np.where(c_aScan==milk_pix_val)[0]
+        if milk_spots[milk_spots > crn_spot] is None :
+            milk_spots = np.amin(np.where(c_aScan==milk_pix_val)[0])
+        else :
+            milk_spot = np.amin(milk_spots[milk_spots > crn_spot])
+        out_mask[epi:milk_spot, aScan] = crn_pix_val
+        out_mask[milk_spot:, aScan] = milk_pix_val
+    return out_mask
+
+def recalcualte_manu_mask_boundaries(mask) : 
+    out_mask = np.zeros_like(mask, dtype=np.uint8)
+    for a_scan in range(np.shape(mask)[1]) : 
+        c_ascan = mask[:,a_scan]
+        bounds = np.where(c_ascan==np.amax(c_ascan))[0]
+        if np.size(bounds) == 3 :
+            border = int(bounds[1] + round(abs(bounds[-1]-bounds[-2])/2) + 2)
+        elif np.size(bounds) == 2 :
+            border = int(bounds[1] + round(bounds[-1]/2) + 2)
+        else :
+            print(f"encountered error while paring a-Scan No.{a_scan}")
+        out_mask[bounds[0]:border, a_scan] = 255
+        out_mask[border:, a_scan] = 127
+    return out_mask   
