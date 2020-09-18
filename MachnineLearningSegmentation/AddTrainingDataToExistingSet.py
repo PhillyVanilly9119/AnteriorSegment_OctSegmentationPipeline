@@ -2,7 +2,12 @@
 """
 Created on Fri Sep 18 10:48:05 2020
 
-@author: phili
+@author:    Philipp
+            philipp.matten@meduniwien.ac.at
+
+@copyright: Medical University of Vienna
+            Center for Medical Physics and Biomedical Engineering
+                
 """
 
 import BackendFunctions as Backend

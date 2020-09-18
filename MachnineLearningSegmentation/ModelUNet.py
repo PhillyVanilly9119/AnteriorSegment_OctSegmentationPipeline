@@ -11,7 +11,7 @@ Created on Thu Sep 17 14:57:28 2020
             https://www.youtube.com/watch?v=68HR_eyzk00
             https://github.com/seth814/Semantic-Shapes   
             
-            c@: No rights reserved
+            c@: No rights reserved for this file
                 
 """
 
