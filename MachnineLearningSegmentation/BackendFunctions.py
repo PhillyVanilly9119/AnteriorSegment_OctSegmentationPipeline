@@ -166,6 +166,10 @@ def create_flipped_img_4d_tensor(images, axis=None) :
             stack[image,:,:,channel] = np.flip(images[image,:,:,channel], axis)
     return stack
 
+def prepare_subfolders_for_training(path) :
+    # Go through all subdirs and check for existing valid files & delete all other
+    pass
+
 # =============================================================================
 # IMAGE POST-PROCESSING
 # =============================================================================

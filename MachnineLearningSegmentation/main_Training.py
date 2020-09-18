@@ -28,27 +28,28 @@ def prepare_data_for_network(path, dims, bscan_name='raw_bScan',
     # Load and preprocess
     
     #TODO: Continue here!
-# =============================================================================
-#     print("[STARTING PREPROCESSING] data for training...")
-#     x = load_images(path, bscan_name, dims)
-#     y = create_tripple_masks(path, dims=dims)
-#                     
-#     x = x[np.newaxis]
-#     x = np.swapaxes(x, 0, 3)
-#     
-#     # Add flipped versions of the all b-Scans to the training data
-#     if flag_add_flipped_data:
-#         #TODO: think of how the threre masks and the flipped pendants could work
-#         x = add_flipped_data(x)
-#         y = add_flipped_data(y)
-#     
-#     # Sanity check if inconsistencies in the data were observed            
-#     if flag_check_for_matching_data:
-#         sanity_check_training_data(x[:,:,:,0], y[:,:,:,2], update_rate_Hz=1) 
-#     
-#     print("[DONE PREPROCESSING] data for training")
-#     return x, y
-# =============================================================================
+    print("[STARTING PREPROCESSING] data for training...")
+    # rewrite image loading function to be able to load either '*.bmp' and '*.png'
+    Backend.prepare_subfolders_for_training()
+    x = load_images(path, dims)
+    y = create_tripple_masks(path, dims=dims)
+                    
+    x = x[np.newaxis]
+    x = np.swapaxes(x, 0, 3)
+    
+    # Add flipped versions of the all b-Scans to the training data
+    if flag_add_flipped_data:
+        #TODO: think of how the threre masks and the flipped pendants could work
+        x = add_flipped_data(x)
+        y = add_flipped_data(y)
+    
+    # Sanity check if inconsistencies in the data were observed
+    # -> displays overlay of background and b-Scan           
+    if flag_check_for_matching_data:
+        sanity_check_training_data(x[:,:,:,0], y[:,:,:,2], update_rate_Hz=1) 
+    
+    print("[DONE PREPROCESSING] data for training")
+    return x, y
 
 # =============================================================================
                 ############# MAIN / RUN #############   
