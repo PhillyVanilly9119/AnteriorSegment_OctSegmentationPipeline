@@ -404,9 +404,9 @@ def add_data_to_main_folder(flag_renameFilesTargetDir=False):
     >> path_target = directory to data that is supposed to be added
     # TODO: implement more efficient check of unique folders 
     """
-    path_source = askdirectory(title='Please select folder from which you want to add data') 
+    path_source = clean_path_selection('Please select folder from which you want to add data') 
     assert os.path.isdir(path_source), "Directory from which I am supposed to load data does not exist!"
-    path_target = askdirectory(title='Please select folder to which you want to add data') 
+    path_target = clean_path_selection('Please select folder to which you want to add data') 
     assert os.path.isdir(path_target), "Directory to were I am supposed to add data does not exist!"
     assert path_source is not path_target, "You have selected the same directory twice..."
 
