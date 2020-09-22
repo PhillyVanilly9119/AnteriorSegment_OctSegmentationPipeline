@@ -22,7 +22,7 @@ import tensorflow as tf
 # local imports 
 import BackendFunctions as Backend
 
-def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model,
+def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train,
                          vali_split=0.2, batch_size=8,
                          model_name=None, is_save_trained_model=True, is_select_storage_path=True, 
                          base_size = 4, n_classes = 3):
@@ -40,7 +40,7 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
         if is_select_storage_path :
             path_saved_model = Backend.clean_path_selection('Please choose directory to save model')
         else :
-            path_saved_model = r"C:\Users\Melli\Documents\Segmentation\Data\Training\training_data"
+            path_saved_model = r"C:\Users\Philipp\Desktop"
     
     if not model_name :
         model_name = 'current_best_model'

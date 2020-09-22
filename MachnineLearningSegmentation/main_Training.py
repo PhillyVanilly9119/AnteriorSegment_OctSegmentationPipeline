@@ -25,13 +25,13 @@ import BackendFunctions as Backend
 # =============================================================================
 # DATA PRE-PROCESSING - Training
 # =============================================================================     
-def prepare_data_for_network(dims, is_user_select_path=False, 
+def prepare_data_for_network(dims, is_user_select_data_path=False, 
                              is_add_flipped_data=False, is_check_for_matching_data=False) :
     """
     Loads, pre-processes and displays data (optional) for training with CNN (UNet)
     """
     # Load and preprocess
-    if is_user_select_path :
+    if is_user_select_data_path :
         path = Backend.clean_path_selection("Please select folder with training data")
     else :
         path = r"D:\PhilippData\MedicalUniversity\Data\AntSeg_SegPipeline\training"
@@ -248,17 +248,3 @@ def add_flipped_data(images, x_flip=True, y_flip=True) :
 
     print(f"Added {np.shape(stack)[0]-sizes[0]} images [THROUGH FLIPPING] to original data!")
     return stack
-
-# =============================================================================
-                ############# MAIN / RUN #############   
-# =============================================================================
-if __name__ == '__main__':
-
-    vali_path = r'C:\Users\Melli\Documents\Segmentation\Data\Training\validation_data'
-
-    img_width = 1024
-    img_height = 1024
-    img_channels = 1
-    dims = (img_height, img_width)
-    X_train, Y_Train = prepare_data_for_network(dims, is_check_for_matching_data=True)
-    # Build, compile and train network
