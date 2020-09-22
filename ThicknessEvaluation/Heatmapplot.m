@@ -21,7 +21,7 @@ load('MyColormap.mat', 'mymap')
 colormap(mymap)
 
 %% load thicknessmap
-whole_map            = interpol_thickness_map_smooth_micron_VISCOAT_9_1; 
+whole_map            = interpol_thickness_map_smooth_micron_ZHYALINPLUS_10_2; 
 imagesc(whole_map)
 
 %% format plot
@@ -29,8 +29,7 @@ caxis([0 2830])
 
 %  colorbar values
 colorbar
-colorbar('Ticks',[0, 200, 600, 1000, 1400, 1800, 2200, 2600, 2830], 
-  'TickLabels',{'0','200','600','1000','1400','1800','2200','2600','>2800'});
+colorbar('Ticks',[0, 200, 600, 1000, 1400, 1800, 2200, 2600, 2830], 'TickLabels',{'0','200','600','1000','1400','1800','2200','2600','>2800'});
   
 %  title of colorbar
 t                     = sgtitle('[µm]            ');
