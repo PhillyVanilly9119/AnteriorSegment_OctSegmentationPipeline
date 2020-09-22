@@ -116,13 +116,22 @@ def load_images(path, name, dims, img_dtype='.png') :
     return np.dstack(img_stack)
 
 def load_single_image(path, dims) :
-    assert os.path.isfile(path), "Input path is not a path to an image!"
+    assert os.path.isfile(path), f"Path {path} is not an image file!"
     h, w = dims[0], dims[1]
     image = Image.open(path).resize((h,w))
     return np.asarray(image, dtype=np.uint8)
+    
+def save_single_grey_img(img, file_path, file_type='bmp') :
+    #assert np.shape(np.size((img))) == 2, "[DIMENSION ERROR] of input image"
+    plt.imsave(file_path, img, cmap='gray', format=file_type)
 
-def save_single_image(file_name, img, c_map='gray') :
-    plt.imsave(file_name, img, cmap=c_map)
+def convert_mask_vals_to_trips(mask) :
+    qrt = round(255/4)
+    new_mask = np.zeros_like(mask)
+    new_mask[(mask < qrt)] = 0
+    new_mask[(mask > qrt) & (mask < 3*qrt)] = 127
+    new_mask[(mask > 3*qrt)] = 255
+    return np.asarray(new_mask, dtype=np.uint8)
     
 def overlay_transparent(background_img, img_to_overlay_t, x=0, y=0, overlay_size=None):
 	bg_img = background_img.copy()
@@ -141,7 +150,6 @@ def overlay_transparent(background_img, img_to_overlay_t, x=0, y=0, overlay_size
 	img2_fg = cv2.bitwise_and(overlay_color,overlay_color,mask = mask)
 	# Update the original image with our new ROI
 	bg_img[y:y+h, x:x+w] = cv2.add(img1_bg, img2_fg)
-
 	return bg_img
 
 # =============================================================================
@@ -160,15 +168,11 @@ def resize_img_stack(images, out_dims, is_print_func_call=False) :
 def create_flipped_img_4d_tensor(images, axis=None) :
     stack = np.zeros_like(images)
     # GO THROUGH ALL IMAGES
-    for image in range(np.shape(images)[0]) :
+    for image in tqdm(range(np.shape(images)[0])) :
         # GO THROUGH ALL CHANNELS
         for channel in range(np.shape(images)[-1]) :
             stack[image,:,:,channel] = np.flip(images[image,:,:,channel], axis)
-    return stack
-
-def prepare_subfolders_for_training(path) :
-    # Go through all subdirs and check for existing valid files & delete all other
-    pass
+    return stack       
 
 # =============================================================================
 # IMAGE POST-PROCESSING
@@ -181,7 +185,7 @@ def open_and_close(image, kernel_size=3) :
                             kernel)
 
 # =============================================================================
-# MASK CREATION
+# MASK CREATION - TEMP-FCNTs
 # =============================================================================
 def create_new_masks_auto_segmented(path, dims=(1024,1024), is_select_target_dir=True) :
     assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
@@ -201,10 +205,10 @@ def create_new_masks_auto_segmented(path, dims=(1024,1024), is_select_target_dir
             curr_mask = load_single_image(curr_file, dims=dims)
             curr_scan = load_single_image(os.path.join(os.path.dirname(folder), mask_file), dims)
             # Create new mask
-            new_mask = recalcualte_auto_mask_boundaries(curr_mask)
+            new_mask = recalculate_auto_mask_boundaries(curr_mask)
             # Save mask and scan to folder
-            save_single_image(os.path.join(curr_dir, 'raw_bScan.bmp'), curr_scan)
-            save_single_image(os.path.join(curr_dir, 'mask.bmp'), new_mask)
+            save_single_grey_img(curr_scan, os.path.join(curr_dir, 'raw_bScan.bmp'))
+            save_single_grey_img(new_mask, os.path.join(curr_dir, 'mask.bmp'))
             
 def create_new_masks_manu_segmented(path, dims=(1024,1024), is_select_target_dir=True) :
     assert os.path.isdir(path), FileNotFoundError("[FILE NOT FOUND in >>create_new_masks_autoSegmented()<<]")
@@ -224,12 +228,12 @@ def create_new_masks_manu_segmented(path, dims=(1024,1024), is_select_target_dir
         curr_mask = load_single_image(mask_path, dims=dims)
         curr_scan = load_single_image(scan_path, dims)
         # Create new mask
-        new_mask = recalcualte_manu_mask_boundaries(curr_mask)
+        new_mask = recalculate_manu_mask_boundaries(curr_mask)
         # Save mask and scan to folder
-        save_single_image(os.path.join(target_dir_curr_file, 'raw_bScan.bmp'), curr_scan)
-        save_single_image(os.path.join(target_dir_curr_file, 'mask.bmp'), new_mask)
+        save_single_grey_img(curr_scan, os.path.join(target_dir_curr_file, 'raw_bScan.bmp'))
+        save_single_grey_img(new_mask, os.path.join(target_dir_curr_file, 'mask.bmp'))
 
-def recalcualte_auto_mask_boundaries(mask) : 
+def recalculate_auto_mask_boundaries(mask) : 
     crn_pix_val = np.amax(mask)
     milk_pix_val = int(np.floor(np.amax(mask)/2))
     out_mask = np.zeros_like(mask)
@@ -246,7 +250,7 @@ def recalcualte_auto_mask_boundaries(mask) :
         out_mask[milk_spot:, aScan] = milk_pix_val
     return out_mask
 
-def recalcualte_manu_mask_boundaries(mask) : 
+def recalculate_manu_mask_boundaries(mask) : 
     out_mask = np.zeros_like(mask, dtype=np.uint8)
     for a_scan in range(np.shape(mask)[1]) : 
         c_ascan = mask[:,a_scan]
@@ -260,133 +264,6 @@ def recalcualte_manu_mask_boundaries(mask) :
         out_mask[bounds[0]:border, a_scan] = 255
         out_mask[border:, a_scan] = 127
     return out_mask 
-  
-### FOR NETWORK ###
-def create_output_channel_masks(mask) :
-    """
-    >>> created the 3 kinds of masks for passing into the network and
-    the overlayed combined (tripple) mask
-    
-    return dimensions:  masks = (n_mask, height, width) and 
-                        tripple_masks = (height, width)
-        
-    """
-    dims = np.shape(mask) 
-    cornea = np.zeros((dims))
-    ovd = np.zeros_like(mask, dtype=np.uint8)
-    background = np.zeros_like(mask, dtype=np.uint8)
-    tripple_mask = np.zeros_like(mask, dtype=np.uint8)
-    
-    for ascan in range(dims[1]) : # iterate through A-Scans
-        bndry_spots = np.squeeze(np.where(mask[:,ascan]==np.amax(mask)))
-        if np.size(bndry_spots) == 2 : # case: only Cornea visible
-            start_crn = np.amin(bndry_spots)
-            end_crn = np.amax(bndry_spots)
-            # cornea = 1
-            tripple_mask[start_crn:end_crn, ascan] = 255
-            cornea[start_crn:end_crn, ascan] = 255
-        elif np.size(bndry_spots) == 3 :
-            tripple_mask[bndry_spots[0]:bndry_spots[1], ascan] = 255
-            cornea[bndry_spots[0]:bndry_spots[1], ascan] = 255
-            tripple_mask[bndry_spots[2]:, ascan] = 127
-            ovd[bndry_spots[2]:, ascan] = 255
-        else :
-            print("[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
-            pass 
-        # Create Masks for 3-channel segmentation
-        masks = []
-        masks.append(cornea) # Mask No.1
-        masks.append(ovd) # Mask No.2
-        tmp = np.add(cornea, ovd)
-        _, background = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY_INV)
-        masks.append(background) # Mask No.3
-        
-    return masks, tripple_mask
-
-def create_tripple_masks_for_training(path, dtype='.bmp', dims=(1024,1024), 
-                                      is_save_newly_calced_masks=True):
-    """
-    >>> prepares data array for passing and training to network
-    
-    return dimensions:  (n_img, height, width, n_masks)
-    
-    """
-    print("Prepocessing masks [GROUND TROUTH] for training...")
-    list_mask_files = ['mask_cornea',
-                       'mask_ovd', 
-                       'mask_background']    
-    trip_masks = [] 
-    files = os.listdir(path)
-    for c, f in enumerate(tqdm(files)) :
-        # Check if the single masks already exist and load them, else create them from the combined mask
-        crn_file = os.path.join(path, f, str(list_mask_files[0] + dtype))
-        ovd_file = os.path.join(path, f, str(list_mask_files[1] + dtype))
-        bg_file = os.path.join(path, f, str(list_mask_files[2] + dtype))
-        if not os.path.isfile(crn_file) or not os.path.isfile(ovd_file) or not os.path.isfile(bg_file):
-            # Load line-segmented mask
-            if os.path.isfile(os.path.join(path, f, 'mask.bmp')) :
-                raw_mask = np.asarray(Image.open(os.path.join(path, f, 'mask.bmp')).resize(dims))
-            elif os.path.isfile(os.path.join(path, f, 'mask.png')) :
-                raw_mask = np.asarray(Image.open(os.path.join(path, f, 'mask.png')).resize(dims))
-            else :
-                print(f"No valid mask file found in {os.path.join(path, f)}")
-            # create and add all three masks in order
-            masks, _ = create_output_channel_masks(raw_mask)
-            trip_masks.append(np.moveaxis(masks, 0, -1))
-            masks = np.asarray(masks)
-
-            def safe_singular_mask(mask, file_path) :
-                assert np.size(dims) == 2, "[DIMENSION ERROR] - please enter image height and width"
-                plt.imsave(file_path, mask, cmap='gray', format='bmp')
- 
-            if is_save_newly_calced_masks :
-                safe_singular_mask(masks[0,:,:], crn_file)
-                safe_singular_mask(masks[1,:,:], ovd_file)
-                safe_singular_mask(masks[2,:,:], bg_file)
-                print(f"\nSaved calculated masks from folder/ iteration No. {c}!")
-        else :
-            cornea = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[0] + dtype))).resize(dims))
-            ovd = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[1] + dtype))).resize(dims))
-            background = np.asarray(Image.open(os.path.join(path, f, str(list_mask_files[2] + dtype))).resize(dims))
-            new_masks = np.dstack((cornea[:,:,0], ovd[:,:,0], background[:,:,0]))
-            trip_masks.append(new_masks)
-              
-    print("Done [LOADING] and/or creating [MASKS]!")
-    # return dimensions are (n_img, height, width, n_masks)        
-    return np.asarray(trip_masks, dtype=np.uint8)
-
-def add_flipped_data(images, x_flip=True, y_flip=True) :
-    """
-    >>> Adds flipped versions of the input data to the training data stack
-    --> image stack dimensions: [n_img, h, w, channels]; 
-        channels = 1 for B-Scans
-    >> Change flag combination to add certain configuration of flipped images
-    """
-    print("Adding flipped images to training data stack... ")
-    stack = images # return at least input image stack
-    sizes = np.shape(images)
-    dims = np.size(sizes)      
-    assert dims == 4, "Images are expected to be 4D-array with dims=[n,h,w,c]!"
-    #(n,h,w,c)
-    if x_flip and y_flip :
-        stack = np.concatenate((images,
-                                create_flipped_img_4d_tensor(images),
-                                create_flipped_img_4d_tensor(images, axis=0),
-                                create_flipped_img_4d_tensor(images, axis=1)
-                                ))
-    elif x_flip and not y_flip : 
-        stack = np.concatenate((images,
-                                create_flipped_img_4d_tensor(images, axis=0),
-                                ))
-    elif not x_flip and y_flip :
-        stack = np.concatenate((images,
-                                create_flipped_img_4d_tensor(images, axis=1)
-                                ))
-    else :
-        print("You have chosen to not add any flipped images")        
-
-    print(f"Added {np.shape(stack)[0]-sizes[0]} images [THROUGH FLIPPING] to original data!")
-    return stack
     
 # =============================================================================
 # FILE SORTING 
@@ -477,19 +354,20 @@ def predict_and_show_segmentation(model, X_test, Y_test, num_img=9):
                 ax[f1,f2].imshow(overlay, cmap='gray')
                 ax[f1,f2].title.set_text(f'[CAUTION!] index out of bounds - displaying overlay No. {0} instead')
         
-def sanity_check_training_data(scans, masks, update_rate_Hz=2):
+def sanity_check_training_data(scans, cornea, milk, update_rate_Hz=2):
     """
     >>> Quick run-through of overlayed images (scans+masks) 
     to see if the scans and masks order matches in data stacks
     REMARK: June 26th image dimensions in pre-processing := (n_img, h, w)
     """       
     print("Displaying images...")
-    if scans.shape[2] != masks.shape[2]:
+    if (scans.shape[2] != cornea.shape[2]) or (scans.shape[2] != milk.shape[2]):
         print("Dimensions of data stacks do not match!")
     for im in tqdm(range(scans.shape[0])):
         plt.ion()
         plt.imshow(scans[im,:,:], 'gray', interpolation='none')
-        plt.imshow(masks[im,:,:], 'jet', interpolation='none', alpha=0.7)
+        plt.imshow(cornea[im,:,:], 'jet', interpolation='none', alpha=0.6)
+        plt.imshow(milk[im,:,:], 'jet', interpolation='none', alpha=0.6)
         plt.show()
         plt.pause(1/update_rate_Hz)
         plt.clf()    
