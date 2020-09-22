@@ -25,5 +25,5 @@ if __name__ == '__main__' :
     x_train, y_train = DataPreProc.prepare_data_for_network(dims, 
                                                             is_add_flipped_data=True, 
                                                             is_user_select_data_path=True,
-                                                            is_check_for_matching_data=False)
+                                                            is_check_for_matching_data=True)
      

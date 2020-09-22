@@ -161,12 +161,14 @@ def create_output_channel_masks(mask) :
             print(f"[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
             pass 
         # Create Masks for 3-channel segmentation
-        masks = []
-        masks.append(cornea) # Mask No.1
-        masks.append(ovd) # Mask No.2
         tmp = np.add(cornea, ovd)
         _, background = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY_INV)
-        masks.append(background) # Mask No.3
+
+        masks = []
+        masks.append(ovd)
+        masks.append(cornea) 
+        masks.append(background)
+        
         # tripple_mask is an additional return variable
     return masks
                
@@ -194,7 +196,7 @@ def create_tripple_masks_for_training(path, dims=(1024,1024), dtype='.bmp',
             raw_mask = Backend.load_single_image(os.path.join(path, 'mask.png'), dims)
             # create and add all three masks in order
             masks = create_output_channel_masks(raw_mask)
-            trip_masks.append(np.moveaxis(masks, 0, -1))
+            trip_masks.append(masks)
             masks = np.asarray(masks)
         else :
             print(f"No valid mask file found in {path}")
