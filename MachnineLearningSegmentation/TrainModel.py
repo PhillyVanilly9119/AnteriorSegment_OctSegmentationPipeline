@@ -11,7 +11,7 @@ Created on Tue Sep 22 13:32:10 2020
 """
 
 # Proprietary imports 
-import main_Training as DataPreProc
+import TrainingMain as DataPreProc
 from ModelUNet import build_and_train_uNet as Unet
 
 if __name__ == '__main__' :

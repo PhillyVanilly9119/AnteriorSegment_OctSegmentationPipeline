@@ -38,8 +38,7 @@ def prepare_data_for_network(dims, is_user_select_data_path=False,
     print("[STARTING PREPROCESSING] data for training...")
     # rewrite image loading function to be able to load either '*.bmp' and '*.png'
     t1 = time.time()
-    sub_dirs = [x[0] for x in os.walk(path)]
-    sub_dirs = sub_dirs[1:] #Get rid of root-dir itself/ only keep 
+    sub_dirs = Backend.get_subdirs_only(path)
     x, y = zip(*[load_and_process_scans_and_masks(d, dims) for d in tqdm(sub_dirs)])
     x = np.dstack(x)
     y = np.concatenate(y)                    
