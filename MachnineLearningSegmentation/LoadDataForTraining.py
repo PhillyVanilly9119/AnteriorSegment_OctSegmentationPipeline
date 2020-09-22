@@ -10,8 +10,11 @@ Created on Tue Sep 22 10:36:10 2020
                 
 """
 
+# global imports
+import matplotlib.pyplot as plt
+
 # Proprietary imports 
-from ModelUNet import build_and_train_uNet as Unet
+import main_Training as DataPreProc
 
 if __name__ == '__main__' :
     img_h = 1024

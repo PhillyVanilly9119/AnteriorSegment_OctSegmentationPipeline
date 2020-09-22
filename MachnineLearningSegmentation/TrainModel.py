@@ -23,7 +23,7 @@ if __name__ == '__main__' :
     x_train, y_train = DataPreProc.prepare_data_for_network(dims, 
                                                             is_add_flipped_data=True, 
                                                             is_user_select_data_path=True,
-                                                            is_check_for_matching_data=False)
+                                                            is_check_for_matching_data=True)
     model, checkpoint, results = Unet(img_h, img_w, img_ch, x_train, y_train,
                                       vali_split=0.15, batch_size=2)
      

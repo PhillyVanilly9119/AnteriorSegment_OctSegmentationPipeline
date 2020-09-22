@@ -14,5 +14,5 @@ Created on Tue Sep 22 10:36:10 2020
 import main_Inference.AutoSegmentation as AutoSegment
 
 if __name__ == '__main__' :
-    dims = (1004, 1024)
+    dims = (1024, 1024)
     AS = AutoSegment(dims, dims, dims)
