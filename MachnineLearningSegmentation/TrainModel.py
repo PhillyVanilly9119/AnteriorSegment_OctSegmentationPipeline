@@ -15,6 +15,7 @@ import main_Training as DataPreProc
 from ModelUNet import build_and_train_uNet as Unet
 
 if __name__ == '__main__' :
+    # Keep as is
     img_h = 1024
     img_w = 1024
     img_ch = 1
@@ -24,6 +25,8 @@ if __name__ == '__main__' :
                                                             is_add_flipped_data=True, 
                                                             is_user_select_data_path=True,
                                                             is_check_for_matching_data=True)
+    
     model, checkpoint, results = Unet(img_h, img_w, img_ch, x_train, y_train,
-                                      vali_split=0.15, batch_size=2)
+                                      vali_split=0.15, batch_size=2, 
+                                      is_select_storage_path=True, model_name=None) #'model_name'
      
