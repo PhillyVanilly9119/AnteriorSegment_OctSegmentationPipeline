@@ -22,7 +22,8 @@ import tensorflow as tf
 # local imports 
 import BackendFunctions as Backend
 
-def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model, 
+def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, path_saved_model,
+                         vali_split=0.2, batch_size=8,
                          model_name=None, is_save_trained_model=True, is_select_storage_path=True, 
                          base_size = 4, n_classes = 3):
     """    
@@ -34,7 +35,6 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
                          '--> P3(NxMx2^(b+2))->C4(NxMx2^(b+2)) ----> U6(NxMx32)->C6(NxMx2^(b+3))
                                      '--> P4(NxMx2^(b+4)) -> C5(NxMx2^(b+4)) --^
     """
-    
     # PRE DEFINITIONS
     if is_save_trained_model :
         if is_select_storage_path :
@@ -44,6 +44,7 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
     
     if not model_name :
         model_name = 'current_best_model'
+    # else : model_name = model_name
     
     if n_classes == 1:
         loss_function = 'binary_crossentropy'
@@ -126,7 +127,7 @@ def build_and_train_uNet(img_height, img_width, img_channels, X_train, Y_train, 
             ]
     
     results = model.fit(X_train, Y_train, 
-                        validation_split=0.2, batch_size=8, epochs=25, 
+                        validation_split=vali_split, batch_size=batch_size, epochs=25, 
                         callbacks=callbacks)
     
     if is_save_trained_model:

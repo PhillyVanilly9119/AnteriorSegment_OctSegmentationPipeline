@@ -40,15 +40,15 @@ def prepare_data_for_network(dims, is_user_select_path=False,
     t1 = time.time()
     sub_dirs = [x[0] for x in os.walk(path)]
     sub_dirs = sub_dirs[1:] #Get rid of root-dir itself/ only keep 
-    x, y = zip(*[Backend.load_and_process_scans_and_masks(d, dims) for d in tqdm(sub_dirs)])
+    x, y = zip(*[load_and_process_scans_and_masks(d, dims) for d in tqdm(sub_dirs)])
     x = np.dstack(x)
     y = np.concatenate(y)                    
     x = x[np.newaxis]
     x = np.swapaxes(x, 0, 3)
     # Add flipped versions of the all b-Scans to the training data
     if is_add_flipped_data:
-        x = Backend.add_flipped_data(x)
-        y = Backend.add_flipped_data(y)
+        x = add_flipped_data(x)
+        y = add_flipped_data(y)
     # Sanity check if inconsistencies in the data were observed
     # -> displays overlay of background and b-Scan           
     if is_check_for_matching_data:

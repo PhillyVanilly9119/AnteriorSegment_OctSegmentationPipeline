@@ -15,5 +15,8 @@ import main_Training as DataPreProc
 
 if __name__ == '__main__' :
     dims = (1024, 1024)
-    x_train, y_train = DataPreProc.prepare_data_for_network(dims, fl)
+    x_train, y_train = DataPreProc.prepare_data_for_network(dims, 
+                                                            is_add_flipped_data=True, 
+                                                            is_user_select_path=True,
+                                                            is_check_for_matching_data=True)
      
