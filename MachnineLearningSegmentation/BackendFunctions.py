@@ -32,6 +32,10 @@ def fast_scandir(dirname):
                 sub_folders.append(f.path)
     return sub_folders   
 
+def get_subdirs_only(path) :
+    sub_dirs = [x[0] for x in os.walk(path)]
+    return sub_dirs[1:] 
+    
 def create_dir(directory) :
     if not os.path.isdir(directory) :
             os.mkdir(directory)
@@ -334,6 +338,9 @@ def show_images_in_subplots(images, num=None) :
                     ax[f1,f2].title.set_text(f'[CAUTION!] index out of bounds - displaying Scan No. {0} instead')
                     
 def predict_and_show_segmentation(model, X_test, Y_test, num_img=9):
+        """
+    Display up to 16 predicted bScan-overlay
+    """
     ### TODO: Test!!!!
     preds_test = model.predict(X_test, verbose=1) # predict 
     preds_test_t = (preds_test > 0.5).astype(np.uint8) # apply threshold
