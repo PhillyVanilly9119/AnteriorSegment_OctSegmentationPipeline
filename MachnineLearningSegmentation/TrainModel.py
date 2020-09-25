@@ -10,7 +10,7 @@ Created on Tue Sep 22 13:32:10 2020
                 
 """
 
-# Proprietary imports 
+# Custom imports 
 import TrainingMain as DataPreProc
 from ModelUNet import build_and_train_uNet as Unet
 

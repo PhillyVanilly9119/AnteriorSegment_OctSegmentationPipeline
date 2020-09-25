@@ -9,10 +9,10 @@ Created on Tue Sep 22 10:36:10 2020
             Center for Medical Physics and Biomedical Engineering
                 
 """
-# global imports
+# Global imports
 import os
 
-# Proprietary imports 
+# Custom imports 
 import BackendFunctions as Backend
 from Inference import AutoSegmentation
 
