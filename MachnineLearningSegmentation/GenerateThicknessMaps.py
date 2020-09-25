@@ -36,7 +36,10 @@ def find_boundaries_in_mask(mask) :
 #     milk = [] 
 #     OVD_THICKNESS = [] # final return value 
 # =============================================================================
-    # Maybe process the 
+    val_milk = np.amax(mask)
+    val_crn = round(val_milk/2)
+    print(val_crn)
+    return
     # 1) Find epithelium -> write to array
     epithelium = [] 
     endothelium = [] 
@@ -152,4 +155,5 @@ def generate_and_safe_thickness_maps() :
 
 
 if __name__ == '__main__' :
-    generate_and_safe_thickness_maps()
+    find_boundaries_in_mask(mask)
+    #generate_and_safe_thickness_maps()
