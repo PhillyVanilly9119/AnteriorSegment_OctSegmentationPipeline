@@ -11,10 +11,10 @@ Created on Tue Sep 22 10:36:10 2020
 """
 
 # global imports
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # Proprietary imports 
-import main_Training as DataPreProc
+import TrainingMain as DataPreProc
 
 if __name__ == '__main__' :
     img_h = 1024
