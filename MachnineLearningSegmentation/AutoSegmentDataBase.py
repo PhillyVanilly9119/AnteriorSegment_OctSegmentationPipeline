@@ -32,5 +32,3 @@ if __name__ == '__main__' :
         
     print(f"Done applying inference to all b-Scans of all volumes in {path_data_base}")
     print(":) :) :)")
-
-y
