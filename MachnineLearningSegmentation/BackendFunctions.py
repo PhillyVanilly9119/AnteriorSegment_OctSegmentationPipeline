@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from tkinter.filedialog import Tk, askdirectory
+from tkinter.filedialog import Tk, askdirectory, askopenfilename
 
 def fast_scandir(dirname):
     sub_folders = []
@@ -44,6 +44,13 @@ def clean_path_selection(text) :
     root = Tk()
     root.withdraw()
     path = askdirectory(title=text, mustexist=True)
+    root.destroy()
+    return path
+
+def clean_file_selection(text) :
+    root = Tk()
+    root.withdraw()
+    path = askopenfilename(title=text)
     root.destroy()
     return path
 

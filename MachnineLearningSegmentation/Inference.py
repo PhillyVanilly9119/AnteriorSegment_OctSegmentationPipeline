@@ -41,13 +41,16 @@ class AutoSegmentation() :
         else :
             path = path
         # check if path contains images
-        assert any(fname.endswith('.bmp') for fname in os.listdir(path)), "Directory [DOES NOT CONTAIN ANY IMAGES] / *.BMP-files!"
+        assert any(fname.endswith('.bmp') for fname in os.listdir(path)), f"Directory {path} [DOES NOT CONTAIN ANY IMAGES] / *.BMP-files!"
         scan_list = glob.glob(os.path.join(path, "*.bmp"))
         # sort list after b-Scan #'s in image file names
         scan_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
         # Load (ONLY) b-Scans (with size = IMG_HEIGHT x IMG_WIDTH)
         scans = [np.asarray(Image.open(infile)) for infile in tqdm(scan_list) if np.shape(np.asarray(Image.open(infile))) == (self.raw_dims[0],self.raw_dims[1])]
-        return np.dstack(scans), path
+        if scans is not None :
+            return np.dstack(scans), path
+        else : # Rethink error handling here
+            return scans, path 
         
     def resize_images_without_interp(self, images, out_dims) :
         """
@@ -71,7 +74,7 @@ class AutoSegmentation() :
         if is_fixed_path_to_network :
             path = r'C:\Users\Philipp\Desktop\current_best_model'
         else :
-            path = Backend.clean_path_selection('Please select file with trained net for [AUTO-SEGMENTATION]')
+            path = Backend.clean_file_selection('Please select file with trained net for [AUTO-SEGMENTATION]')
         model = keras.models.load_model(path)
         predictions = []
         for scan in range(n_scans) :
