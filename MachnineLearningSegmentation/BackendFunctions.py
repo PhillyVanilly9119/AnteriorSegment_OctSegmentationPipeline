@@ -114,7 +114,7 @@ def get_img_dirs(path) :
     
 def load_images(path, name, dims, img_dtype='.png') :
     print(f"Loading all images {name+img_dtype} from {path}...")
-    assert np.size(dims) == 2, f"[RESHAPING DIMENSION MISMATCH] Please enter valid tuple dimensions!"
+    assert np.size(dims) == 2, "[RESHAPING DIMENSION MISMATCH] Please enter valid tuple dimensions!"
     h, w = dims[0], dims[1]
     files = os.listdir(path)
     try :

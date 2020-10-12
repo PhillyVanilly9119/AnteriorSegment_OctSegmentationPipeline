@@ -23,9 +23,11 @@ import matplotlib.pyplot as plt
 import BackendFunctions as Backend
 
 def calculate_thickness() :
-
+    pass
+    
 def find_boundaries_in_mask(mask) : 
     """ 
+    Stuff
     """ 
     width = np.shape(mask)[1]
 # =============================================================================

@@ -23,11 +23,10 @@ if __name__ == '__main__' :
     AS = AutoSegmentation(dims, raw_dims, dims)
     # Add logic to go through whole data base and infer one vol. after another
     measurement_dirs = Backend.get_subdirs_only(path_data_base)
-    #print(os.walk(sub_dirs))
-    for path in measurement_dirs:        
+    for path in measurement_dirs:  
         scans, path_vol_measurement = AS.load_data_from_folder(path)
         scans = AS.resize_images_without_interp(scans, dims)
-        masks = AS.apply_trained_net(scans, is_fixed_path_to_network=True)
+        masks = AS.apply_trained_net(scans, 0.5, is_fixed_path_to_network=False)
         AS.check_predicted_masks(scans, masks, path_vol_measurement)
         
     print(f"Done applying inference to all b-Scans of all volumes in {path_data_base}")

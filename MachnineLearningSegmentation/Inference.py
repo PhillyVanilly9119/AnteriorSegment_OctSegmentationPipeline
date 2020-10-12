@@ -64,7 +64,7 @@ class AutoSegmentation() :
                              interpolation = cv2.INTER_AREA) for i in range(in_dims[2])]
         return np.dstack(images)
         
-    def apply_trained_net(self, scans, is_fixed_path_to_network=True) :
+    def apply_trained_net(self, scans, threshold, is_fixed_path_to_network=True) :
         """
         Predict and display segmented b-Scans -> Display to user
         """
@@ -82,7 +82,7 @@ class AutoSegmentation() :
                                                             axis=-1), verbose=1))
         predictions = np.concatenate(predictions)
         #Threshold the masks for area-prediction
-        masks = (predictions > 0.5).astype(np.uint8)
+        masks = (predictions > threshold).astype(np.uint8)
         masks = np.moveaxis(masks, 0, -1)
         
         return masks
