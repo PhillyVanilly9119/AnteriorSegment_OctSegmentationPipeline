@@ -18,12 +18,14 @@ from ModelUNet import build_and_train_uNet as Unet
 if __name__ == '__main__' :
     # Keep as is
     img_h = 1024
-    img_w = 1024
+    img_w = 512
     img_ch = 1
+    vali_split = 0.15
+    batch_size = 4
     dims = (img_h, img_w)
     raw_dims = (1024, 512)
-    validation_path = r"/home/zeiss/Documents/Segmentation_AnteriorSegment/Data/Validation"
-    x_train, y_train = DataPreProc.prepare_data_for_network(dims, 
+    training_path = r"/home/zeiss/Desktop/TrainingData"
+    x_train, y_train = DataPreProc.prepare_data_for_network(dims,
                                                             is_add_flipped_data=True, 
                                                             is_user_select_data_path=True,
                                                             is_check_for_matching_data=False,
@@ -31,13 +33,7 @@ if __name__ == '__main__' :
                                                             flag_yFlip=True)
     
     model, checkpoint, results = Unet(img_h, img_w, img_ch, x_train, y_train,
-                                      vali_split=0.15, batch_size=6, 
-                                      is_select_storage_path=True, model_name=None) #'model_name'
+                                      vali_split=vali_split, batch_size=batch_size, 
+                                      is_select_storage_path=True, 
+                                      model_name=f"{vali_split}_{batch_size}_{img_h}x{img_w}")
 
-# =============================================================================
-#     AS = AutoSegmentation(dims, raw_dims, dims)
-#     scans = AS.load_data_from_folder(validation_path) 
-#     masks = AS.resize_images_without_interp(scans, dims) 
-#     masks = AS.apply_trained_net(scans, is_fixed_path_to_network=True)
-#     # Display overlay of 9 test scans 
-# =============================================================================
