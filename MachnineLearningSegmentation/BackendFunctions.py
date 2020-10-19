@@ -102,6 +102,24 @@ def find_max_idx(path_one, path_two) :
 # =============================================================================
 # IMAGE PROCESSING FUNCTIONS
 # =============================================================================
+def monotonicity(boundary_layer):
+    def non_increasing(L):
+        return all(x>=y for x, y in zip(L, L[1:]))
+    def non_decreasing(L):
+        return all(x<=y for x, y in zip(L, L[1:]))
+    return non_increasing(boundary_layer) or non_decreasing(boundary_layer)
+                
+def check_for_boundary_continuity(boundary_layer, delta=7) :
+    """
+    CAUTION! Delta is in pixels and should be adjusted according to images' / masks' size
+    """
+    assert np.size(np.shape(boundary_layer)) == 1, "Input array has wrong dimensionality - expected 1D Array"
+    differences = np.diff(boundary_layer)
+    if all(np.all(differences < delta)) :
+        return True
+    else :        
+        return False
+    
 def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
     img_num = path.split('\\')[folder_idx].split(img_dtype)[0]
     return int(img_num)

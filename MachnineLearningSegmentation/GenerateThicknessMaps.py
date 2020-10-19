@@ -17,62 +17,78 @@ import glob
 import scipy
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 # Custom imports
 import BackendFunctions as Backend
+import TrainingMain as Train
 
-def calculate_thickness() :
-    pass
+def calculate_thickness(boundary_one, boundary_two) :
+    if boundary_one is not None and boundary_two is not None :
+        return np.asarray(np.subtract(boundary_two, boundary_one), np.uint16)
+    else :
+        print("[WARNING] encountered empty array for thickness calculation")
+        return
     
-def find_boundaries_in_mask(mask) : 
+def check_cornea_thickness(epi, endo) :
+    assert epi is not None, "Epithelium boundary data is empty"
+    assert endo is not None, "Endothelium boundary data is empty"
+    thickness = calculate_thickness(epi, endo)
+    average_thickness = np.average(thickness)
+    deviation = np.std(thickness)
+    spot_validity = []
+    for spot in range(np.size(thickness)) :
+        if ( thickness[spot] < (average_thickness - deviation) ) :
+            spot_validity.append(0)
+        elif ( thickness[spot] > (average_thickness + deviation) ) :
+            spot_validity.append(0)
+        else :
+            spot_validity.append(1)
+    return np.asarray(spot_validity, np.bool)
+                 
+def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) : 
     """ 
-    Stuff
+    >>> returns thickness-vector of the OVD layer per b-Scan 
     """ 
     width = np.shape(mask)[1]
-# =============================================================================
-#     crn_thickness = 320 # >>TBD<< 
-#     # TODO: round values in mask to 255, 127 and 0 
-#     crn_val = 255 
-#     milk_val = 127 
-#     milk = [] 
-#     OVD_THICKNESS = [] # final return value 
-# =============================================================================
+    OVD_THICKNESS = []
     val_milk = np.amax(mask)
     val_crn = round(val_milk/2)
-    print(val_crn)
-    return
     # 1) Find epithelium -> write to array
     epithelium = [] 
-    endothelium = [] 
+    endothelium = []
     for aScan in range(width) : 
-        current_scans = mask[:,aScan]  
-        current_spots = np.where(current_scans==crn_val) 
-        if np.size(c_spots) > 1 :  
-            epithelium.append(np.amin(c_spots)) 
-            endothelium.append(np.amax(c_spots)) 
+        current_scan = mask[:,aScan]  
+        crn_spots = np.where(current_scan==val_crn) 
+        if np.size(crn_spots) > 1 :  
+            epithelium.append(np.amin(crn_spots)) 
+            endothelium.append(np.amax(crn_spots)) 
         else : 
             epithelium.append(0) 
-            endothelium.append(0)                
-    valid_endo = AutoSegmentation.check_for_continuity(endothelium) 
-    if np.count_nonzero(valid_endo) == np.shape(mask)[1] : 
-        interp_endo = np.add(epithelium, crn_thickness) 
-    else : 
-        interp_endo = np.add(AutoSegmentation.interpolate_curve(epithelium, valid_endo), 
-                             crn_thickness) 
-    averaged_endo = np.asarray(interp_endo, dtype=np.uint16) 
-    # 3) Find OVD 
-    for aScan in range(AScans) : 
-        c_aScan = mask[:,aScan] 
-        c_aScan[averaged_endo[aScan]:] 
-        m_spots = np.where(c_aScan[averaged_endo[aScan]:]==milk_val) 
+            endothelium.append(0)
+    # Check for 1) Continuity of the boundary layers & 2) Thickness of Cornea
+    if not check_cornea_thickness(epithelium, endothelium).all() :
+        print(f"[WARNING:] Deviation in corneal thickness in MASK INDEX NO.{mask_idx}") 
+    if not Backend.check_for_boundary_continuity(epithelium) :
+        print("[WARNING:] Epithelium could not be identified as a continuous layer")
+    if not Backend.check_for_boundary_continuity(endothelium) :    
+        print("[WARNING:] Endothelium could not be identified as a continuous layer")
+    # Set false positives north of the endothelium to val_crn and south to val_milk
+    mask[np.nonzero(mask < val_milk)] = val_crn
+    mask[np.nonzero(mask > val_milk)] = val_milk
+    # Find OVD
+    milk = [] 
+    for aScan in range(width) : 
+        curr_aScan = mask[:,aScan] 
+        #c_aScan[averaged_endo[aScan]:] 
+        m_spots = np.where(curr_aScan[endothelium[aScan]:]==val_milk) 
         if np.size(m_spots) > 1 : 
-            milk.append(np.amin(m_spots)+averaged_endo[aScan]) 
+            milk.append(np.amin(m_spots) + endothelium[aScan]) 
         else : 
             milk.append(1023) 
         # 4) Evaluate thickness  
-        OVD_THICKNESS.append(AutoSegmentation.calculate_thickness(averaged_endo[aScan],  
-                                                                  milk[aScan])) 
+        OVD_THICKNESS.append(calculate_thickness(endothelium[aScan], milk[aScan])) 
     return np.asarray(OVD_THICKNESS) 
 
 def generate_and_safe_thickness_maps() :
@@ -117,17 +133,19 @@ def generate_and_safe_thickness_maps() :
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) : 
                     mask = np.asarray(Image.open(mask_file)) 
-                    _, mask = DP.create_tripple_mask(mask) 
+                    masks = Train.create_three_masks_from_tripple_mask(mask) 
+                    print("Look at it!")
+                    break
                     save_name = os.path.join(folder, 'CorrectScans') 
                     plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'),  
                                mask, cmap='gray', format='bmp') 
-                    THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))    
+                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask))    
                     counter_invalid += 1 
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L')) 
-                THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask)) 
+                THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask)) 
                 counter_valid += 1 
                  
         THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 
@@ -157,5 +175,8 @@ def generate_and_safe_thickness_maps() :
 
 
 if __name__ == '__main__' :
-    find_boundaries_in_mask(mask)
-    #generate_and_safe_thickness_maps()
+    a = np.linspace(0, 100, 101)
+    b = np.add(np.linspace(0, 100, 101), 5)
+    result = check_cornea_thickness(a,b)
+    if result.all() :
+        print("What?")
