@@ -133,19 +133,19 @@ def generate_and_safe_thickness_maps() :
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) : 
                     mask = np.asarray(Image.open(mask_file)) 
-                    masks = Train.create_three_masks_from_tripple_mask(mask) 
-                    print("Look at it!")
                     break
+                    print("Look at it!")
+                    masks = Train.create_three_masks_from_tripple_mask(mask) 
                     save_name = os.path.join(folder, 'CorrectScans') 
                     plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'),  
                                mask, cmap='gray', format='bmp') 
-                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask))    
+                    THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask))    
                     counter_invalid += 1 
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L')) 
-                THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask)) 
+                THICKNESS_MAP.append(AutoSegmentation.find_boundaries_in_mask(mask)) 
                 counter_valid += 1 
                  
         THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 

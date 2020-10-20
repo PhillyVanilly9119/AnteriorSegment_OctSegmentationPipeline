@@ -17,11 +17,11 @@ from ModelUNet import build_and_train_uNet as Unet
 
 if __name__ == '__main__' :
     # Keep as is
-    img_h = 1024
-    img_w = 512
+    img_h = 512
+    img_w = 256
     img_ch = 1
-    vali_split = 0.15
-    batch_size = 4
+    vali_split = 0.1
+    batch_size = 2
     dims = (img_h, img_w)
     raw_dims = (1024, 512)
     training_path = r"/home/zeiss/Desktop/TrainingData"
