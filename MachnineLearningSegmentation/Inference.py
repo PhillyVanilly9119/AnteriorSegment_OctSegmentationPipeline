@@ -112,7 +112,7 @@ class AutoSegmentation() :
             disp_img = cv2.addWeighted(scans[:,:,im], alpha, current_img, beta, 0)
             #disp_img = np.concatenate((current_img, background[:,:,im] * 255), axis=1)
             cv2.imshow(f"Predicted BACKGROUND-mask on original B-Scan No.{im} - left hand side = overlayed Cornea and OVD boundary - right hand side = background",
-                       cv2.resize(disp_img, (500, 1000), interpolation = cv2.INTER_AREA))
+                       cv2.resize(disp_img, (450, 900), interpolation = cv2.INTER_AREA))
             key = cv2.waitKey(0)
             if key == ord('y') or key == ord('Y') :
                 if not Backend.check_for_duplicates(good_img_file, bad_img_file) :
