@@ -19,7 +19,7 @@ from Inference import AutoSegmentation
 if __name__ == '__main__' :   
     
     dims = (512, 256)
-    threshald = 0.4
+    threshold = 0.4
     
     raw_dims = (1024, 512)
     out_dims = (512, 512)
@@ -31,7 +31,7 @@ if __name__ == '__main__' :
     for path in measurement_dirs:
         scans, path_vol_measurement = AS.load_data_from_folder(path)
         scans = AS.resize_images_without_interp(scans, dims)
-        masks = AS.apply_trained_net(scans, threshald)
+        masks = AS.apply_trained_net(scans, threshold)
         AS.check_predicted_masks(scans, masks, path_vol_measurement)
         
     print(f"Done applying inference to all b-Scans of all volumes in {path_data_base}")
