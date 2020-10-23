@@ -68,7 +68,7 @@ def load_and_process_scans_and_masks(path, dims, scan_name='raw_bScan') :
     """
     scans = []
     masks = []
-    for root, dirs, files in os.walk(path) :
+    for root, _, _ in os.walk(path) :
         # returns 3D-tensor with b-Scans (h, w, n_imgs)
         scans = load_bScans_for_training(root, scan_name, dims)
         # returns 4D-tensor with masks (n_img, h, w, n_mask)

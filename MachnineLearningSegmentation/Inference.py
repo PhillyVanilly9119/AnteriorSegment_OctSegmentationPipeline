@@ -72,7 +72,7 @@ class AutoSegmentation() :
         scans = self.resize_images_without_interp(scans, (self.net_dims[0], self.net_dims[1], scans.shape[2]))
         n_scans = np.shape(scans)[2]
         if is_fixed_path_to_network :
-            path = r'C:\Users\Philipp\Desktop\current_best_model'
+            path = r'/home/zeiss/Documents/Segmentation_AnteriorSegment/Networks/bestNetwork_9910_0.15_6_11epochs_512x256'
         else :
             path = Backend.clean_file_selection('Please select file with trained net for [AUTO-SEGMENTATION]')
         model = keras.models.load_model(path)
@@ -112,7 +112,7 @@ class AutoSegmentation() :
             disp_img = cv2.addWeighted(scans[:,:,im], alpha, current_img, beta, 0)
             #disp_img = np.concatenate((current_img, background[:,:,im] * 255), axis=1)
             cv2.imshow(f"Predicted BACKGROUND-mask on original B-Scan No.{im} - left hand side = overlayed Cornea and OVD boundary - right hand side = background",
-                       cv2.resize(disp_img, self.net_dims, interpolation = cv2.INTER_AREA))
+                       cv2.resize(disp_img, (500, 1000), interpolation = cv2.INTER_AREA))
             key = cv2.waitKey(0)
             if key == ord('y') or key == ord('Y') :
                 if not Backend.check_for_duplicates(good_img_file, bad_img_file) :

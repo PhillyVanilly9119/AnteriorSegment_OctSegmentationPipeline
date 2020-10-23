@@ -115,7 +115,7 @@ def check_for_boundary_continuity(boundary_layer, delta=7) :
     """
     assert np.size(np.shape(boundary_layer)) == 1, "Input array has wrong dimensionality - expected 1D Array"
     differences = np.diff(boundary_layer)
-    if all(np.all(differences < delta)) :
+    if np.all(differences < delta) :
         return True
     else :        
         return False
