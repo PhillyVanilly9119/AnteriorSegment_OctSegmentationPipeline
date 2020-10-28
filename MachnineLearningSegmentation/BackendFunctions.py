@@ -17,6 +17,7 @@ import cv2
 import uuid
 import glob 
 import shutil
+import platform
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -39,6 +40,16 @@ def get_subdirs_only(path) :
 def create_dir(directory) :
     if not os.path.isdir(directory) :
             os.mkdir(directory)
+            
+def is_ignore_segmented_dirs(path) :
+    """
+    >>> Checks for key in string <path> and returns boolean expression
+    Macro to check if a directory contains evaluated data ignore this path
+    """
+    if 'CorrectScans' in path or 'IncorrectScans' in path :
+        return False
+    else :
+        return True
             
 def clean_path_selection(text) :
     root = Tk()
@@ -71,6 +82,15 @@ def find_max_idx(path_one, path_two) :
     """
     Primitive to find highest numbered scan in sorted directories
     """
+    # Check which OP the function is running on for splitting path strings
+    op_sys = platform.system()
+    if op_sys == 'Windows' :
+        split_key = '\\'
+    elif op_sys == 'Linux' :
+        split_key = '/'
+    else :
+        print('[OS ERROR] Function call on undefined operating system')
+    # Extract index and continue if 
     if os.path.isdir(path_one) :
         first_list = glob.glob(os.path.join(path_one, "*.bmp"))
         first_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -81,17 +101,17 @@ def find_max_idx(path_one, path_two) :
         index = 0
     elif first_list and not second_list :
         first_idx = first_list[-1]
-        index = int(first_idx.split('\\')[-1].split('.bmp')[0])
+        index = int(first_idx.split(split_key)[-1].split('.bmp')[0])
         index += 1
     elif not first_list and second_list :
         second_idx = second_list[-1]
-        index = int(second_idx.split('\\')[-1].split('.bmp')[0])
+        index = int(second_idx.split(split_key)[-1].split('.bmp')[0])
         index += 1
     elif first_list and second_list :
         first_idx = first_list[-1]
         second_idx = second_list[-1]
-        first_idx = int(first_idx.split('\\')[-1].split('.bmp')[0])
-        second_idx = int(second_idx.split('\\')[-1].split('.bmp')[0])
+        first_idx = int(first_idx.split(split_key)[-1].split('.bmp')[0])
+        second_idx = int(second_idx.split(split_key)[-1].split('.bmp')[0])
         index = max(first_idx, second_idx)
         index += 1
     else :
