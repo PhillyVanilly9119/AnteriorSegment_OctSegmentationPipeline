@@ -26,10 +26,10 @@ import TrainingMain as Train
 
 def calculate_thickness(boundary_one, boundary_two) :
     if boundary_one is not None and boundary_two is not None :
-        return np.asarray(np.subtract(boundary_two, boundary_one), np.uint16)
+        return np.asarray( np.absolute( np.subtract(boundary_two, boundary_one) ), np.uint16 )
     else :
         print("[WARNING] encountered empty array for thickness calculation")
-        return
+        return None
     
 def check_cornea_thickness(epi, endo) :
     assert epi is not None, "Epithelium boundary data is empty"
@@ -52,6 +52,7 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
     >>> returns thickness-vector of the OVD layer per b-Scan 
     """ 
     width = np.shape(mask)[1]
+    height = np.shape(mask)[0]
     OVD_THICKNESS = []
     mask = Backend.convert_mask_vals_to_trips(mask)
     val_crn = int(np.amax(mask)) # 255
@@ -84,20 +85,19 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
     if not Backend.check_for_boundary_continuity(endothelium) :    
         print(f"[WARNING:] Endothelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
     
-    # 3) Find OVD
+    # 3) Find beginning of milk layer
     milk = [] 
     for aScan in range(width) : 
         curr_aScan = mask[:,aScan]
+        curr_endo = endothelium[aScan]
         m_spots = np.where(curr_aScan[(curr_endo + endo_offset):] == val_milk) # look for milk-vals from endothelium on plus offset 
-        print(aScan, curr_endo, np.amin(m_spots))
         if np.size(m_spots) > 1 : 
             milk.append(np.amin(m_spots) + endothelium[aScan] + endo_offset) # add start of milk layer  
         else : 
-            milk.append(1023) 
+            milk.append(int(height-1)) 
         # 4) Evaluate thickness  
-        # OVD_THICKNESS.append(calculate_thickness(endothelium[aScan], milk[aScan])) 
-    return np.asarray(milk)
-    #return np.asarray(OVD_THICKNESS) 
+        OVD_THICKNESS.append(calculate_thickness( endothelium[aScan], milk[aScan] ))
+    return np.asarray(OVD_THICKNESS, np.uint16) 
 
 def generate_and_safe_thickness_maps() :
     """
