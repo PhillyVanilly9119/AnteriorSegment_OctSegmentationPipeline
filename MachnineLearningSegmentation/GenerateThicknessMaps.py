@@ -149,13 +149,13 @@ def generate_and_safe_thickness_maps() :
                     save_name = os.path.join(folder, 'CorrectScans') 
                     plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'),  
                                mask, cmap='gray', format='bmp') 
-                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask))    
+                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan))    
                     counter_invalid += 1 
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L')) 
-                THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask)) 
+                THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
                 counter_valid += 1 
                  
         THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 
@@ -185,10 +185,13 @@ def generate_and_safe_thickness_maps() :
 
 
 if __name__ == '__main__' :
-    mask = Backend.load_single_image(r'C:\Users\Philipp\Desktop\010.bmp', (256,512))
-    thickness = find_boundaries_and_calc_thickness_in_mask(mask, 1)
-    plt.plot(thickness)
-    plt.imshow(mask, cmap='gray')
-    plt.show()
+    
+    generate_and_safe_thickness_maps()
+    
+    # mask = Backend.load_single_image(r'C:\Users\Philipp\Desktop\010.bmp', (256,512))
+    # thickness = find_boundaries_and_calc_thickness_in_mask(mask, 1)
+    # plt.plot(thickness)
+    # plt.imshow(mask, cmap='gray')
+    # plt.show()
     # load an image and test entire thickness determination
     #result = check_cornea_thickness(a,b)
