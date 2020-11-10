@@ -1,9 +1,9 @@
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% MAIN FILE for data processing pipeline of Ant. Eye Segmentation-Pipeline
-%                               copyright:
+%                             copyright:
 %       @melanie.wuest@zeiss.com & @philipp.matten@meduniwien.ac.at
 %
-%   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
+%  Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Define global vars (Struct)

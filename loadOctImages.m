@@ -10,9 +10,10 @@ function [octCube] = loadOctImages(path, aScanLength, bScanLength, imgDtTypr)
 
 cd(path)
 files = dir(strcat('*.', imgDtTypr));
-octCube = [];
+nFiles = length(files);
+octCube = zeros(aScanLength, bScanLength, nFiles);
 
-for i = 1:length(files)
+for i = 1:nFiles
     if isfile(fullfile(path, files(i).name))
         tmp = imread(files(i).name);
         if length(tmp(:,1)) == aScanLength && length(tmp(1,:)) == bScanLength
