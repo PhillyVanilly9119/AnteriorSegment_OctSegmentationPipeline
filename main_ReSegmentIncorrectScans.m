@@ -61,7 +61,7 @@ DataStruct.processingVolumeDims(2) = correctSz(2);
 DataStruct.processingVolumeDims(3) = correctSz(3);
 
 %Check if FOLDERS for MASKS already exist &/ create it
-DataStruct.machineLearningFolder = fullfile(DataStruct.currentDataPath, "ManuallyResegmentedData");
+DataStruct.machineLearningFolder = fullfile(DataStruct.currentDataPath, "Data_Machine_Learning");
 if ~exist(DataStruct.machineLearningFolder, 'dir')
     mkdir(DataStruct.machineLearningFolder);
 end
