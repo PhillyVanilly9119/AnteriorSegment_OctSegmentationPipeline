@@ -17,6 +17,7 @@ import cv2
 import uuid
 import glob 
 import shutil
+import platform
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -39,6 +40,16 @@ def get_subdirs_only(path) :
 def create_dir(directory) :
     if not os.path.isdir(directory) :
             os.mkdir(directory)
+            
+def is_ignore_segmented_dirs(path) :
+    """
+    >>> Checks for key in string <path> and returns boolean expression
+    Macro to check if a directory contains evaluated data ignore this path
+    """
+    if 'CorrectScans' in path or 'IncorrectScans' in path :
+        return False
+    else :
+        return True
             
 def clean_path_selection(text) :
     root = Tk()
@@ -71,6 +82,15 @@ def find_max_idx(path_one, path_two) :
     """
     Primitive to find highest numbered scan in sorted directories
     """
+    # Check which OP the function is running on for splitting path strings
+    op_sys = platform.system()
+    if op_sys == 'Windows' :
+        split_key = '\\'
+    elif op_sys == 'Linux' :
+        split_key = '/'
+    else :
+        print('[OS ERROR] Function call on undefined operating system')
+    # Extract index and continue if 
     if os.path.isdir(path_one) :
         first_list = glob.glob(os.path.join(path_one, "*.bmp"))
         first_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -81,17 +101,17 @@ def find_max_idx(path_one, path_two) :
         index = 0
     elif first_list and not second_list :
         first_idx = first_list[-1]
-        index = int(first_idx.split('\\')[-1].split('.bmp')[0])
+        index = int(first_idx.split(split_key)[-1].split('.bmp')[0])
         index += 1
     elif not first_list and second_list :
         second_idx = second_list[-1]
-        index = int(second_idx.split('\\')[-1].split('.bmp')[0])
+        index = int(second_idx.split(split_key)[-1].split('.bmp')[0])
         index += 1
     elif first_list and second_list :
         first_idx = first_list[-1]
         second_idx = second_list[-1]
-        first_idx = int(first_idx.split('\\')[-1].split('.bmp')[0])
-        second_idx = int(second_idx.split('\\')[-1].split('.bmp')[0])
+        first_idx = int(first_idx.split(split_key)[-1].split('.bmp')[0])
+        second_idx = int(second_idx.split(split_key)[-1].split('.bmp')[0])
         index = max(first_idx, second_idx)
         index += 1
     else :
@@ -102,6 +122,24 @@ def find_max_idx(path_one, path_two) :
 # =============================================================================
 # IMAGE PROCESSING FUNCTIONS
 # =============================================================================
+def monotonicity(boundary_layer):
+    def non_increasing(L):
+        return all(x>=y for x, y in zip(L, L[1:]))
+    def non_decreasing(L):
+        return all(x<=y for x, y in zip(L, L[1:]))
+    return non_increasing(boundary_layer) or non_decreasing(boundary_layer)
+                
+def check_for_boundary_continuity(boundary_layer, delta=7) :
+    """
+    CAUTION! Delta is in pixels and should be adjusted according to images' / masks' size
+    """
+    assert np.size(np.shape(boundary_layer)) == 1, "Input array has wrong dimensionality - expected 1D Array"
+    differences = np.diff(boundary_layer)
+    if np.all(differences < delta) :
+        return True
+    else :        
+        return False
+    
 def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
     img_num = path.split('\\')[folder_idx].split(img_dtype)[0]
     return int(img_num)
@@ -114,7 +152,7 @@ def get_img_dirs(path) :
     
 def load_images(path, name, dims, img_dtype='.png') :
     print(f"Loading all images {name+img_dtype} from {path}...")
-    assert np.size(dims) == 2, f"[RESHAPING DIMENSION MISMATCH] Please enter valid tuple dimensions!"
+    assert np.size(dims) == 2, "[RESHAPING DIMENSION MISMATCH] Please enter valid tuple dimensions!"
     h, w = dims[0], dims[1]
     files = os.listdir(path)
     try :

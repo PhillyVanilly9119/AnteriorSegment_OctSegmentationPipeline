@@ -1,13 +1,72 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%                           Auxiliary function
-%                               copyright:
-%       @melanie.wuest@zeiss.com & @philipp.matten@meduniwien.ac.at
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % Run file to run through data that has to be re-segmented manually
+% copyright:
+% @philipp.matten@meduniwien.ac.at
 %
-%   Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Center for Medical Physics and Biomedical Engineering (Med Uni Vienna)
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [] = segmentationLoop(DataStruct, rawCube, cube)
+% Define global vars (Struct)
+global DataStruct
+DataStruct.imageVolumeDims = [512,512,128]; %default cude size
+DataStruct.aspectRatioFactor = 1; %change aspect ratio: stretch image width
+DataStruct.processingVolumeDims =   [
+    DataStruct.imageVolumeDims(1), ...
+    DataStruct.aspectRatioFactor * DataStruct.imageVolumeDims(2),...
+    DataStruct.imageVolumeDims(3)
+    ];
+DataStruct.mainPath = matlab.desktop.editor.getActiveFilename;
+DataStruct.imgDataType = 'bmp';
+DataStruct.binFileName = 'octDataCube.bin';
+DataStruct.endoText = ["Select the Endothelium boundary through clicking with the cursor"...
+    "Please only select unique, consecutive points"...
+    "When the segmentation is complete, end it with a double click"];
+DataStruct.epiText = "Select the Epithelium boundary through clicking with the cursor";
+DataStruct.ovdText = ["Select the Endothelium boundary through clicking with the cursor"...
+    "Please only select unique, consecutive points"...
+    "When the segmentation is complete, end it with a double click"];
 
+
+% 1) Preprocessing: Loading Data
+
+%Add main path of repository of search path
+filePath = matlab.desktop.editor.getActiveFilename;
+
+warning("Change 'localGlobPath'-variable to your local path, were you keep the repository")
+localGlobPath = 'C:\Users\ZeissLab\Documents\Documents_Philipp\Code\AnteriorSegment_OctSegmenationPipeline';
+addpath(fullfile(localGlobPath, 'Code'));
+
+binFileOct = 'octDataCube.bin';
+maskFolder = fullfile(localGlobPath, 'Data', 'SegmentedMasks');
+
+% 2) Preprocessing
+DataStruct.currentDataPath = uigetdir();
+cd(DataStruct.currentDataPath)
+files = dir(strcat('*.', DataStruct.imgDataType));
+nFiles = length(files);
+octCube = zeros(DataStruct.imageVolumeDims(1), DataStruct.imageVolumeDims(2), nFiles);
+% Load images
+for i = 1:nFiles
+    currFile = fullfile(files(1).folder, files(i).name);
+    if isfile(currFile)
+        tmp = imread(currFile);
+        tmp = uint8(tmp(:,:,1));
+        octCube(:,:,i) = tmp; 
+    end
+end
+
+OctDataCube = resizeOctCube(octCube, DataStruct.aspectRatioFactor);
+correctSz = size(OctDataCube);
+DataStruct.processingVolumeDims(2) = correctSz(2);
+DataStruct.processingVolumeDims(3) = correctSz(3);
+
+%Check if FOLDERS for MASKS already exist &/ create it
+DataStruct.machineLearningFolder = fullfile(DataStruct.currentDataPath, "Data_Machine_Learning");
+if ~exist(DataStruct.machineLearningFolder, 'dir')
+    mkdir(DataStruct.machineLearningFolder);
+end
+
+%% Main segmentation loop
 % pre-allocate special masks
 continuousMask = zeros(DataStruct.processingVolumeDims(1),...
     DataStruct.processingVolumeDims(2));
@@ -20,8 +79,8 @@ loopIdx = checkForPresegmentedScans(DataStruct.machineLearningFolder);
 if loopIdx <= DataStruct.processingVolumeDims(3)
     for i = loopIdx:DataStruct.processingVolumeDims(3)
         
-        b_Scan = cube(:,:,i);
-        rawB_Scan = rawCube(:,:,i);
+        b_Scan = OctDataCube(:,:,i);
+        rawB_Scan = OctDataCube(:,:,i);
         [label, frames] = createSegmenationLabel(b_Scan);
         
         %No layer visible
@@ -126,9 +185,6 @@ if loopIdx <= DataStruct.processingVolumeDims(3)
             end
             %______________________________________________
             %Save the masks containing correctly segmented boundary layers)
-            saveCalculatedMask(DataStruct, curve, mask, b_Scan, frames, i);
-            saveContinMasks(DataStruct, continuousMask, i)
-            saveThickMasks(DataStruct, thickMask, i);
             checkAndCreateDirsForDeepLearningData(DataStruct.machineLearningFolder,...
                 rawB_Scan, b_Scan, ...
                 mask, continuousMask, thickMask, binaryMask, inverseBinMask);
@@ -139,3 +195,8 @@ if loopIdx <= DataStruct.processingVolumeDims(3)
 else
     disp("You have already segmented all b-Scans, you busy bee! :)")
 end
+
+% END - Clean Up
+close all
+
+fprintf('Done segmenting recorded volume \"%s\"! \n', tmp{end});

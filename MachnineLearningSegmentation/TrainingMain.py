@@ -26,7 +26,8 @@ import BackendFunctions as Backend
 # DATA PRE-PROCESSING - Training
 # =============================================================================     
 def prepare_data_for_network(dims, is_user_select_data_path=False, 
-                             is_add_flipped_data=False, is_check_for_matching_data=False) :
+                             is_add_flipped_data=False, is_check_for_matching_data=False,
+                             flag_xFlip=True, flag_yFlip=True) :
     """
     Loads, pre-processes and displays data (optional) for training with CNN (UNet)
     """
@@ -46,8 +47,8 @@ def prepare_data_for_network(dims, is_user_select_data_path=False,
     x = np.swapaxes(x, 0, 3)
     # Add flipped versions of the all b-Scans to the training data
     if is_add_flipped_data:
-        x = add_flipped_data(x)
-        y = add_flipped_data(y)
+        x = add_flipped_data(x, flag_xFlip, flag_yFlip)
+        y = add_flipped_data(y, flag_xFlip, flag_yFlip)
     # Sanity check if inconsistencies in the data were observed
     # -> displays overlay of background and b-Scan           
     if is_check_for_matching_data:
@@ -67,7 +68,7 @@ def load_and_process_scans_and_masks(path, dims, scan_name='raw_bScan') :
     """
     scans = []
     masks = []
-    for root, dirs, files in os.walk(path) :
+    for root, _, _ in os.walk(path) :
         # returns 3D-tensor with b-Scans (h, w, n_imgs)
         scans = load_bScans_for_training(root, scan_name, dims)
         # returns 4D-tensor with masks (n_img, h, w, n_mask)
