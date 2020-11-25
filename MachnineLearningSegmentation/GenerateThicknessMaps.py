@@ -101,6 +101,8 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
 
 def generate_and_safe_thickness_maps() :
     """
+    Function to automatically crawl through the data base of segmented volume scans 
+    and generate thickness maps
     """
     main_path = Backend.clean_path_selection("Please select main path of data base")
     list_measurements = Backend.fast_scandir(main_path) 
