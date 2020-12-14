@@ -69,6 +69,12 @@ def sort_list_after_number(in_list) :
     in_list.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
     return in_list
  
+def get_index_from_folder_suffix(in_list) :
+    scan_indices = []
+    for c, _ in enumerate(in_list) :
+        scan_indices.append(int(in_list[c].split('\\')[-1].split('.')[-1]))
+    return scan_indices
+ 
 def check_for_duplicates(path_one, path_two) : 
     """
     Returns BOOL for if the file exists in both dirs
