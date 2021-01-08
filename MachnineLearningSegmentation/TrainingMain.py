@@ -170,7 +170,7 @@ def create_output_channel_masks(mask) :
         masks.append(background)
         
         # tripple_mask is an additional return variable
-    return masks
+    return masks, tripple_mask
                
 def create_tripple_masks_for_training(path, dims=(1024,1024), dtype='.bmp',
                                       is_save_newly_calced_masks=True):
@@ -195,7 +195,7 @@ def create_tripple_masks_for_training(path, dims=(1024,1024), dtype='.bmp',
         elif os.path.isfile(os.path.join(path, 'mask.png')) :
             raw_mask = Backend.load_single_image(os.path.join(path, 'mask.png'), dims)
             # create and add all three masks in order
-            masks = create_output_channel_masks(raw_mask)
+            masks, _ = create_output_channel_masks(raw_mask)
             trip_masks.append(masks)
             masks = np.asarray(masks)
         else :

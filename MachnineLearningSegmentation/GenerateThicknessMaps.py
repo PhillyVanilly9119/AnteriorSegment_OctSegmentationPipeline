@@ -99,6 +99,50 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
         OVD_THICKNESS.append(calculate_thickness( endothelium[aScan], milk[aScan] ))
     return np.asarray(OVD_THICKNESS, np.uint16) 
 
+def check_for_bScan_list_completeness(return_list) :
+    """
+    check for consecutive combined numbers in both lists
+    """
+    sorted_list_diffs = sum(np.diff(sorted(return_list)))
+    if sorted_list_diffs == (len(return_list) - 1):
+        return True
+    else:
+        return False 
+
+def pre_check_measurement_folder(folder) :
+    SCAN_LIST_VALID = []
+    SCAN_LIST_INVALID = [] 
+    # 1. Find and sort all [CORRECT SEGMENTED] b-Scans in order 
+    list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp")) 
+    if list_valid_bScans : 
+        list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
+        for path in list_valid_bScans : 
+            string = path.split('\\')[-1].split('.bmp')[0] 
+            SCAN_LIST_VALID.append(int(string))              
+    list_invalid_bScans = [] 
+    # 2. Find and sort all [MANUALLY RE-SEGMENTED] b-Scans in order 
+    folder_ml_data = os.path.join(folder, 'IncorrectScans', 'Data_Machine_Learning') 
+    if not os.path.exists(folder_ml_data) : # ERROR HANDLE if ML-data-dir does not exist
+        os.mkdir(folder_ml_data) 
+    manual_folders = [f.path for f in os.scandir(os.path.join(folder, 'IncorrectScans', 
+                                                'Data_Machine_Learning')) if f.is_dir()] 
+    if manual_folders : 
+        for ml_folder in manual_folders: 
+            list_invalid_bScans.append(ml_folder)
+        list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
+        for path in list_invalid_bScans : 
+            string = path.split('\\')[-1].split('.bmp')[0].split('.')[-1]
+            SCAN_LIST_INVALID.append(int(string))       
+    # 3. Check if every index [0-127] exists in either of the lists only once!
+    if len(SCAN_LIST_VALID) == 128 :
+        SCAN_LIST = SCAN_LIST_VALID
+    else : 
+        SCAN_LIST = SCAN_LIST_VALID + SCAN_LIST_INVALID
+        SCAN_LIST.sort()
+        if not check_for_bScan_list_completeness(SCAN_LIST) :
+            raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
+    return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
+
 def generate_and_safe_thickness_maps() :
     """
     Function to automatically crawl through the data base of segmented volume scans 
@@ -110,56 +154,45 @@ def generate_and_safe_thickness_maps() :
     if not os.path.exists(SAVE_PATHS_MAPS): 
         os.makedirs(SAVE_PATHS_MAPS) 
     # MAIN LOOP for thickness calcs 
-    for c_folder, folder in tqdm(enumerate(list_measurements)) : 
-        SCAN_LIST = [] 
-        # 1: Find and sort all B-Scans in order 
-        list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp")) 
-        if list_valid_bScans : 
-            list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
-            for path in list_valid_bScans : 
-                string = path.split('\\')[-1].split('.bmp')[0] 
-                SCAN_LIST.append(int(string)) 
-        list_invalid_bScans = [] 
-        # ERROR HANDLE if ML-data-dir does not exist 
-        folder_ml_data = os.path.join(folder, 'IncorrectScans', 'Data_Machine_Learning') 
-        if not os.path.exists(folder_ml_data) : 
-            os.mkdir(folder_ml_data) 
-        manual_folders = [f.path for f in os.scandir(os.path.join(folder, 
-                                                                  'IncorrectScans', 
-                                                                  'Data_Machine_Learning')) if f.is_dir()] 
-        if manual_folders : 
-            for ml_folder in manual_folders: 
-                list_invalid_bScans.append(ml_folder) 
-            list_invalid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))     
-         
-        THICKNESS_MAP = [] 
+    for c_folder, folder in tqdm(enumerate(list_measurements)) :
+        SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans = pre_check_measurement_folder(folder)
         # Process every B-Scan in volume 
+        THICKNESS_MAP = [] 
         counter_invalid = 0 
         counter_valid = 0 
         print(f"\nCalculating thickness for Volume No.{c_folder+1} in a total of {len(list_measurements)} measurements...") 
+        # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
-            if scan not in SCAN_LIST : 
+            if scan not in SCAN_LIST_VALID : 
                 # Load mask 
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
-                if os.path.isfile(mask_file) : 
-                    mask = np.asarray(Image.open(mask_file)) 
-                    masks = Train.create_three_masks_from_tripple_mask(mask) 
-                    print("Look at it!")
-                    plt.imshow(masks[:,:,0])
-                    plt.show()
-                    break
-                    save_name = os.path.join(folder, 'CorrectScans') 
-                    plt.imsave(os.path.join(save_name, f'{int(scan):03}.bmp'),  
-                               mask, cmap='gray', format='bmp') 
-                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan))    
+                if os.path.isfile(mask_file) :
+                    # debug
+                    print(f"Scan No.{scan} was [MANUALLY] re-segmented") 
+
+                    mask = np.asarray(Image.open(mask_file).resize((1024, 1024))) 
+                    _, trips_mask = Train.create_output_channel_masks(mask)
+                    plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'),
+                               f'{int(scan):03}.bmp'), trips_mask, cmap='gray', format='bmp') 
+                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan))
                     counter_invalid += 1 
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
-                mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L')) 
+                # debug
+                print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") 
+                mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L').resize((1024, 1024)))
+                # Append b-Scan as row in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
-                counter_valid += 1 
-                 
+                counter_valid += 1
+
+        THICKNESS_MAP = np.squeeze(np.asarray(np.dstack(THICKNESS_MAP), dtype=np.uint16))
+        
+        # TODO: RETHINK IMAGE PROCESSING SIZES 
+
+        return
+
+
         THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 
         # Interpolate to square 
         x = np.arange(0, THICKNESS_MAP.shape[0]) 
