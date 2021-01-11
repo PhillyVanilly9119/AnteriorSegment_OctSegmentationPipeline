@@ -173,7 +173,7 @@ def generate_and_safe_thickness_maps() :
         THICKNESS_MAP = [] 
         counter_invalid = 0 
         counter_valid = 0 
-        print(f"\nCalculating thickness for Volume No.{c_folder+1} in a total of {len(list_measurements)} measurements...") 
+        print(f"\nCalculating thickness for Volume No.{c_folder+1} ({folder}) in a total of {len(list_measurements)} measurements...") 
         # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
             if scan not in SCAN_LIST_VALID : 
