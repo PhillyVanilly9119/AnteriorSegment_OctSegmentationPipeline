@@ -192,7 +192,6 @@ def generate_and_safe_thickness_maps() :
 
         return
 
-
         THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 
         # Interpolate to square 
         x = np.arange(0, THICKNESS_MAP.shape[0]) 
