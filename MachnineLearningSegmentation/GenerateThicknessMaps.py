@@ -14,7 +14,9 @@ Created on Tue Sep 22 13:32:10 2020
 import os
 import tqdm
 import glob
+# Scipy imports are based on version 1.4.1 -> TODO: Fix for any version!
 import scipy
+from scipy.interpolate import interp1d
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -147,59 +149,17 @@ def generate_and_safe_thickness_maps() :
     """
     Function to automatically crawl through the data base of segmented volume scans 
     and generate thickness maps
-    """
-    
+    """  
     main_path = Backend.clean_path_selection("Please select main path of data base")
     list_measurements = Backend.fast_scandir(main_path) 
     SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData') 
     if not os.path.exists(SAVE_PATHS_MAPS): 
         os.makedirs(SAVE_PATHS_MAPS) 
-<<<<<<< HEAD
+
     # MAIN LOOP for thickness calcs 
     for c_folder, folder in tqdm(enumerate(list_measurements)) :
-        SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans = pre_check_measurement_folder(folder)
-        # Process every B-Scan in volume 
-=======
-        
-    ### MAIN LOOP for thickness calcs
-    # list_measurements.remove(SAVE_PATHS_MAPS) 
-    for c_folder, folder in tqdm(enumerate(list_measurements)) : 
-        SCAN_LIST = [] 
-        # 1: Find and sort all B-Scans in order 
-        list_valid_bScans = glob.glob(os.path.join(folder, 'CorrectScans', "*.bmp")) 
-        if list_valid_bScans : 
-            list_valid_bScans.sort(key=lambda f: int(''.join(filter(str.isdigit, f)))) 
-            for path in list_valid_bScans : 
-                string = path.split('\\')[-1].split('.bmp')[0] 
-                SCAN_LIST.append(int(string)) 
-                
-        ## Create and handle manually re-segmented scans
-        folder_ml_data = os.path.join(folder, 'IncorrectScans', 'Data_Machine_Learning') 
-
-        dirty_folder = folder_ml_data.find("EvaluatedData")
-        if dirty_folder != -1 : # Continue if path contains subfolder of "EvaluatedData"
-            continue
-        else : 
-            pass
-        
-        if not os.path.exists(folder_ml_data) : 
-            os.mkdir(os.path.join(folder, 'IncorrectScans', 'Data_Machine_Learning')) #Issue with path if folder_ml_data is
-        break
-        list_invalid_bScans = [] 
-        list_invalid_indices = []
-        # ERROR HANDLE if ML-data-dir does not exist 
-        manual_folders = [f.path for f in os.scandir(folder_ml_data) if f.is_dir()] 
-        if manual_folders : 
-            for ml_folder in manual_folders: 
-                list_invalid_bScans.append(ml_folder)
-            # Create index list of invalid scans  
-            list_invalid_indices = Backend.get_index_from_folder_suffix(list_invalid_bScans)
-            list_invalid_indices.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))     
-        
-        print(list_invalid_indices)
-        break    
+        SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans = pre_check_measurement_folder(folder)  
         ## Process every B-Scan in volume 
->>>>>>> master
         THICKNESS_MAP = [] 
         counter_invalid = 0 
         counter_valid = 0 
@@ -230,15 +190,10 @@ def generate_and_safe_thickness_maps() :
                 counter_valid += 1
 
         THICKNESS_MAP = np.squeeze(np.asarray(np.dstack(THICKNESS_MAP), dtype=np.uint16))
-        
-        # TODO: RETHINK IMAGE PROCESSING SIZES 
 
-        return
-
-        THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16) 
         # Interpolate to square 
         x = np.arange(0, THICKNESS_MAP.shape[0]) 
-        fit = scipy.interpolate.interp1d(x, THICKNESS_MAP, axis=0) 
+        fit = interp1d(x, THICKNESS_MAP, axis=0) 
         INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024)) 
         INTERPOL_THICKNESS_MAP_SMOOTH = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP,  
                                                              size=round(INTERPOL_THICKNESS_MAP.shape[0]/75)) 
@@ -264,16 +219,3 @@ def generate_and_safe_thickness_maps() :
 if __name__ == '__main__' :
     
     generate_and_safe_thickness_maps()
-
-    # listy = r'C:\Users\Philipp\Desktop\TestDataSet_AutomatcThicknessDetermination\Messung\ZHYALINPLUS_1_2_Size6_OD-2020-04-30_125438\IncorrectScans\Data_Machine_Learning'
-    # folder_list = [f.path for f in os.scandir(listy) if f.is_dir()] 
-    # index = Backend.get_index_from_folder_suffix(folder_list)
-    # print(index)
-    
-    # mask = Backend.load_single_image(r'C:\Users\Philipp\Desktop\010.bmp', (256,512))
-    # thickness = find_boundaries_and_calc_thickness_in_mask(mask, 1)
-    # plt.plot(thickness)
-    # plt.imshow(mask, cmap='gray')
-    # plt.show()
-    # load an image and test entire thickness determination
-    #result = check_cornea_thickness(a,b)
