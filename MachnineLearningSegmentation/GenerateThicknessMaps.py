@@ -14,9 +14,13 @@ Created on Tue Sep 22 13:32:10 2020
 import os
 import tqdm
 import glob
-# Scipy imports are based on version 1.4.1 -> TODO: Fix for any version!
-import scipy
+
+# Scipy imports are based on version 1.4.1 
+# -> TODO: Fix for any version!
+from scipy.io import savemat
+from scipy.ndimage import median_filter
 from scipy.interpolate import interp1d
+
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -26,6 +30,7 @@ import matplotlib.pyplot as plt
 import BackendFunctions as Backend
 import TrainingMain as Train
 
+## Local Funcs  
 def calculate_thickness(boundary_one, boundary_two) :
     if boundary_one is not None and boundary_two is not None :
         return np.asarray( np.absolute( np.subtract(boundary_two, boundary_one) ), np.uint16 )
@@ -194,9 +199,10 @@ def generate_and_safe_thickness_maps() :
         # Interpolate to square 
         x = np.arange(0, THICKNESS_MAP.shape[0]) 
         fit = interp1d(x, THICKNESS_MAP, axis=0) 
-        INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024)) 
-        INTERPOL_THICKNESS_MAP_SMOOTH = scipy.ndimage.median_filter(INTERPOL_THICKNESS_MAP,  
-                                                             size=round(INTERPOL_THICKNESS_MAP.shape[0]/75)) 
+        INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
+        INTERPOL_THICKNESS_MAP_SMOOTH = median_filter(INTERPOL_THICKNESS_MAP, 
+                                                                    size=round(INTERPOL_THICKNESS_MAP.shape[0]/75))
+     
         # Save all kinds of created thickness-data 
         name_measurement = folder.split('\\')[-1] 
         # Plots 
@@ -208,9 +214,9 @@ def generate_and_safe_thickness_maps() :
         INTERPOL_THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         # *.MAT Files 
-        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
+        savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
                          {'INTERPOL_THICKNESS_MAP': INTERPOL_THICKNESS_MAP.astype(np.uint16)}) 
-        scipy.io.savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
+        savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
                          {'INTERPOL_THICKNESS_MAP_SMOOTH': INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16)}) 
      
     print("Done Processing data base! :) :) <3")
