@@ -158,8 +158,9 @@ def create_output_channel_masks(mask) :
             tripple_mask[bndry_spots[2]:, ascan] = 127
             ovd[bndry_spots[2]:, ascan] = 255
         else :
-            print(f"[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
-            pass 
+            pass
+            ## TODO: Re-think, since it pops up suspiciously often...  
+            #print(f"[WARNING:] Stumbled upon invalid cornea segmentation in A-Scan \#{ascan}...")
         # Create Masks for 3-channel segmentation
         tmp = np.add(cornea, ovd)
         _, background = cv2.threshold(tmp, 127, 255, cv2.THRESH_BINARY_INV)
