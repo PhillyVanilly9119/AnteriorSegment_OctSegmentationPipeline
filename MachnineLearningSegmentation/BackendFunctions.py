@@ -152,7 +152,7 @@ def get_img_idx(path, folder_idx=-1, img_dtype='.bmp') :
 
 def get_img_dirs(path) :
     f = []
-    for (dirpath, dirnames, filenames) in os.walk(path):
+    for (_, _, filenames) in os.walk(path) : #dirpath, dirnames, filenames
         f.extend(filenames)
     return f
     
@@ -377,7 +377,7 @@ def show_images_in_subplots(images, num=None) :
             num = num
         assert num <= 25, "You are trying to [DISPLAY TOO MANY IMAGES]"
         frame = int(np.ceil(np.sqrt(num)))
-        fig, ax = plt.subplots(frame, frame)
+        _, ax = plt.subplots(frame, frame)
         for f1 in range(frame) :
             for f2 in range(frame) :
                 idx = ((f2+1)+(f1*frame))-1
