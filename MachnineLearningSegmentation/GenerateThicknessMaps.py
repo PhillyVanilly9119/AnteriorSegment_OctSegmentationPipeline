@@ -85,12 +85,16 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
         curr_aScan[(np.where((curr_aScan[curr_endo:] > 0) & (curr_aScan[curr_endo:] >= val_milk)))] = val_milk
     
     # 2) Check for i) Continuity of the boundary layers & ii) Thickness of Cornea
+    ## TODO: Re-check, since it pops up with almost all scans...
     if not check_cornea_thickness(epithelium, endothelium).all() :
-        print(f"[WARNING:] Deviation in corneal thickness in [MASK INDEX NO.{mask_idx}]") 
+        pass
+        #print(f"[WARNING:] Deviation in corneal thickness in [MASK INDEX NO.{mask_idx}]") 
     if not Backend.check_for_boundary_continuity(epithelium) :
-        print(f"[WARNING:] Epithelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
+        pass
+        #print(f"[WARNING:] Epithelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
     if not Backend.check_for_boundary_continuity(endothelium) :    
-        print(f"[WARNING:] Endothelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
+        pass
+        #print(f"[WARNING:] Endothelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
     
     # 3) Find beginning of milk layer
     milk = [] 
@@ -155,6 +159,7 @@ def generate_and_safe_thickness_maps() :
     Function to automatically crawl through the data base of segmented volume scans 
     and generate thickness maps
     """  
+    ## TODO: Add flag as param to delete/handle data in 'EvaluatedData'
     main_path = Backend.clean_path_selection("Please select main path of data base")
     list_measurements = Backend.fast_scandir(main_path) 
     SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData') 
@@ -176,8 +181,7 @@ def generate_and_safe_thickness_maps() :
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) :
                     # debug
-                    print(f"Scan No.{scan} was [MANUALLY] re-segmented") 
-
+                    # print(f"Scan No.{scan} was [MANUALLY] re-segmented") 
                     mask = np.asarray(Image.open(mask_file).resize((1024, 1024))) 
                     _, trips_mask = Train.create_output_channel_masks(mask)
                     plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'),
@@ -188,7 +192,7 @@ def generate_and_safe_thickness_maps() :
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
                 # debug
-                print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") 
+                # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") 
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L').resize((1024, 1024)))
                 # Append b-Scan as row in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
