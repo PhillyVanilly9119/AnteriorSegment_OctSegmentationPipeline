@@ -12,8 +12,10 @@ Created on Tue Sep 22 13:32:10 2020
 
 # Global imports 
 import os
+import cv2
 import tqdm
 import glob
+import time
 
 # Scipy imports are based on version 1.4.1 
 # -> TODO: Fix for any version!
@@ -150,6 +152,8 @@ def pre_check_measurement_folder(folder) :
     else : 
         SCAN_LIST = SCAN_LIST_VALID + SCAN_LIST_INVALID
         SCAN_LIST.sort()
+        SCAN_LIST = set(SCAN_LIST) # recast as set to only have unique scan indicies
+        SCAN_LIST = list(SCAN_LIST) # recast as list to reverse data type conversion
         if not check_for_bScan_list_completeness(SCAN_LIST) :
             raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
     return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
@@ -182,8 +186,9 @@ def generate_and_safe_thickness_maps() :
                 if os.path.isfile(mask_file) :
                     # debug
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") 
-                    mask = np.asarray(Image.open(mask_file).resize((1024, 1024))) 
+                    mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
+                    trips_mask = cv2.resize(trips_mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
                     plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'),
                                f'{int(scan):03}.bmp'), trips_mask, cmap='gray', format='bmp') 
                     THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan))
@@ -192,8 +197,12 @@ def generate_and_safe_thickness_maps() :
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
                 # debug
-                # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") 
-                mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L').resize((1024, 1024)))
+                # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented")
+                mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
+                mask = cv2.resize(mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
+                # TODO: Overwrite masks in file, to correct for false posities in automatic classification                 
+                plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'), 
+                                        f'{int(scan):03}.bmp'), mask, cmap='gray', format='bmp') 
                 # Append b-Scan as row in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
                 counter_valid += 1
