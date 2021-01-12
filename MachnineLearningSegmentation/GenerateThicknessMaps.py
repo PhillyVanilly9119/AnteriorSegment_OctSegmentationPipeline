@@ -184,8 +184,8 @@ def generate_and_safe_thickness_maps() :
                 # Load mask 
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) :
-                    # debug
-                    # print(f"Scan No.{scan} was [MANUALLY] re-segmented") 
+                    ## TODO: Write function to save data uniquely to avoid errors (see if-clause)
+                    # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
                     mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
                     trips_mask = cv2.resize(trips_mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
@@ -196,8 +196,8 @@ def generate_and_safe_thickness_maps() :
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
-                # debug
-                # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented")
+                ## TODO: Write function to save data uniquely to avoid errors (see if-clause)
+                # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") # debug
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
                 mask = cv2.resize(mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
                 # TODO: Overwrite masks in file, to correct for false posities in automatic classification                 
