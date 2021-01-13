@@ -173,11 +173,11 @@ def resize_heatmaps_to_square(map, filter_size=7, side_length=512) :
     """
     x = np.arange(0, map.shape[0]) 
     fit = interp1d(x, map, axis=0) 
-    interpolated_map = fit(np.linspace(0, map.shape[0]-1, 512))
+    interpolated_map = fit(np.linspace(0, map.shape[0]-1, side_length))
     filtered_map = median_filter(interpolated_map, size=filter_size)    
     return interpolated_map, filtered_map
 
-def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map) :
+def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, dims=(512, 512)) :
     """
     Save evaluated thickness maps in specified sub folders
     """
@@ -187,12 +187,16 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map) :
     current_measurement_path = os.path.join(path, 'EvaluatedData', name_measurement) 
     if not os.path.exists(current_measurement_path): 
         os.makedirs(current_measurement_path) 
+    # reshape to square -> cubic interpolation
+    interpol_map = np.asarray(cv2.resize(interpol_map, dsize=dims, interpolation=cv2.INTER_CUBIC), dtype=np.uint16)
+    filtered_map = np.asarray(cv2.resize(filtered_map, dsize=dims, interpolation=cv2.INTER_CUBIC), dtype=np.uint16)
+    # save data do dedicated paths
     try : 
         # save plots of heat maps 
         plt.imsave(os.path.join(current_measurement_path, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
-                                np.asarray(interpol_map, dtype=np.uint16), cmap='gray', format='bmp') 
+                                np.asarray(interpol_map, dtype=np.uint8), cmap='gray', format='bmp') 
         plt.imsave(os.path.join(current_measurement_path, ('SmoothFilteredThicknessmap_' + name_measurement + '.bmp')),  
-                                np.asarray(filtered_map, dtype=np.uint16), cmap='gray', format='bmp') 
+                                np.asarray(filtered_map, dtype=np.uint8), cmap='gray', format='bmp') 
         # save data in binaries 
         interpol_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         filtered_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
@@ -209,7 +213,6 @@ def generate_and_safe_thickness_maps() :
     +++ MAIN DATA EVALUATION ROUTINE +++ 
     Automatically crawl through the data base of segmented volume scans and generate thickness maps
     """  
-    ## TODO: Add flag as param to delete/handle data in 'EvaluatedData'
     main_path = Backend.clean_path_selection("Please select main path of data base")
     list_measurements = Backend.fast_scandir(main_path) 
     SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData') 
@@ -223,6 +226,7 @@ def generate_and_safe_thickness_maps() :
         counter_invalid = 0 
         counter_valid = 0 
         print(f"\nCalculating thickness for Volume No.{c_folder+1} ({folder}) in a total of {len(list_measurements)} measurements...") 
+        print(f"Recalculating {len(list_invalid_bScans)} scans in this folder... ")
         # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
             if scan not in SCAN_LIST_VALID : 
@@ -233,7 +237,7 @@ def generate_and_safe_thickness_maps() :
                     mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
                     trips_mask = save_and_overwrite_images(folder, trips_mask, scan)
-                    # Append b-Scan as row in heat map
+                    # Append b-Scan thickness of current b-Scan in heat map
                     THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan)) 
                     counter_invalid += 1 
                 else : 
@@ -242,7 +246,7 @@ def generate_and_safe_thickness_maps() :
                 # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") # debug
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
                 mask = save_and_overwrite_images(folder, mask, scan)
-                # Append b-Scan as row in heat map
+                # Append b-Scan thickness of current b-Scan in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
                 counter_valid += 1
 
