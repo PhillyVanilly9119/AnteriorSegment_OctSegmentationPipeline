@@ -166,7 +166,7 @@ def save_and_overwrite_images(folder, mask, scan, dims=(512,512)) :
                             f'{int(scan):03}.bmp'), mask, cmap='gray', format='bmp') 
     return mask
 
-def resize_heatmaps_to_square(map, filter_size=7, side_length=512) :
+def resize_heatmaps_to_square(map, filter_size=9, side_length=512) :
     """
     Function to return square interpolated heat map
     TODO: Rethink if this could be ported to the backend functions
@@ -226,7 +226,7 @@ def generate_and_safe_thickness_maps() :
         counter_invalid = 0 
         counter_valid = 0 
         print(f"\nCalculating thickness for Volume No.{c_folder+1} ({folder}) in a total of {len(list_measurements)} measurements...") 
-        print(f"Recalculating {int(128-len(list_valid_bScans))} scans in this folder... ")
+        print(f"\nRecalculating {int(128-len(list_valid_bScans))} scans in this folder... ")
         # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
             if scan not in SCAN_LIST_VALID : 
