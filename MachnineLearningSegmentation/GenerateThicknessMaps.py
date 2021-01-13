@@ -226,7 +226,7 @@ def generate_and_safe_thickness_maps() :
         counter_invalid = 0 
         counter_valid = 0 
         print(f"\nCalculating thickness for Volume No.{c_folder+1} ({folder}) in a total of {len(list_measurements)} measurements...") 
-        print(f"Recalculating {len(list_invalid_bScans)} scans in this folder... ")
+        print(f"Recalculating {int(len(list_valid_bScans)-128)} scans in this folder... ")
         # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
             if scan not in SCAN_LIST_VALID : 
@@ -234,7 +234,7 @@ def generate_and_safe_thickness_maps() :
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) :
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
-                    mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
+                    mask = np.asarray(Image.open(mask_file)) 
                     _, trips_mask = Train.create_output_channel_masks(mask)
                     trips_mask = save_and_overwrite_images(folder, trips_mask, scan)
                     # Append b-Scan thickness of current b-Scan in heat map
