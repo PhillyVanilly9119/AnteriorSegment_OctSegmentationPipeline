@@ -15,7 +15,6 @@ import os
 import cv2
 import tqdm
 import glob
-import time
 
 # Scipy imports are based on version 1.4.1 
 # -> TODO: Fix for any version!
@@ -158,7 +157,7 @@ def pre_check_measurement_folder(folder) :
             raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
     return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
 
-def save_and_overwrite_images(folder, mask, dims=(512,512)) :
+def save_and_overwrite_images(folder, mask, scan, dims=(512,512)) :
     """
     Function to resize and save and/or overwrite the masks
     """
@@ -182,9 +181,10 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map) :
     """
     Save evaluated thickness maps in specified sub folders
     """
-    name_measurement = main_path.split('\\')[-1] 
+    name_measurement = main_path.split('\\')[-1]
+    path = os.path.dirname(os.path.dirname(main_path))
     # create sub folder if it doesn't already exist
-    current_measurement_path = os.path.join(main_path, 'EvaluatedData', name_measurement) 
+    current_measurement_path = os.path.join(path, 'EvaluatedData', name_measurement) 
     if not os.path.exists(current_measurement_path): 
         os.makedirs(current_measurement_path) 
     try : 
@@ -201,10 +201,8 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map) :
                             {'INTERPOL_THICKNESS_MAP': interpol_map.astype(np.uint16)}) 
         savemat(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
                             {'INTERPOL_THICKNESS_MAP_SMOOTH': filtered_map.astype(np.uint16)}) 
-    except e as ERROR :
-        print(ERROR)
     finally :
-        print(f"Could not save data from {main_path}... ")
+        print(f"Could not save data from {main_path} to file... ")
 
 def generate_and_safe_thickness_maps() :
     """
@@ -234,7 +232,7 @@ def generate_and_safe_thickness_maps() :
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
                     mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
-                    trips_mask = save_and_overwrite_images(folder, mask)
+                    trips_mask = save_and_overwrite_images(folder, mask, scan)
                     # Append b-Scan as row in heat map
                     THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan)) 
                     counter_invalid += 1 
@@ -243,7 +241,7 @@ def generate_and_safe_thickness_maps() :
             else : 
                 # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") # debug
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
-                mask = save_and_overwrite_images(folder, mask)
+                mask = save_and_overwrite_images(folder, mask, scan)
                 # Append b-Scan as row in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
                 counter_valid += 1
@@ -252,7 +250,7 @@ def generate_and_safe_thickness_maps() :
         # interpolate data to square shape 
         INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH = resize_heatmaps_to_square(THICKNESS_MAP)
         # save all kinds of created thickness-data 
-        save_evaluated_data_in_subfolders(main_path, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
+        save_evaluated_data_in_subfolders(folder, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
      
     print("Done Processing data base! :) :) <3")
 
