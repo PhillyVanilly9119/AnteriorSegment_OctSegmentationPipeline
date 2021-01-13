@@ -232,7 +232,7 @@ def generate_and_safe_thickness_maps() :
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
                     mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
-                    trips_mask = save_and_overwrite_images(folder, mask, scan)
+                    trips_mask = save_and_overwrite_images(folder, trips_mask, scan)
                     # Append b-Scan as row in heat map
                     THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan)) 
                     counter_invalid += 1 
