@@ -15,6 +15,7 @@ import os
 import cv2
 import tqdm
 import glob
+import shutil
 
 # Scipy imports are based on version 1.4.1 
 # -> TODO: Fix for any version!
@@ -177,7 +178,8 @@ def resize_heatmaps_to_square(map, filter_size=9, side_length=512) :
     filtered_map = median_filter(interpolated_map, size=filter_size)    
     return interpolated_map, filtered_map
 
-def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, dims=(512, 512)) :
+def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, 
+                                      dims=(512, 512), flag_save_images_additionally_combined=True) :
     """
     Save evaluated thickness maps in specified sub folders
     """
@@ -185,6 +187,7 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, dim
     path = os.path.dirname(os.path.dirname(main_path))
     # create sub folder if it doesn't already exist
     current_measurement_path = os.path.join(path, 'EvaluatedData', name_measurement) 
+    print(main_path)
     if not os.path.exists(current_measurement_path): 
         os.makedirs(current_measurement_path) 
     # reshape to square -> cubic interpolation
@@ -197,6 +200,15 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, dim
                                 np.asarray(interpol_map, dtype=np.uint8), cmap='gray', format='bmp') 
         plt.imsave(os.path.join(current_measurement_path, ('SmoothFilteredThicknessmap_' + name_measurement + '.bmp')),  
                                 np.asarray(filtered_map, dtype=np.uint8), cmap='gray', format='bmp') 
+        # if wanted store all images additionally in a seperate measurement folder
+        if flag_save_images_additionally_combined :
+            path_combined_images = os.path.join(path, 'EvaluatedData', 'ImagesHeatMaps')
+            if not os.path.exists(path_combined_images): 
+                os.makedirs(path_combined_images) 
+            plt.imsave(os.path.join(path_combined_images, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
+                                    np.asarray(interpol_map, dtype=np.uint8), cmap='gray', format='bmp') 
+            plt.imsave(os.path.join(path_combined_images, ('SmoothFilteredThicknessmap_' + name_measurement + '.bmp')),  
+                                    np.asarray(filtered_map, dtype=np.uint8), cmap='gray', format='bmp') 
         # save data in binaries 
         interpol_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         filtered_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
@@ -208,16 +220,23 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, dim
     finally :
         print(f"Could not save data from {main_path} to file... ")
 
-def generate_and_safe_thickness_maps() :
+def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
     """
     +++ MAIN DATA EVALUATION ROUTINE +++ 
     Automatically crawl through the data base of segmented volume scans and generate thickness maps
     """  
     main_path = Backend.clean_path_selection("Please select main path of data base")
-    list_measurements = Backend.fast_scandir(main_path) 
     SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData') 
+    # delete previously evaluated data to avoid sub-tree conflicts
+    if flag_delete_existing_eval_data_path and os.path.isdir(SAVE_PATHS_MAPS) :
+        print(f"Deleting existing data in {SAVE_PATHS_MAPS}")
+        shutil.rmtree(SAVE_PATHS_MAPS)
+    else :
+        print(f"[CAUTION]: Keeping folder with existing evaluated data in {os.path.join(main_path, 'EvaluatedData')}!")
+    list_measurements = Backend.fast_scandir(main_path)
     if not os.path.exists(SAVE_PATHS_MAPS): 
         os.makedirs(SAVE_PATHS_MAPS) 
+        print(f"Created folder {SAVE_PATHS_MAPS} to store evaluated data...")
     # MAIN LOOP for thickness calcs 
     for c_folder, folder in tqdm(enumerate(list_measurements)) :
         SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans = pre_check_measurement_folder(folder)  
