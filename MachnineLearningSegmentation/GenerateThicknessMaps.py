@@ -158,10 +158,58 @@ def pre_check_measurement_folder(folder) :
             raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
     return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
 
+def save_and_overwrite_images(folder, mask, dims=(512,512)) :
+    """
+    Function to resize and save and/or overwrite the masks
+    """
+    mask = cv2.resize(mask, dsize=dims, interpolation=cv2.INTER_NEAREST)
+    plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'), 
+                            f'{int(scan):03}.bmp'), mask, cmap='gray', format='bmp') 
+    return mask
+
+def resize_heatmaps_to_square(map, filter_size=7, side_length=512) :
+    """
+    Function to return square interpolated heat map
+    TODO: Rethink if this could be ported to the backend functions
+    """
+    x = np.arange(0, map.shape[0]) 
+    fit = interp1d(x, map, axis=0) 
+    interpolated_map = fit(np.linspace(0, map.shape[0]-1, 512))
+    filtered_map = median_filter(interpolated_map, size=filter_size)    
+    return interpolated_map, filtered_map
+
+def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map) :
+    """
+    Save evaluated thickness maps in specified sub folders
+    """
+    name_measurement = main_path.split('\\')[-1] 
+    # create sub folder if it doesn't already exist
+    current_measurement_path = os.path.join(main_path, 'EvaluatedData', name_measurement) 
+    if not os.path.exists(current_measurement_path): 
+        os.makedirs(current_measurement_path) 
+    try : 
+        # save plots of heat maps 
+        plt.imsave(os.path.join(current_measurement_path, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
+                                np.asarray(interpol_map, dtype=np.uint16), cmap='gray', format='bmp') 
+        plt.imsave(os.path.join(current_measurement_path, ('SmoothFilteredThicknessmap_' + name_measurement + '.bmp')),  
+                                np.asarray(filtered_map, dtype=np.uint16), cmap='gray', format='bmp') 
+        # save data in binaries 
+        interpol_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
+        filtered_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
+        # save data in *.MAT files for later evaluation
+        savemat(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
+                            {'INTERPOL_THICKNESS_MAP': interpol_map.astype(np.uint16)}) 
+        savemat(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
+                            {'INTERPOL_THICKNESS_MAP_SMOOTH': filtered_map.astype(np.uint16)}) 
+    except e as ERROR :
+        print(ERROR)
+    finally :
+        print(f"Could not save data from {main_path}... ")
+
 def generate_and_safe_thickness_maps() :
     """
-    Function to automatically crawl through the data base of segmented volume scans 
-    and generate thickness maps
+    +++ MAIN DATA EVALUATION ROUTINE +++ 
+    Automatically crawl through the data base of segmented volume scans and generate thickness maps
     """  
     ## TODO: Add flag as param to delete/handle data in 'EvaluatedData'
     main_path = Backend.clean_path_selection("Please select main path of data base")
@@ -169,7 +217,6 @@ def generate_and_safe_thickness_maps() :
     SAVE_PATHS_MAPS = os.path.join(main_path, 'EvaluatedData') 
     if not os.path.exists(SAVE_PATHS_MAPS): 
         os.makedirs(SAVE_PATHS_MAPS) 
-
     # MAIN LOOP for thickness calcs 
     for c_folder, folder in tqdm(enumerate(list_measurements)) :
         SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans = pre_check_measurement_folder(folder)  
@@ -184,53 +231,28 @@ def generate_and_safe_thickness_maps() :
                 # Load mask 
                 mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
                 if os.path.isfile(mask_file) :
-                    ## TODO: Write function to save data uniquely to avoid errors (see if-clause)
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
                     mask = np.asarray(Image.open(mask_file))#.resize((1024, 1024))) # opens per default as 512x512 
                     _, trips_mask = Train.create_output_channel_masks(mask)
-                    trips_mask = cv2.resize(trips_mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
-                    plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'),
-                               f'{int(scan):03}.bmp'), trips_mask, cmap='gray', format='bmp') 
-                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan))
+                    trips_mask = save_and_overwrite_images(folder, mask)
+                    # Append b-Scan as row in heat map
+                    THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan)) 
                     counter_invalid += 1 
                 else : 
                     print(f"Could not load scan No.{scan} from mask No.{counter_invalid}")                 
             else : 
-                ## TODO: Write function to save data uniquely to avoid errors (see if-clause)
                 # print(f"Scan No.{scan} was [AUTOMATICALLY] segmented") # debug
                 mask = np.asarray(Image.open(list_valid_bScans[counter_valid]).convert('L'))
-                mask = cv2.resize(mask, dsize=(512, 512), interpolation=cv2.INTER_NEAREST)
-                # TODO: Overwrite masks in file, to correct for false posities in automatic classification                 
-                plt.imsave(os.path.join(os.path.join(folder, 'CorrectScans'), 
-                                        f'{int(scan):03}.bmp'), mask, cmap='gray', format='bmp') 
+                mask = save_and_overwrite_images(folder, mask)
                 # Append b-Scan as row in heat map
                 THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(mask, scan)) 
                 counter_valid += 1
 
-        THICKNESS_MAP = np.squeeze(np.asarray(np.dstack(THICKNESS_MAP), dtype=np.uint16))
-
-        # Interpolate to square 
-        x = np.arange(0, THICKNESS_MAP.shape[0]) 
-        fit = interp1d(x, THICKNESS_MAP, axis=0) 
-        INTERPOL_THICKNESS_MAP = fit(np.linspace(0, THICKNESS_MAP.shape[0]-1, 1024))
-        INTERPOL_THICKNESS_MAP_SMOOTH = median_filter(INTERPOL_THICKNESS_MAP, 
-                                                                    size=round(INTERPOL_THICKNESS_MAP.shape[0]/75))
-     
-        # Save all kinds of created thickness-data 
-        name_measurement = folder.split('\\')[-1] 
-        # Plots 
-        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bmp')),  
-                               np.asarray(INTERPOL_THICKNESS_MAP,dtype=np.uint16), cmap='gray', format='bmp') 
-        plt.imsave(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
-                               np.asarray(INTERPOL_THICKNESS_MAP_SMOOTH,dtype=np.uint16), cmap='gray', format='bmp') 
-        # Binaries 
-        INTERPOL_THICKNESS_MAP.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
-        INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16).tofile(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
-        # *.MAT Files 
-        savemat(os.path.join(SAVE_PATHS_MAPS, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
-                         {'INTERPOL_THICKNESS_MAP': INTERPOL_THICKNESS_MAP.astype(np.uint16)}) 
-        savemat(os.path.join(SAVE_PATHS_MAPS, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
-                         {'INTERPOL_THICKNESS_MAP_SMOOTH': INTERPOL_THICKNESS_MAP_SMOOTH.astype(np.uint16)}) 
+        THICKNESS_MAP = np.squeeze(np.asarray(np.dstack(THICKNESS_MAP), dtype=np.uint16)) 
+        # interpolate data to square shape 
+        INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH = resize_heatmaps_to_square(THICKNESS_MAP)
+        # save all kinds of created thickness-data 
+        save_evaluated_data_in_subfolders(main_path, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
      
     print("Done Processing data base! :) :) <3")
 
