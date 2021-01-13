@@ -202,7 +202,7 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map,
                                 np.asarray(filtered_map, dtype=np.uint8), cmap='gray', format='bmp') 
         # if wanted store all images additionally in a seperate measurement folder
         if flag_save_images_additionally_combined :
-            path_combined_images = os.path.join(path, 'EvaluatedData', 'ImagesHeatMaps')
+            path_combined_images = os.path.join(path, 'EvaluatedData', '00_ImagesHeatMaps')
             if not os.path.exists(path_combined_images): 
                 os.makedirs(path_combined_images) 
             plt.imsave(os.path.join(path_combined_images, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
