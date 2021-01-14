@@ -155,6 +155,7 @@ def pre_check_measurement_folder(folder) :
         SCAN_LIST = set(SCAN_LIST) # recast as set to only have unique scan indicies
         SCAN_LIST = list(SCAN_LIST) # recast as list to reverse data type conversion
         if not check_for_bScan_list_completeness(SCAN_LIST) :
+            print(f"List of sorted combined scan indices {SCAN_LIST}")
             raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
     return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
 
@@ -217,8 +218,11 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map,
                             {'INTERPOL_THICKNESS_MAP': interpol_map.astype(np.uint16)}) 
         savemat(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
                             {'INTERPOL_THICKNESS_MAP_SMOOTH': filtered_map.astype(np.uint16)}) 
+    except FileExistsError :
+        FileExistsError(f"Could not safe data of {name_measurement} to file, because the path doesn't exist")
     finally :
-        print(f"Could not save data from {main_path} to file... ")
+        pass
+        #print(f"Could not save data from {main_path} to file... ")
 
 def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
     """
