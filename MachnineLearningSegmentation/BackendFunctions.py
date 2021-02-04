@@ -4,6 +4,10 @@ Created on Tue Sep 15 08:52:56 2020
 
 @author:    Philipp
             philipp.matten@meduniwien.ac.at
+
+@copyright: Medical University of Vienna,
+            Center for Medical Physics and Biomedical Engineering
+
 """
 
 """
