@@ -152,10 +152,9 @@ def pre_check_measurement_folder(folder) :
     else : 
         SCAN_LIST = SCAN_LIST_VALID + SCAN_LIST_INVALID
         SCAN_LIST.sort()
-        SCAN_LIST = set(SCAN_LIST) # recast as set to only have unique scan indicies
-        SCAN_LIST = list(SCAN_LIST) # recast as list to reverse data type conversion
+        SCAN_LIST = list(set(SCAN_LIST)) # recast as set to only have unique scan indicies incl. re-recast
         if not check_for_bScan_list_completeness(SCAN_LIST) :
-            print(f"List of sorted combined scan indices {SCAN_LIST}")
+            print(f"Missing scan indices are :{list(set(range(128)).symmetric_difference(set(SCAN_LIST)))}")
             raise ValueError(f"Folder {folder} does not contain all (consecutive) scans")
     return SCAN_LIST_VALID, list_valid_bScans, list_invalid_bScans
 
