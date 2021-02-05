@@ -5,7 +5,7 @@ Created on Tue Sep 22 13:32:10 2020
 @author:    Philipp
             philipp.matten@meduniwien.ac.at
 
-@copyright: Medical University of Vienna
+@copyright: Medical University of Vienna,
             Center for Medical Physics and Biomedical Engineering
                 
 """
@@ -23,3 +23,10 @@ import matplotlib.pyplot as plt
 # Custom imports
 import BackendFunctions as Backend
 import TrainingMain as Train
+
+
+# Start processing
+if __name__ == '__main__' :
+
+    main_path = r'E:\EvaluatedDataForPaper\OVID_segmentedDataForPaper\EvaluatedData'
+    # main_folder = Backend.clean_path_selection('Please select folder with evaluated measurements')

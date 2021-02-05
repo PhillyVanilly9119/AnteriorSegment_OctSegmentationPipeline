@@ -5,7 +5,7 @@ Created on Tue Sep 22 13:32:10 2020
 @author:    Philipp
             philipp.matten@meduniwien.ac.at
 
-@copyright: Medical University of Vienna
+@copyright: Medical University of Vienna,
             Center for Medical Physics and Biomedical Engineering
                 
 """
