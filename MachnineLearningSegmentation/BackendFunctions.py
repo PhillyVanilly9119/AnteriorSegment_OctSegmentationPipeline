@@ -45,12 +45,12 @@ def create_dir(directory) :
     if not os.path.isdir(directory) :
             os.mkdir(directory)
             
-def is_ignore_segmented_dirs(path) :
+def is_ignore_segmented_dirs(path, key_one='CorrectScans', key_two='IncorrectScans') :
     """
-    >>> Checks for key in string <path> and returns boolean expression
+    >>> Checks for keys in string <path> and returns boolean expression
     Macro to check if a directory contains evaluated data ignore this path
     """
-    if 'CorrectScans' in path or 'IncorrectScans' in path :
+    if key_one in path or key_two in path :
         return False
     else :
         return True
