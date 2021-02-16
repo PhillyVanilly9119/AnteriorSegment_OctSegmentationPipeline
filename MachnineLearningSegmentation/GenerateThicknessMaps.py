@@ -210,6 +210,15 @@ def resize_heatmaps_to_square(map, filter_size=9, side_length=512) :
     filtered_map = median_filter(interpolated_map, size=filter_size)    
     return interpolated_map, filtered_map
 
+# TODO: Continue here
+def filter_outlier_and_interpol_maps(map_in, name_measurement, kernel_size=5) :
+    """
+    Applies filtering and gets rid of outliers in already sqaure-interpolated thichness maps
+    """
+    map_out = np.zeros_like(map_in)
+    # return map_out
+    pass
+
 def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, filtered_map, 
                                       dims=(512, 512), flag_save_images_additionally_combined=True) :
     """
