@@ -35,7 +35,8 @@ import TrainingMain as Train
 ## Local Funcs  
 def calculate_thickness(boundary_one, boundary_two) :
     if boundary_one is not None and boundary_two is not None :
-        return np.asarray( np.absolute( np.subtract(boundary_two, boundary_one) ), np.uint16 )
+        # Note: Absolute of difference to take into account inaccuracies of manual segmentation
+        return np.asarray( np.absolute( np.subtract(boundary_two, boundary_one) ), np.uint16 ) 
     else :
         print("[WARNING] encountered empty array for thickness calculation")
         return None
@@ -55,7 +56,38 @@ def check_cornea_thickness(epi, endo) :
         else :
             spot_validity.append(1)
     return np.asarray(spot_validity, np.bool)
-                 
+
+def create_trips_out_masks_from_binary(mask) :
+    """
+    >>> created the 3 kinds of masks for passing into the network and
+    the overlayed combined (tripple) mask from binary mask "binary_mask.png"
+    
+    return dimensions: tripple_masks nDim = 2 (height, width)    
+    """
+    tmp_mask = np.zeros_like(mask, dtype=np.uint8) 
+    tripple_mask = np.zeros_like(mask, dtype=np.uint8)
+    
+    dims = np.shape(mask)
+    tmp_mask[mask > 0] = np.amax(mask)
+    mask = tmp_mask
+
+    for ascan in range(dims[1]) : # iterate through A-Scans
+        # find important spots in the a-Scan
+        filled_area_spots = np.squeeze(np.where(mask[:,ascan]==np.amax(mask)))
+        crn_start = np.amin(filled_area_spots)
+        is_ovd_in_aScan = np.squeeze(np.where(np.diff(filled_area_spots) > 1))
+        # find endothelium based on what can be seen in current a-Scan
+        if (is_ovd_in_aScan.size > 0) : # case: cornea and OVD areas visible
+            crn_end = np.squeeze(crn_start + is_ovd_in_aScan)
+            ovd_start = np.squeeze(crn_end + np.amax(np.diff(filled_area_spots)))
+            tripple_mask[crn_start:crn_end, ascan] = 255
+            tripple_mask[ovd_start:, ascan] = 127
+        else : # case: cornea but no OVD
+            crn_end = np.amax(filled_area_spots)
+            tripple_mask[crn_start:crn_end, ascan] = 255
+        # TODO: Rethink if third condition is neccessary
+    return tripple_mask
+
 def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) : 
     """ 
     >>> returns thickness-vector of the OVD layer per b-Scan 
@@ -86,17 +118,17 @@ def find_boundaries_and_calc_thickness_in_mask(mask, mask_idx) :
         curr_aScan[(np.where((curr_aScan[:curr_endo] > 0) & (curr_aScan[:curr_endo] <= val_crn)))] = val_crn
         curr_aScan[(np.where((curr_aScan[curr_endo:] > 0) & (curr_aScan[curr_endo:] >= val_milk)))] = val_milk
     
-    # 2) Check for i) Continuity of the boundary layers & ii) Thickness of Cornea
-    ## TODO: Re-check, since it pops up with almost all scans...
-    if not check_cornea_thickness(epithelium, endothelium).all() :
-        pass
-        #print(f"[WARNING:] Deviation in corneal thickness in [MASK INDEX NO.{mask_idx}]") 
-    if not Backend.check_for_boundary_continuity(epithelium) :
-        pass
-        #print(f"[WARNING:] Epithelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
-    if not Backend.check_for_boundary_continuity(endothelium) :    
-        pass
-        #print(f"[WARNING:] Endothelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
+    # # 2) Check for i) Continuity of the boundary layers & ii) Thickness of Cornea
+    # ## TODO: Re-check, since it pops up with almost all scans...
+    # if not check_cornea_thickness(epithelium, endothelium).all() :
+    #     pass
+    #     #print(f"[WARNING:] Deviation in corneal thickness in [MASK INDEX NO.{mask_idx}]") 
+    # if not Backend.check_for_boundary_continuity(epithelium) :
+    #     pass
+    #     #print(f"[WARNING:] Epithelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
+    # if not Backend.check_for_boundary_continuity(endothelium) :    
+    #     pass
+    #     #print(f"[WARNING:] Endothelium could not be identified as a continuous layer in [MASK INDEX NO.{mask_idx}]")
     
     # 3) Find beginning of milk layer
     milk = [] 
@@ -178,7 +210,7 @@ def resize_heatmaps_to_square(map, filter_size=9, side_length=512) :
     filtered_map = median_filter(interpolated_map, size=filter_size)    
     return interpolated_map, filtered_map
 
-def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map, 
+def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, filtered_map, 
                                       dims=(512, 512), flag_save_images_additionally_combined=True) :
     """
     Save evaluated thickness maps in specified sub folders
@@ -190,9 +222,9 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map,
     print(main_path)
     if not os.path.exists(current_measurement_path): 
         os.makedirs(current_measurement_path) 
-    # reshape to square -> cubic interpolation
-    interpol_map = np.asarray(cv2.resize(interpol_map, dsize=dims, interpolation=cv2.INTER_CUBIC), dtype=np.uint16)
-    filtered_map = np.asarray(cv2.resize(filtered_map, dsize=dims, interpolation=cv2.INTER_CUBIC), dtype=np.uint16)
+    # reshape to square -> cubic interpolation 
+    interpol_map = np.asarray( np.floor( cv2.resize(interpol_map, dsize=dims, interpolation=cv2.INTER_CUBIC) ) )
+    filtered_map = np.asarray( np.floor( cv2.resize(filtered_map, dsize=dims, interpolation=cv2.INTER_CUBIC) ) )
     # save data do dedicated paths
     try : 
         # save plots of heat maps 
@@ -213,6 +245,10 @@ def save_evaluated_data_in_subfolders(main_path, interpol_map, filtered_map,
         interpol_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         filtered_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         # save data in *.MAT files for later evaluation
+        
+        # TODO: save the uninterpolated heat maps
+        savemat(os.path.join(current_measurement_path, ('Thicknessmap_' + name_measurement + '.mat')),  
+                            {'INTERPOL_THICKNESS_MAP': original_map.astype(np.uint16)})
         savemat(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
                             {'INTERPOL_THICKNESS_MAP': interpol_map.astype(np.uint16)}) 
         savemat(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  
@@ -247,17 +283,22 @@ def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
         THICKNESS_MAP = [] 
         counter_invalid = 0 
         counter_valid = 0 
-        print(f"\nCalculating thickness for Volume No.{c_folder+1} ({folder}) in a total of {len(list_measurements)} measurements...") 
-        print(f"\nRecalculating {int(128-len(list_valid_bScans))} scans in this folder... ")
+        # Update display prints
+        print(f"\nCalculating thickness for volume No.{c_folder+1}/{len(list_measurements)} in \"{folder}\" ...") 
+        if 128 > int(len(list_valid_bScans)) :
+            print(f"\nRecalculating {int(128-len(list_valid_bScans))} scans in this folder... ")
         # Calculate thickness vector for every b-Scan
         for scan in tqdm(range(128)) : 
             if scan not in SCAN_LIST_VALID : 
                 # Load mask 
-                mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'mask.png') 
+                mask_file = os.path.join(list_invalid_bScans[counter_invalid], 'binary_mask.png') 
                 if os.path.isfile(mask_file) :
                     # print(f"Scan No.{scan} was [MANUALLY] re-segmented") # debug
-                    mask = np.asarray(Image.open(mask_file)) 
-                    _, trips_mask = Train.create_output_channel_masks(mask)
+                    try :
+                        mask = np.asarray(Image.open(mask_file), dtype=np.uint8)
+                    except FileExistsError :
+                        FileExistsError(f"Could not load {mask_file} - path does not exist")
+                    trips_mask = create_trips_out_masks_from_binary(mask)
                     trips_mask = save_and_overwrite_images(folder, trips_mask, scan)
                     # Append b-Scan thickness of current b-Scan in heat map
                     THICKNESS_MAP.append(find_boundaries_and_calc_thickness_in_mask(trips_mask, scan)) 
@@ -276,7 +317,7 @@ def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
         # interpolate data to square shape 
         INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH = resize_heatmaps_to_square(THICKNESS_MAP)
         # save all kinds of created thickness-data 
-        save_evaluated_data_in_subfolders(folder, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
+        save_evaluated_data_in_subfolders(folder, THICKNESS_MAP, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
      
     print("Done Processing data base! :) :) <3")
 
