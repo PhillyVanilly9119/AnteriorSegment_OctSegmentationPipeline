@@ -20,6 +20,7 @@ import os
 import cv2
 import uuid
 import glob 
+import scipy
 import shutil
 import platform
 import numpy as np
@@ -169,8 +170,7 @@ def load_images(path, name, dims, img_dtype='.png') :
         if any([os.path.isfile(os.path.join(path, f, name + img_dtype)) for f in files]):
             img_stack = [np.asarray(Image.open(os.path.join(path, f, name + img_dtype)).resize((h,w))) for f in tqdm(files)]
     except FileNotFoundError :
-        print(f"There were no files named {name} in any (sub-)directory of {path}")
-    
+        print(f"There were no files named {name} in any (sub-)directory of {path}") 
     print("Done loading images!")
     return np.dstack(img_stack)
 
@@ -191,6 +191,14 @@ def convert_mask_vals_to_trips(mask) :
     new_mask[(mask > qrt) & (mask < 3*qrt)] = 127
     new_mask[(mask > 3*qrt)] = 255
     return np.asarray(new_mask, dtype=np.uint8)
+    
+def load_mat_file(file_path, var_name) :
+    try :
+        if os.path.isfile(file_path) :
+            mat_data = scipy.io.loadmat(file_path)
+            return mat_data[var_name]
+    except FileExistsError :
+        print("The specified file does not exist!s")
     
 def overlay_transparent(background_img, img_to_overlay_t, x=0, y=0, overlay_size=None):
 	bg_img = background_img.copy()
