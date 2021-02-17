@@ -257,7 +257,7 @@ def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, fil
         
         # TODO: save the uninterpolated heat maps
         savemat(os.path.join(current_measurement_path, ('Thicknessmap_' + name_measurement + '.mat')),  
-                            {'INTERPOL_THICKNESS_MAP': original_map.astype(np.uint16)})
+                            {'ORIGINAL_THICKNESS_MAP': original_map.astype(np.uint16)})
         savemat(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
                             {'INTERPOL_THICKNESS_MAP': interpol_map.astype(np.uint16)}) 
         savemat(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.mat')),  

@@ -58,11 +58,8 @@ if __name__ == '__main__' :
         current_file_name = current_file[-1]
         file_name_parts = current_file_name.split('_')[0] # string with OVD name in current folder
         current_file_path = os.path.join(current_file[0], current_file_name, (pre_string + current_file_name + file_dtype))
-
-        if os.path.isfile(current_file_path) :
-            current_heat_map = scipy.io.loadmat(current_file_path)
-            current_heat_map = current_heat_map['INTERPOL_THICKNESS_MAP_SMOOTH']
-            current_heat_map[current_heat_map >= 512] = 512 
+        current_heat_map = Backend.load_mat_file(current_file_path, 'INTERPOL_THICKNESS_MAP_SMOOTH')
+        current_heat_map[current_heat_map >= 512] = 512 
 
         for name, index in index_dict.items() :
             file_name_parts = file_name_parts.lower()
