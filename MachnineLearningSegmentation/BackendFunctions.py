@@ -192,11 +192,12 @@ def convert_mask_vals_to_trips(mask) :
     new_mask[(mask > 3*qrt)] = 255
     return np.asarray(new_mask, dtype=np.uint8)
     
-def load_mat_file(file_path, var_name) :
+def load_mat_file(file_path, var_name, dtype) :
     try :
         if os.path.isfile(file_path) :
             mat_data = scipy.io.loadmat(file_path)
-            return mat_data[var_name]
+            mat_data = mat_data[var_name]
+            return np.asarray(mat_data, dtype=dtype)
     except FileExistsError :
         print("The specified file does not exist!s")
     
