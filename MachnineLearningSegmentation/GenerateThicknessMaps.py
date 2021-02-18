@@ -228,7 +228,6 @@ def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, fil
     path = os.path.dirname(os.path.dirname(main_path))
     # create sub folder if it doesn't already exist
     current_measurement_path = os.path.join(path, 'EvaluatedData', name_measurement) 
-    print(main_path)
     if not os.path.exists(current_measurement_path): 
         os.makedirs(current_measurement_path) 
     # reshape to square -> cubic interpolation 
@@ -246,8 +245,8 @@ def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, fil
             path_combined_images = os.path.join(path, 'EvaluatedData', '00_ImagesHeatMaps')
             if not os.path.exists(path_combined_images): 
                 os.makedirs(path_combined_images) 
-            plt.imsave(os.path.join(path_combined_images, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
-                                    np.asarray(interpol_map, dtype=np.uint8), cmap='gray', format='bmp') 
+            # plt.imsave(os.path.join(path_combined_images, ('SquareInterpolatedThicknessmap_' + name_measurement + '.bmp')),  
+            #                         np.asarray(interpol_map, dtype=np.uint8), cmap='gray', format='bmp') 
             plt.imsave(os.path.join(path_combined_images, ('SmoothFilteredThicknessmap_' + name_measurement + '.bmp')),  
                                     np.asarray(filtered_map, dtype=np.uint8), cmap='gray', format='bmp') 
         # save data in binaries 
@@ -323,8 +322,14 @@ def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
                 counter_valid += 1
 
         THICKNESS_MAP = np.squeeze(np.asarray(np.dstack(THICKNESS_MAP), dtype=np.uint16)) 
+        # apply median filter to maps, to smoothen differences between manually and automatically segemented slices
+        THICKNESS_MAP = median_filter(THICKNESS_MAP, size=10)
+        THICKNESS_MAP = np.asarray(THICKNESS_MAP, dtype=np.uint16)
         # interpolate data to square shape 
         INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH = resize_heatmaps_to_square(THICKNESS_MAP)
+        INTERPOL_THICKNESS_MAP = np.asarray(INTERPOL_THICKNESS_MAP, dtype=np.uint16)
+        INTERPOL_THICKNESS_MAP_SMOOTH = np.asarray(INTERPOL_THICKNESS_MAP_SMOOTH, dtype=np.uint16)
+        print(f"Max values in maps are: {np.amax(THICKNESS_MAP), np.amax(INTERPOL_THICKNESS_MAP), np.amax(INTERPOL_THICKNESS_MAP_SMOOTH)} in \"{folder}\"")
         # save all kinds of created thickness-data 
         save_evaluated_data_in_subfolders(folder, THICKNESS_MAP, INTERPOL_THICKNESS_MAP, INTERPOL_THICKNESS_MAP_SMOOTH)
      
