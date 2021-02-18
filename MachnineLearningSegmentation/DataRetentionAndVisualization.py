@@ -29,11 +29,10 @@ import TrainingMain as Train
 # Start processing
 if __name__ == '__main__' :
 
-    main_path = r'E:\EvaluatedDataForPaper\OVID_segmentedDataForPaper\EvaluatedData'
-    # main_folder = Backend.clean_path_selection('Please select folder with evaluated measurements')
+    main_path = Backend.clean_path_selection('Please select folder with evaluated measurements')
     
     sub_dirs = Backend.get_subdirs_only(main_path)
-    new_saving_dir = os.path.join(os.path.split(main_path)[0], '13_ThicknessMapsSmoothUm')
+    new_saving_dir = os.path.join(os.path.split(main_path)[0], '10_ThicknessMapsSmoothUm')
     if not os.path.isdir(new_saving_dir) :
         os.makedirs(new_saving_dir)
 
@@ -58,9 +57,12 @@ if __name__ == '__main__' :
         current_file_name = current_file[-1]
         file_name_parts = current_file_name.split('_')[0] # string with OVD name in current folder
         current_file_path = os.path.join(current_file[0], current_file_name, (pre_string + current_file_name + file_dtype))
-        current_heat_map = Backend.load_mat_file(current_file_path, 'INTERPOL_THICKNESS_MAP_SMOOTH')
-        current_heat_map[current_heat_map >= 512] = 512 
-
+        current_heat_map = Backend.load_mat_file(current_file_path, 'INTERPOL_THICKNESS_MAP_SMOOTH', dtype=np.uint16)
+        # print(np.dtype(current_heat_map))
+        # break
+        # plt.imshow(current_heat_map)
+        # plt.show()
+        # break
         for name, index in index_dict.items() :
             file_name_parts = file_name_parts.lower()
             if file_name_parts == name : 
@@ -68,7 +70,7 @@ if __name__ == '__main__' :
                 # Process the thicknesses with the optical index and then save them
                 conversion_factor = (2900 * 1.34) / (ovd_index * 512) # convert from pixels to microns
                 current_heat_map_um = np.asarray(conversion_factor * current_heat_map, dtype=np.uint16)
-                current_heat_map_um[current_heat_map_um >= 2900] = 2900 # proably not neccessary
+                # current_heat_map_um[current_heat_map_um >= 2900] = 2900 # proably not neccessary
                 print(np.mean(current_heat_map_um))
                 scipy.io.savemat(os.path.join(new_saving_dir, ('ThicknessMapSmoothUm_' + current_file_name + '.mat')),  
                                 {'INTERPOL_THICKNESS_MAP_SMOOTH_UM': current_heat_map_um.astype(np.uint16)})
