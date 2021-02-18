@@ -252,9 +252,7 @@ def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, fil
         # save data in binaries 
         interpol_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.bin'))) 
         filtered_map.astype(np.uint16).tofile(os.path.join(current_measurement_path, ('SmoothInterpolatedThicknessmap_' + name_measurement + '.bin'))) 
-        # save data in *.MAT files for later evaluation
-        
-        # TODO: save the uninterpolated heat maps
+        # save data in *.MAT files for later evaluationmaps
         savemat(os.path.join(current_measurement_path, ('Thicknessmap_' + name_measurement + '.mat')),  
                             {'ORIGINAL_THICKNESS_MAP': original_map.astype(np.uint16)})
         savemat(os.path.join(current_measurement_path, ('InterpolatedThicknessmap_' + name_measurement + '.mat')),  
@@ -264,8 +262,8 @@ def save_evaluated_data_in_subfolders(main_path, original_map, interpol_map, fil
     except FileExistsError :
         FileExistsError(f"Could not safe data of {name_measurement} to file, because the path doesn't exist")
     finally :
-        pass
-        #print(f"Could not save data from {main_path} to file... ")
+        pass # debug print
+        #print(f"Saved data to {current_measurement_path}\n")
 
 def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
     """
