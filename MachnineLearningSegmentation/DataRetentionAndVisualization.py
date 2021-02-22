@@ -40,66 +40,76 @@ index_dict = {
     "twinvisc": 1.353,
 }
 
+### I/O AND MEASUREMENT NAME HANDLING ###
+def get_ovd_name(path_full, dtype='.mat') :
+    """
+    >>> get the name of the ovd and the file name from the full file path
+    -> assuming file name structure: "<mapName>_<ovdName>_<measurement>_<repetition>_<DateTime>"
+    """
+    file_parts = os.path.split(path_full)
+    file_name = file_parts[-1]
+    ovd_name = file_name.split('_')[1]
+    return ovd_name
+
+def return_matching_ovd_index(opt_ind_dict, ovd_name) : 
+    """
+    >>> return the OVDs' opical index from dict 
+    """
+    for name, index in opt_ind_dict.items() :
+        ovd_name = ovd_name.lower()
+        if ovd_name == name : 
+            return index
+        
 def load_heat_map_from_current_sub_dir(path_file, mat_var_name) :
     """
-    Load heat map from path parameter and returns 
-    i)  heat map as 2D-array and
-    ii) measurement name from file name
+    >>> loads heat map from path parameter and returns 
+    i)      heat map as 2D-array and
+    ii)     measurement name from file name
+    iii)    name of the OVD
+    -> assuming file name structure: "<mapName>_<ovdName>_<measurement>_<repetition>_<DateTime>"
+    -> assuming all *.mat files are in one directory
     """
-    c_file = os.path.split(path_file)
-    c_file_name = c_file[-1]
-    ovd_name = c_file_name.split('_')[1] # assuming "<mapName>_<ovdName>_<measurement>_<repetition>_<DateTime>" - acc. to measurement structure
-    c_file_path = os.path.join( c_file[0], (c_file_name + '.mat') ) # .mat - assuming folder structure in which all *.mat files are in one dir 
-    # assert os.path.isfile(c_file_name)==True, "Input file path does not contain the correct file!"  
-    heat_map = Backend.load_mat_file( c_file_path, mat_var_name, dtype=np.uint16 ) # change for more dynamic functionality
-    return heat_map, c_file_name, ovd_name
+    heat_map = Backend.load_mat_file( path_file, mat_var_name, dtype=np.uint16 )
+    return heat_map
 
-def calculate_and_save_physical_thickness_maps_OVID(map_name_loading, map_name_saving, opt_ind_dict, 
-                                                    file_dtype='.mat', scan_depth_um=2900, pixels_aLen=512, 
-                                                    is_save_data=True, is_show_debug_prints=False) :
+### MAP PROCESSING ###
+def convert_ovd_map_to_um(heat_map, index, scan_depth_um=2900, aLen_plxs=512, dtype_return=np.uint16) :
     """
-    Calculates and saves the Thickness ("Heat") Maps of the OVDs
-    Note: Index list found empirically for the evaluated OVDs in the ZEISS-financed "OVID-study"
+    >>> converts the values of the ovd thickness map from realtive a-Scan samples/pixels to µm
     """
-    
-    path_loading = Backend.clean_path_selection('Please select folder with evaluated measurements')
-    if is_save_data :
-        path_saving = Backend.clean_path_selection('Please select a folder to save the data')
-    else :
-        path_saving = ''
-    sub_dirs = Backend.get_subdirs_only(path_loading)
-    
-    # Iterate through all sub directories
-    for path_file in sub_dirs :
-        current_file = os.path.split(path_file)
-        current_file_name = current_file[-1]
-        file_name_parts = current_file_name.split('_')[0] # string with OVD name in current folder
-        current_file_path = os.path.join( current_file[0], current_file_name, (pre_string + current_file_name + file_dtype) )
-        current_heat_map = Backend.load_mat_file( current_file_path, map_name_loading, dtype=np.uint16 )
-    
-        for name, index in opt_ind_dict.items() :
-            file_name_parts = file_name_parts.lower()
-            if file_name_parts == name : # if the names of the OVDs match the index is used to recalculate the thickness maps 
-                ovd_index = index    
-                # Process the thicknesses with the optical index and then save them
-                conversion_factor = (scan_depth_um * 1.34) / (ovd_index * pixels_aLen) # convert from pixels to microns
-                current_heat_map_um = np.asarray( conversion_factor * current_heat_map, dtype=np.uint16 )         
-                if is_show_debug_prints :
-                    print( np.mean(current_heat_map_um) )
-                if is_save_data :
-                    scipy.io.savemat( os.path.join( path_saving, (map_name_saving + current_file_name + file_dtype) ) ,  
-                                    {'INTERPOL_THICKNESS_MAP_SMOOTH_UM': current_heat_map_um.astype(np.uint16)} )
+    conversion_factor = (scan_depth_um * 1.34) / (index * aLen_plxs) # convert from pixels to µm acc. to opt. idx of OVD 
+    return np.asarray( conversion_factor * heat_map, dtype=np.uint16 )
+
+def stack_all_heat_maps_in_dir(main_path, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
+    """
+    >>> creates a 3D data tensor, containing the stacked thickness maps
+    """
+    if is_manual_path_selection :
+        main_path = Backend.clean_path_selection("Please select path with thickness maps")  
+    stacked_map_array = []
+    for file in os.listdir(main_path) :
+        c_full_file_path = os.path.join(main_path, file)
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
+            stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )
+    return np.dstack( np.asarray(stacked_map_array) )
+            
+def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
+    """
+    >>> returns 3D data tensor, containing the stacked thickness maps of the same ovds
+    """
+    if is_manual_path_selection :
+        main_path = Backend.clean_path_selection("Please select path with thickness maps")  
+    stacked_map_array = []
+    for i, file in enumerate(os.listdir(main_path)) :
+        c_full_file_path = os.path.join(main_path, file)
+        c_ovd_name = get_ovd_name(c_full_file_path)
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) and c_ovd_name.lower()==ovd_name.lower() :
+            stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )
+    return np.dstack( np.asarray(stacked_map_array) )
 
 
-# Start processing
-if __name__ == '__main__' :
-
-    # main_path = Backend.clean_path_selection('Please select folder with evaluated measurements')
-    map_ = load_heat_map_from_current_sub_dir(r'C:\Users\Philipp\Downloads\Thickness Maps in µm\ThicknessMapSmoothUm_AMVISCPLUS_1_1_Size6_OD-2020-05-15_084233',
-                                              'INTERPOL_THICKNESS_MAP_SMOOTH_UM')
-    plt.imshow(np.asarray(map_, dtype=np.uint16))
-    plt.show()
-    
+## TODO: Continue here
+### PLOTTING ###
 # def save_thickness_maps
 #     sub_dirs = Backend.get_subdirs_only(r'E:\OVID_DataForPaper\OVID_segmentedDataForPaper\EvaluatedData')
 
@@ -126,3 +136,7 @@ if __name__ == '__main__' :
 #                     format='png' )
 #         plt.clf()
 #         plt.close('all')
+
+
+# Start processing
+if __name__ == '__main__' :
