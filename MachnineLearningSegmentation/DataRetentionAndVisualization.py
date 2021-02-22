@@ -13,10 +13,12 @@ Created on Tue Sep 22 13:32:10 2020
 # Global imports 
 import os
 import tqdm
+import math
 import glob
 import time
 import scipy.io
 import numpy as np
+import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 import matplotlib as mpl
@@ -95,21 +97,82 @@ def stack_all_heat_maps_in_dir(main_path, mat_var_name='INTERPOL_THICKNESS_MAP',
             
 def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
     """
-    >>> returns 3D data tensor, containing the stacked thickness maps of the same ovds
+    >>> returns 3D data tensor, containing the stacked thickness maps of the same OVDs
     """
     if is_manual_path_selection :
         main_path = Backend.clean_path_selection("Please select path with thickness maps")  
     stacked_map_array = []
-    for i, file in enumerate(os.listdir(main_path)) :
+    for file in os.listdir(main_path) :
         c_full_file_path = os.path.join(main_path, file)
         c_ovd_name = get_ovd_name(c_full_file_path)
         if file.endswith('.mat') and os.path.isfile(c_full_file_path) and c_ovd_name.lower()==ovd_name.lower() :
             stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )
     return np.dstack( np.asarray(stacked_map_array) )
 
+def save_mat_file_as_xls() :
+    main_path_loading = Backend.clean_path_selection("Please select the path from which you want to load the data")
+    path_for_saving = Backend.clean_path_selection("Please select the path from which you want to save the data")
+    
+
+    # ## convert your array into a dataframe
+    # df = pd.DataFrame (array)
+
+    # ## save to xlsx file
+
+    # filepath = 'my_excel_file.xlsx'
+
+    # df.to_excel(filepath, index=False)
+
+
+
+### PLOTTING ###
+
+### Code example of how it can get done
+# fig_size = (10, 5)
+# f = plt.figure(figsize=fig_size)
+
+# def plot_signal(time, signal, title='', xlab='', ylab='',
+#                 line_width=1, alpha=1, color='k',
+#                 subplots=False, show_grid=True, fig=f):
+
+#     # Skipping a lot of other complexity here
+
+#     axarr = f.add_subplot(1,1,1) # here is where you add the subplot to f
+#     plt.plot(time, signal, linewidth=line_width,
+#                alpha=alpha, color=color)
+#     plt.set_xlim(min(time), max(time))
+#     plt.set_xlabel(xlab)
+#     plt.set_ylabel(ylab)
+#     plt.grid(show_grid)
+#     plt.title(title, size=16)
+    
+#     return(f)
+# f = plot_signal(time, signal, fig=f)
+# f
+def create_histogram(data_stack, delta_bar, thickness_threshold=30, is_truncate_threshold=True, 
+                     histo_label="Histogram", x_label="Thickness in [µm]", y_label="Count [n]") :
+    """
+    >>> creates histograms of OVD data stack and colors values below threshold differently if wanted
+    """    
+    data_stack = data_stack.reshape(np.size(data_stack))
+    _, ax = plt.subplots() 
+    _, _, patches = ax.hist(data_stack, bins=delta_bar)
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel(y_label, fontsize=12)
+    ax.set_title(histo_label, fontsize=18)
+    if is_truncate_threshold : 
+        bar_thickness_value = round(np.amax(data_stack) / len(patches))
+        if bar_thickness_value > thickness_threshold :
+            ticks_boundary = 1
+        else :
+            ticks_boundary = round(thickness_threshold/bar_thickness_value)
+        for i in range(ticks_boundary) :    
+            patches[i].set_facecolor('r')
+    # Show plot on full screen - uncomment next two lines if they throw errors
+    mng = plt.get_current_fig_manager()
+    mng.window.showMaximized()
 
 ## TODO: Continue here
-### PLOTTING ###
 # def save_thickness_maps
 #     sub_dirs = Backend.get_subdirs_only(r'E:\OVID_DataForPaper\OVID_segmentedDataForPaper\EvaluatedData')
 
@@ -140,3 +203,12 @@ def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THI
 
 # Start processing
 if __name__ == '__main__' :
+    for i in range(10) :
+        stack = stack_all_heat_maps_in_dir('', mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM')
+        create_histogram(stack, 100, thickness_threshold=30)
+    
+# def save_current_figure(img_file_name, path_saving, img_dtype='png', is_manual_path_selection=False) :
+#     if is_manual_path_selection :
+#         path_saving = Backend.clean_path_selection( "Where do you want to save your plot?" )
+#     plt.show()
+#     plt.savefig( os.path.join( path_saving, (img_file_name + '.' + img_dtype) ), format=img_dtype )
