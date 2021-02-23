@@ -53,6 +53,18 @@ def get_ovd_name(path_full, dtype='.mat') :
     ovd_name = file_name.split('_')[1]
     return ovd_name
 
+def get_repetition_number(path_full, dtype='.mat') :
+    """
+    >>> returns the number  the full file path
+    -> assuming file name structure: "<mapName>_<ovdName>_<measurement>_<repetition>_<DateTime>"
+    """
+    file_parts = os.path.split(path_full)
+    repetition = file_parts[3]
+    if int(repetition) == 1 or int(repetition) == 2 :
+        return repetition
+    else :
+        print("Extracted repetiton number is [INVALID]")
+
 def return_matching_ovd_index(opt_ind_dict, ovd_name) : 
     """
     >>> return the OVDs' opical index from dict 
@@ -110,8 +122,8 @@ def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THI
     return np.dstack( np.asarray(stacked_map_array) )
 
 def save_mat_file_as_xls() :
-    main_path_loading = Backend.clean_path_selection("Please select the path from which you want to load the data")
-    path_for_saving = Backend.clean_path_selection("Please select the path from which you want to save the data")
+    # main_path_loading = Backend.clean_path_selection("Please select the path from which you want to load the data")
+    # path_for_saving = Backend.clean_path_selection("Please select the path from which you want to save the data")
     
 
     # ## convert your array into a dataframe
@@ -203,9 +215,18 @@ def create_histogram(data_stack, delta_bar, thickness_threshold=30, is_truncate_
 
 # Start processing
 if __name__ == '__main__' :
-    for i in range(10) :
-        stack = stack_all_heat_maps_in_dir('', mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM')
-        create_histogram(stack, 100, thickness_threshold=30)
+    
+    for name, index in index_dict.items() :    
+        c_stack = stack_all_heat_maps_same_ovd('', name, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM')
+        print(name)
+        print(np.shape(c_stack))
+        break            
+    
+    
+    
+    # stack = stack_all_heat_maps_in_dir('', mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM')
+    # create_histogram(stack, 100, thickness_threshold=30)
+    
     
 # def save_current_figure(img_file_name, path_saving, img_dtype='png', is_manual_path_selection=False) :
 #     if is_manual_path_selection :
