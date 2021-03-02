@@ -152,7 +152,7 @@ def save_mat_file_as_xls(mat_file, file_name, path='', is_manual_path_selection=
 
 def convert_all_mat2xls_files(path_saving, path_loading, mat_var_name) :
     """
-    >>> 
+    >>> Converts all *.MAT-files (thickness maps = mat-var-name) to *.XLS-files and saves them 
     """ 
     print(f'Converting and saving *.MAT-files from \n>>{path_loading}<< \nas *.XLS-files to \n>>{path_saving}<<')   
     for file in tqdm(os.listdir(path_loading)) :
@@ -163,10 +163,23 @@ def convert_all_mat2xls_files(path_saving, path_loading, mat_var_name) :
                 print(f'Error with file {file}')
 
 def calc_value_ratio_for_threshold(thickness_map, thickness_threshold_um) :
+    """
+    >>> Finds and returns percentages of values in thickness maps
+        above (1st return value) and below (2nd return value) a threshold
+        CAUTION: Assumes all values in map and threshold are in µm !!!
+    """
     c_map = np.asarray(thickness_map).flatten()
     greater = np.sum(c_map > thickness_threshold_um) / np.size(c_map)
     less = 1 - greater
     return np.round(100*greater, 2), np.round(100*less, 2) 
+
+## TODO: Continue here:
+def find_inner_circle_value(c_map, radius_pxls) :
+    """
+    >>> Finds and returns values of the inner circle in a thickness map
+    """
+    inner_pnts = []
+    return inner_pnts
 
 
 ### PLOTTING ###
@@ -227,12 +240,14 @@ if __name__ == '__main__' :
     threshold_um = 50
     for name, index in index_dict.items() :    
         c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
-        print(np.shape(c_stack), np.mean(c_stack))
-        # gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
-        # print(f'{le}%')
+        gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
+        print(f'{le}%')
+        # print(f'{gr}%')
         # print(f'{name.upper()}')           
+        # print(np.shape(c_stack), name)
+        
     
     # ### HISTO creation for all individual OVDs 
     # path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
