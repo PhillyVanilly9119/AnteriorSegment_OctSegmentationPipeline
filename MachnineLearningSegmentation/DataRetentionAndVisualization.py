@@ -52,15 +52,14 @@ def get_ovd_name(path_full, dtype='.mat') :
     ovd_name = file_name.split('_')[1]
     return ovd_name
 
-def get_repetition_number(path_full, dtype='.mat') :
+def get_repetition_number(path_full, delim='_', dtype='.mat') :
     """
     >>> returns the number  the full file path
     -> assuming file name structure: "<mapName>_<ovdName>_<measurement>_<repetition>_<DateTime>"
     """
-    file_parts = os.path.split(path_full)
-    repetition = file_parts[3]
+    repetition = path_full.split(delim)[-4]
     if int(repetition) == 1 or int(repetition) == 2 :
-        return repetition
+        return int(repetition)
     else :
         print("Extracted repetiton number is [INVALID]")
 
@@ -120,6 +119,22 @@ def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THI
             stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )
     return np.dstack( np.asarray(stacked_map_array) )
 
+def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, meas_rep_num, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
+    """
+    >>> returns 3D data tensor, containing the stacked thickness maps of the same OVDs from the same measurement repetition
+    """
+    if is_manual_path_selection :
+        main_path = Backend.clean_path_selection("Please select path with thickness maps")  
+    stacked_map_array = []
+    # print(os.listdir(main_path))
+    for file in os.listdir(main_path) :
+        c_full_file_path = os.path.join(main_path, file)
+        c_ovd_name = get_ovd_name(c_full_file_path)
+        c_rep = get_repetition_number(c_full_file_path)
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) and c_ovd_name.lower()==ovd_name.lower() and c_rep==meas_rep_num:
+            stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )    
+    return np.dstack( np.asarray(stacked_map_array) )
+
 def save_mat_file_as_xls(mat_file, file_name, path='', is_manual_path_selection=True) :
     """
     >>> Saves an existing thickness map (*.MAT-file) to a *.XLS-file
@@ -148,8 +163,10 @@ def convert_all_mat2xls_files(path_saving, path_loading, mat_var_name) :
                 print(f'Error with file {file}')
 
 def calc_value_ratio_for_threshold(thickness_map, thickness_threshold_um) :
-    c_map = np.asarray(thickness_map).flatten()s
-    return np.around( np.sum(c_map >= thickness_threshold_um) / np.size(c_map, 2) )
+    c_map = np.asarray(thickness_map).flatten()
+    greater = np.sum(c_map > thickness_threshold_um) / np.size(c_map)
+    less = 1 - greater
+    return np.round(100*greater, 2), np.round(100*less, 2) 
 
 
 ### PLOTTING ###
@@ -207,48 +224,52 @@ def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_tr
 # Start processing
 if __name__ == '__main__' :
     
-    path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
-    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\All OVDs Histos\All Histos 128 Bar Delta 50 Threshold'
-    mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
-    delta_bar = 128
-    thickness_threshold_um = 50
-    x_label='Thickness in [µm]' 
-    y_label='Count [n]'
-    my_dpi = 150
+    threshold_um = 50
+    for name, index in index_dict.items() :    
+        c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+        print(np.shape(c_stack), np.mean(c_stack))
+        # gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
+        # print(f'{le}%')
+        # print(f'{name.upper()}')           
     
-    for file in tqdm(os.listdir(path_loading)) :
-        c_full_file_path = os.path.join(path_loading, file)
-        just_file = file.split('.mat')[0].split('_')
-        just_file = [string + '_' for string in just_file]
-        title_string = ''.join(just_file[1:])[:-1]
-        plt.ion()
-        # plt.figure(figsize=(1920/my_dpi, 1080/my_dpi))
-        fig, ax = plt.subplots(figsize=(1920/my_dpi, 1080/my_dpi))
-        if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
-            data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
-            histo_label = 'Histogram of ' + title_string 
-            data_stack = data_stack.reshape(np.size(data_stack))  
-            _, _, patches = ax.hist(data_stack, bins=delta_bar)
-            ax.set_xlabel(x_label, fontsize=12)
-            ax.set_ylabel(y_label, fontsize=12)
-            ax.set_title(histo_label, fontsize=18)
-            bar_thickness_value = round(np.amax(data_stack) / len(patches))
-            if bar_thickness_value > thickness_threshold_um :
-                ticks_boundary = 1
-            else :
-                ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
-                if math.isinf(ticks_boundary) :
-                    ticks_boundary = 0 
-            for i in range(int(ticks_boundary)) :    
-                patches[i].set_facecolor('r')
-            plt.show()
-            # plt.pause(0.25)
-            plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
-        plt.clf()
-  
+    # ### HISTO creation for all individual OVDs 
+    # path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
+    # path_saving = r'C:\Users\Philipp\Desktop\OVID Results\All OVDs Histos\All Histos 128 Bar Delta 50 Threshold'
+    # mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
+    # delta_bar = 128
+    # thickness_threshold_um = 50
+    # x_label='Thickness in [µm]' 
+    # y_label='Count [n]'
+    # my_dpi = 150
     
-    # for name, index in index_dict.items() :    
-    #     c_stack = stack_all_heat_maps_same_ovd('', name, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM')
-    #     print(name)
-    #     print(np.shape(c_stack))
-    #     break            
+    # for file in tqdm(os.listdir(path_loading)) :
+    #     c_full_file_path = os.path.join(path_loading, file)
+    #     just_file = file.split('.mat')[0].split('_')
+    #     just_file = [string + '_' for string in just_file]
+    #     title_string = ''.join(just_file[1:])[:-1]
+    #     plt.ion()
+    #     # plt.figure(figsize=(1920/my_dpi, 1080/my_dpi))
+    #     fig, ax = plt.subplots(figsize=(1920/my_dpi, 1080/my_dpi))
+    #     if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
+    #         data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
+    #         histo_label = 'Histogram of ' + title_string 
+    #         data_stack = data_stack.reshape(np.size(data_stack))  
+    #         _, _, patches = ax.hist(data_stack, bins=delta_bar)
+    #         ax.set_xlabel(x_label, fontsize=12)
+    #         ax.set_ylabel(y_label, fontsize=12)
+    #         ax.set_title(histo_label, fontsize=18)
+    #         bar_thickness_value = round(np.amax(data_stack) / len(patches))
+    #         if bar_thickness_value > thickness_threshold_um :
+    #             ticks_boundary = 1
+    #         else :
+    #             ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
+    #             if math.isinf(ticks_boundary) :
+    #                 ticks_boundary = 0 
+    #         for i in range(int(ticks_boundary)) :    
+    #             patches[i].set_facecolor('r')
+    #         plt.show()
+    #         # plt.pause(0.25)
+    #         plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
+    #     plt.clf()
