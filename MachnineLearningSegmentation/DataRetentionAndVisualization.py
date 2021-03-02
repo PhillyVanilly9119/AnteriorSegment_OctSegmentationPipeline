@@ -179,7 +179,11 @@ def find_inner_circle_value(c_map, radius_pxls) :
     >>> Finds and returns values of the inner circle in a thickness map
     """
     inner_pnts = []
-    return inner_pnts
+    x_center, y_center = int(np.shape(c_map)[0]/2), int(np.shape(c_map)[1]/2)
+    assert x_center > radius_pxls, "Selected radius is too big for image size in x-direction"
+    assert y_center > radius_pxls, "Selected radius is too big for image size in y-direction"
+    print(x_center, y_center)
+    # return inner_pnts
 
 
 ### PLOTTING ###
@@ -236,14 +240,16 @@ def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_tr
 
 # Start processing
 if __name__ == '__main__' :
+   
+   find_inner_circle_value(np.zeros((20, 40)), 11)
     
-    threshold_um = 50
-    for name, index in index_dict.items() :    
-        c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-        gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
-        print(f'{le}%')
+    # threshold_um = 50
+    # for name, index in index_dict.items() :    
+    #     c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+    #                                                     name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+    #                                                     is_manual_path_selection=False)
+    #     gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
+    #     print(f'{le}%')
         # print(f'{gr}%')
         # print(f'{name.upper()}')           
         # print(np.shape(c_stack), name)
