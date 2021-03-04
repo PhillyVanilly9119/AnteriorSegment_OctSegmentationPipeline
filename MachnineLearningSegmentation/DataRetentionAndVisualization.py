@@ -29,19 +29,21 @@ import TrainingMain as Train
 
 # OVD optical index list (empirially found by M. Wuest - wuest.melanie96@gmail.com)
 index_dict = {
-    "provisc": 1.357,
+    "provisc": 1.357, #cohesive
     "zhyalinplus": 1.364,
-    "amviscplus": 1.356,
-    "discovisc": 1.337,
+    "discovisc": 1.337, #diperse
+    "amviscplus": 1.356, 
     "healonendocoat": 1.357,
     "viscoat": 1.356,
     "zhyalcoat": 1.343,
-    "combivisc": 1.353,
+    "combivisc": 1.353, #combi-systems
     "duovisc": 1.356,
     "twinvisc": 1.353,
 }
 
+#########################################
 ### I/O AND MEASUREMENT NAME HANDLING ###
+#########################################
 def get_ovd_name(path_full, dtype='.mat') :
     """
     >>> get the name of the ovd and the file name from the full file path
@@ -84,14 +86,12 @@ def load_heat_map_from_current_sub_dir(path_file, mat_var_name) :
     heat_map = Backend.load_mat_file( path_file, mat_var_name, dtype=np.uint16 )
     return heat_map
 
-### MAP PROCESSING ###
-def convert_ovd_map_to_um(heat_map, index, scan_depth_um=2900, aLen_plxs=512, dtype_return=np.uint16) :
-    """
-    >>> converts the values of the ovd thickness map from realtive a-Scan samples/pixels to µm
-    """
-    conversion_factor = (scan_depth_um * 1.34) / (index * aLen_plxs) # convert from pixels to µm acc. to opt. idx of OVD 
-    return np.asarray( conversion_factor * heat_map, dtype=np.uint16 )
 
+#############################
+### Loading specific maps ###
+#############################
+""" Processing evaluated heat maps according to the sorting 
+(all, same name, same name and measurement rep)"""
 def stack_all_heat_maps_in_dir(main_path, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
     """
     >>> creates a 3D data tensor, containing the stacked thickness maps
@@ -135,6 +135,16 @@ def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, meas_rep_num, mat_
             stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )    
     return np.dstack( np.asarray(stacked_map_array) )
 
+######################
+### MAP PROCESSING ###
+######################
+def convert_ovd_map_to_um(heat_map, index, scan_depth_um=2900, aLen_plxs=512, dtype_return=np.uint16) :
+    """
+    >>> converts the values of the ovd thickness map from realtive a-Scan samples/pixels to µm
+    """
+    conversion_factor = (scan_depth_um * 1.34) / (index * aLen_plxs) # convert from pixels to µm acc. to opt. idx of OVD 
+    return np.asarray( conversion_factor * heat_map, dtype=np.uint16 )
+
 def save_mat_file_as_xls(mat_file, file_name, path='', is_manual_path_selection=True) :
     """
     >>> Saves an existing thickness map (*.MAT-file) to a *.XLS-file
@@ -173,20 +183,26 @@ def calc_value_ratio_for_threshold(thickness_map, thickness_threshold_um) :
     less = 1 - greater
     return np.round(100*greater, 2), np.round(100*less, 2) 
 
-## TODO: Continue here:
-def find_inner_circle_value(c_map, radius_pxls) :
+def find_values_in_inner_circle(c_map, radius_pxls) :
     """
     >>> Finds and returns values of the inner circle in a thickness map
     """
     inner_pnts = []
-    x_center, y_center = int(np.shape(c_map)[0]/2), int(np.shape(c_map)[1]/2)
+    inner_pnts_spots = []
+    x_length, y_length = np.shape(c_map)[0], np.shape(c_map)[1]
+    x_center, y_center = int(x_length/2), int(y_length/2)
     assert x_center > radius_pxls, "Selected radius is too big for image size in x-direction"
     assert y_center > radius_pxls, "Selected radius is too big for image size in y-direction"
-    print(x_center, y_center)
-    # return inner_pnts
+    for i in range(x_length) :
+        for j in range(y_length) :
+            if int(np.round(np.sqrt((i-x_center)**2 + (j-y_center)**2))) <= radius_pxls :
+                inner_pnts.append(c_map[i,j])
+                inner_pnts_spots.append([i,j])
+    return np.asarray(inner_pnts), np.asarray(inner_pnts_spots)
 
-
+################
 ### PLOTTING ###
+################
 def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_truncate_threshold=True, 
                      histo_label="Histogram", x_label="Thickness in [µm]", y_label="Count [n]",
                      update_rate=1, is_show_histos_full_screen=False) :
@@ -213,7 +229,48 @@ def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_tr
     # Show images for a certain time/ with a certain update rate 
     plt.draw()
     plt.pause(1/update_rate)
-  
+    
+def dummy_histo_function() :
+    """
+    >>> Create and save histograms
+    """
+    delta_bar = 64
+    thickness_threshold_um = 50
+    path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
+    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\All OVDs Histos\All Histos 64 Bar Delta 50 Threshold'
+    mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
+    x_label='Thickness in [µm]' 
+    y_label='Sample Count [n]'
+    my_dpi = 150
+    
+    for file in tqdm(os.listdir(path_loading)) :
+        c_full_file_path = os.path.join(path_loading, file)
+        just_file = file.split('.mat')[0].split('_')
+        just_file = [string + '_' for string in just_file]
+        title_string = ''.join(just_file[1:])[:-1]
+        plt.ion()
+        # plt.figure(figsize=(1920/my_dpi, 1080/my_dpi))
+        _, ax = plt.subplots(figsize=(1920/my_dpi, 1080/my_dpi))
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
+            data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
+            histo_label = 'Histogram of ' + title_string 
+            data_stack = data_stack.reshape(np.size(data_stack))  
+            _, _, patches = ax.hist(data_stack, bins=delta_bar)
+            ax.set_xlabel(x_label, fontsize=12)
+            ax.set_ylabel(y_label, fontsize=12)
+            ax.set_title(histo_label, fontsize=18)
+            bar_thickness_value = round(np.amax(data_stack) / len(patches))
+            if bar_thickness_value > thickness_threshold_um :
+                ticks_boundary = 1
+            else :
+                ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
+                if math.isinf(ticks_boundary) :
+                    ticks_boundary = 0 
+            for i in range(int(ticks_boundary)) :    
+                patches[i].set_facecolor('r')
+            plt.show()
+            plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
+        plt.clf()
    
 ### Code example of how it can get done
 # fig_size = (10, 5)
@@ -241,56 +298,39 @@ def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_tr
 # Start processing
 if __name__ == '__main__' :
    
-   find_inner_circle_value(np.zeros((20, 40)), 11)
-    
-    # threshold_um = 50
-    # for name, index in index_dict.items() :    
-    #     c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-    #                                                     name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-    #                                                     is_manual_path_selection=False)
-    #     gr, le = calc_value_ratio_for_threshold(c_stack, threshold_um)
-    #     print(f'{le}%')
-        # print(f'{gr}%')
-        # print(f'{name.upper()}')           
-        # print(np.shape(c_stack), name)
+#    0. Make inner circle function work - DONE
+#    1. all OVDs of same kind, differentiating between 1st and 2nd measurement
+#    2. same as above but all together 
+#    3. Get all evaluations from inner cicles   
+
+    threshold_um = 50
+    cohesive = []
+    disperse = []
+    combi = []
+    c = 0
+    for name, index in index_dict.items() :    
+        c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+        if c in range(2) : # 0,1
+            cohesive.append(c_stack)
+            # print("cohesive", name, c)
+        elif c in range(2, 7) : # 2,3,4,5,6
+            disperse.append(c_stack)
+            # print("disperse", name, c)
+        elif c in range(7, 10) : # 7,8,9
+            combi.append(c_stack)
+            # print("combi", name, c)
+        c+=1
         
-    
-    # ### HISTO creation for all individual OVDs 
-    # path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
-    # path_saving = r'C:\Users\Philipp\Desktop\OVID Results\All OVDs Histos\All Histos 128 Bar Delta 50 Threshold'
-    # mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
-    # delta_bar = 128
-    # thickness_threshold_um = 50
-    # x_label='Thickness in [µm]' 
-    # y_label='Count [n]'
-    # my_dpi = 150
-    
-    # for file in tqdm(os.listdir(path_loading)) :
-    #     c_full_file_path = os.path.join(path_loading, file)
-    #     just_file = file.split('.mat')[0].split('_')
-    #     just_file = [string + '_' for string in just_file]
-    #     title_string = ''.join(just_file[1:])[:-1]
-    #     plt.ion()
-    #     # plt.figure(figsize=(1920/my_dpi, 1080/my_dpi))
-    #     fig, ax = plt.subplots(figsize=(1920/my_dpi, 1080/my_dpi))
-    #     if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
-    #         data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
-    #         histo_label = 'Histogram of ' + title_string 
-    #         data_stack = data_stack.reshape(np.size(data_stack))  
-    #         _, _, patches = ax.hist(data_stack, bins=delta_bar)
-    #         ax.set_xlabel(x_label, fontsize=12)
-    #         ax.set_ylabel(y_label, fontsize=12)
-    #         ax.set_title(histo_label, fontsize=18)
-    #         bar_thickness_value = round(np.amax(data_stack) / len(patches))
-    #         if bar_thickness_value > thickness_threshold_um :
-    #             ticks_boundary = 1
-    #         else :
-    #             ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
-    #             if math.isinf(ticks_boundary) :
-    #                 ticks_boundary = 0 
-    #         for i in range(int(ticks_boundary)) :    
-    #             patches[i].set_facecolor('r')
-    #         plt.show()
-    #         # plt.pause(0.25)
-    #         plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
-    #     plt.clf()
+    cohesive = np.asarray(cohesive)
+    disperse = np.asarray(disperse)
+    combi = np.asarray(combi)
+    # print(np.shape(cohesive), np.shape(disperse), np.shape(combi))
+    gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
+    print(f'{le}%')
+    print(f'{gr}%')
+    # print(f'{name.upper()}')           
+    # whole_stack = np.asarray(whole_stack)
+
+        
