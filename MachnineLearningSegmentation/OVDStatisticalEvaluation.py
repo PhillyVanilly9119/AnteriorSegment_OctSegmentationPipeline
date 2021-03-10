@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 import BackendFunctions as Backend
 
-def adjust_the_array_length(set1, set2) :
+def adjust_array_length(set1, set2) :
     set1 = set1.flatten()
     set2 = set2.flatten()
     if len(set1) >= len(set2) :
@@ -27,18 +27,15 @@ def adjust_the_array_length(set1, set2) :
     return set1, set2
 
 def apply_wilcoxon(set1, set2, text='') :
-    set1, set2 = adjust_the_array_length(set1, set2)
+    set1, set2 = adjust_array_length(set1, set2)
     w, p = wilcoxon(set1, set2)
     return w, p
 
 def apply_ranksumtest(set1, set2, text='') :
-    set1, set2 = adjust_the_array_length(set1, set1)
+    set1, set2 = adjust_array_length(set1, set1)
     w, p = ranksums(set1, set2)
     return w, p
 
-# def get_ranksum_result(set1, set2, text='') :
-#     w, p = RanksumsResult(set1, set2)
-#     return w, p
 
 if __name__ == '__main__' :
     # path for loading
@@ -46,10 +43,15 @@ if __name__ == '__main__' :
     path_file2 = r'C:\Users\Philipp\Desktop\OVID Results\PhacoTipData\ValuesPhacotipArea_AMVISCPLUS_1_1_Size6_OD-2020-05-15_084233.mat' #Backend.clean_file_selection("Please select file No. 2")
     set_one = Backend.load_mat_file(path_file1, 'non_phacotip_area_vector', dtype=np.float64)
     set_two = Backend.load_mat_file(path_file2, 'phacotip_area_vector', dtype=np.float64)
+
+    # plt.hist(set_one, bins=64)
+    # plt.hist(set_two, bins=64)
+    # plt.show()
+    
     # load data
     
     # apply test
-    w, p = apply_ranksumtest(set_one, set_two)
-    print(w, p)
-    w, p = apply_wilcoxon(set_one, set_two)
-    print(w, p)
+    # w, p = apply_ranksumtest(set_one, set_two)
+    # print(w, p)
+    # w, p = apply_wilcoxon(set_one, set_two)
+    # print(w, p)
