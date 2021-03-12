@@ -16,12 +16,15 @@ import math
 import glob
 import time
 import scipy.io
+from scipy.io import savemat
+from scipy.stats import kruskal
 import numpy as np
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontProperties
 
 # Custom imports
 import BackendFunctions as Backend
@@ -230,7 +233,7 @@ def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_tr
     plt.draw()
     plt.pause(1/update_rate)
     
-def dummy_histo_function() :
+def dummy_histo_creation() :
     """
     >>> Create and save histograms
     """
@@ -271,66 +274,181 @@ def dummy_histo_function() :
             plt.show()
             plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
         plt.clf()
-   
-### Code example of how it can get done
-# fig_size = (10, 5)
-# f = plt.figure(figsize=fig_size)
-
-# def plot_signal(time, signal, title='', xlab='', ylab='',
-#                 line_width=1, alpha=1, color='k',
-#                 subplots=False, show_grid=True, fig=f):
-
-#     # Skipping a lot of other complexity here
-
-#     axarr = f.add_subplot(1,1,1) # here is where you add the subplot to f
-#     plt.plot(time, signal, linewidth=line_width,
-#                alpha=alpha, color=color)
-#     plt.set_xlim(min(time), max(time))
-#     plt.set_xlabel(xlab)
-#     plt.set_ylabel(ylab)
-#     plt.grid(show_grid)
-#     plt.title(title, size=16)
+  
+def dummy_thickness_map_creation() :
+    """
+    >>> Create and save thickness maps
+    """
+    path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
+    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\ThicknessMaps'
+    mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
+    x_label='6mm [slow scanning axis]' 
+    y_label='6mm [fast scanning axis]'
+    my_dpi = 300
     
-#     return(f)
-# f = plot_signal(time, signal, fig=f)
-# f
+    for i, file in tqdm(enumerate(os.listdir(path_loading))) :
+        c_full_file_path = os.path.join(path_loading, file)
+        just_file = file.split('.mat')[0].split('_')
+        if int(just_file[3]) == 1 :
+            suffix = ', after I/A (1)'
+        elif int(just_file[3]) == 2 :
+            suffix = ', after phaco (2)'
+        else :
+            raise SystemError("Error while parsing measurement repetition number")
+        title = 'Thickness map of ' + just_file[1] + ', Measurement No.' + just_file[2] + suffix
+        plt.ion()
+        _, ax = plt.subplots(figsize=(3*1250/my_dpi, 3*1000/my_dpi))
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
+            data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
+            plt.imshow(data_stack)
+            cbar = plt.colorbar()
+            cbar.set_label('OVD thickness in [µm]', fontsize=15)
+            plt.clim(0, 2250)
+            plt.title(title, y=1.025)
+            ax.set_title(title, fontsize=15)
+            ax.set_xlabel(x_label, fontsize=14)
+            ax.set_ylabel(y_label, fontsize=14)
+            plt.savefig(os.path.join( path_saving, (file.split('.mat')[0] + '.png') ), format='png')
+        plt.clf()
+  
+def dummy_boxplot_group_creation() :
+    c = 0
+    data = []
+    title_string = ''
+    for name, _ in index_dict.items() :    
+        c+=1
+        first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+        second_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+        first_vals = []
+        second_vals = []
+        for i in range(10) :
+            first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
+            second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
+        first_vals, second_vals = np.asarray(first_vals), np.asarray(second_vals)
+        ## Save data if you want to 
+        # savemat(os.path.join(r'C:\Users\Philipp\Desktop', ('CombinedThicknessMapInner3mm_' + name.upper() + '_firstRep.mat')),  
+        #                     {'ALL_THICKNESS_MAPs': first_vals.astype(np.uint16)})
+        # savemat(os.path.join(r'C:\Users\Philipp\Desktop', ('CombinedThicknessMapInner3mm_' + name.upper() + '_secondRep.mat')),  
+        #                     {'ALL_THICKNESS_MAPs': second_vals.astype(np.uint16)})
+        first_vals = first_vals.flatten()
+        second_vals = second_vals.flatten()
+        data.append(second_vals.flatten())
+        title_string += ' ' + str(c) + ' ' + name.upper()
+    _, ax = plt.subplots()
+    ax.boxplot(data, 0, '')
+    ax.set_title('Box Plots of all OVDs inner 3mm of second measurement (phaco)') 
+    ax.set_xlabel('OVD Number')
+    ax.set_ylabel('Thickness in [µm]')
+    fontP = FontProperties()
+    fontP.set_size('small')
+
+    ax.legend(
+        ('1 PROVISC', 
+         '2 ZHYALINPLUS',
+         '3 DISCOVISC',
+         '4 AMVISCPLUS', 
+         '5 HEALONENDOCOAT',
+         '6 VISCOAT', 
+         '7 ZHYALCOAT', 
+         '8 COMBIVISC', 
+         '9 DUOVISC', 
+         '10 TWINVISC'), 
+        title='Names OVDs', 
+        bbox_to_anchor=(1, 1), 
+        loc='upper left',
+        prop=fontP) 
+    plt.show()  
 
 # Start processing
 if __name__ == '__main__' :
    
-#    0. Make inner circle function work - DONE
-#    1. all OVDs of same kind, differentiating between 1st and 2nd measurement
-#    2. same as above but all together 
-#    3. Get all evaluations from inner cicles   
+    # dummy_thickness_map_creation()          
 
     threshold_um = 50
-    cohesive = []
-    disperse = []
-    combi = []
+    cohesive_f = []
+    cohesive_s = []
+    disperse_f = []
+    disperse_s = []
+    combi_f = []
+    combi_s = []
     c = 0
+    data = []
+    title_string = ''
     for name, index in index_dict.items() :    
-        c_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+        first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+        second_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
                                                         name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
+        # for slice in range(10) :
+        #     print(name, slice, kruskal(first_stack[:,:,slice].flatten(), second_stack[:,:,slice].flatten()))
+        
+        # Make this section a robost function
+        first_vals = []
+        second_vals = []
+        for i in range(10) :
+            first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
+            second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
+        first_stack, second_stack = np.asarray(first_vals), np.asarray(second_vals)
+       
+        # print(name, np.round(np.mean(first_vals), 2), ',', np.round(np.median(first_vals), 2), ',', np.round(np.std(first_vals), 2), ',',
+        #       np.round(np.mean(second_vals), 2), ',', np.round(np.median(second_vals), 2), ',', np.round(np.std(second_vals), 2), ';')        
+        
         if c in range(2) : # 0,1
-            cohesive.append(c_stack)
+            cohesive_f.append(first_stack)
+            cohesive_s.append(second_stack)
             # print("cohesive", name, c)
         elif c in range(2, 7) : # 2,3,4,5,6
-            disperse.append(c_stack)
+            disperse_f.append(first_stack)
+            disperse_s.append(second_stack)
             # print("disperse", name, c)
         elif c in range(7, 10) : # 7,8,9
-            combi.append(c_stack)
-            # print("combi", name, c)
+            combi_f.append(first_stack)
+            combi_s.append(second_stack)
+            # print("combi", name, c)   
         c+=1
         
-    cohesive = np.asarray(cohesive)
-    disperse = np.asarray(disperse)
-    combi = np.asarray(combi)
-    # print(np.shape(cohesive), np.shape(disperse), np.shape(combi))
-    gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
-    print(f'{le}%')
-    print(f'{gr}%')
+    cohesive_f = np.asarray(cohesive_f)
+    cohesive_s = np.asarray(cohesive_s)
+    disperse_f = np.asarray(disperse_f)
+    disperse_s = np.asarray(disperse_s)
+    combi_f = np.asarray(combi_f)
+    combi_s = np.asarray(combi_s)
+    data = [cohesive_f.flatten(), cohesive_s.flatten(),
+            disperse_f.flatten(), disperse_s.flatten(),
+            combi_f.flatten(), combi_s.flatten()]
+    _, ax = plt.subplots()
+    ax.boxplot(data, 0, '')
+    ax.set_title('Box Plots of inner 3mm of OVD categories') 
+    ax.set_xlabel('OVD Number')
+    ax.set_ylabel('Thickness in [µm]')
+    fontP = FontProperties()
+    fontP.set_size('small')
+    
+    ax.legend(
+    ('1 Cohesive (1)',
+     '2 Cohesive (2)',
+     '3 Disperse (1)',
+     '4 Disperse (2)',
+     '5 Combi (1)',
+     '6 Combi (2)'), 
+    title='OVD groups', 
+    bbox_to_anchor=(1, 1), 
+    loc='upper left',
+    prop=fontP
+    ) 
+    
+    plt.show()
+    # print(np.shape(cohesive_f), np.shape(cohesive_s))
+    # print(np.shape(disperse_f), np.shape(disperse_s))
+    # print(np.shape(combi_f), np.shape(combi_s))
+    # # gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
+    # print(f'{le}%')
+    # print(f'{gr}%')
     # print(f'{name.upper()}')           
     # whole_stack = np.asarray(whole_stack)
-
-        
