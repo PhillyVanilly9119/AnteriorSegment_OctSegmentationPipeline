@@ -13,29 +13,28 @@ Created on Tue Sep 22 13:32:10 2020
 import os
 import tqdm
 import math
-import glob
-import time
+import random
+
 import scipy.io
 from scipy.io import savemat
-from scipy.stats import kruskal
+
 import numpy as np
 import pandas as pd
-from PIL import Image
-from tqdm import tqdm
-import matplotlib as mpl
+import seaborn as sns
+# from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
 # Custom imports
 import BackendFunctions as Backend
-import TrainingMain as Train
+# import TrainingMain as Train
 
 # OVD optical index list (empirially found by M. Wuest - wuest.melanie96@gmail.com)
 index_dict = {
     "provisc": 1.357, #cohesive
     "zhyalinplus": 1.364,
-    "discovisc": 1.337, #diperse
     "amviscplus": 1.356, 
+    "discovisc": 1.337, #diperse
     "healonendocoat": 1.357,
     "viscoat": 1.356,
     "zhyalcoat": 1.343,
@@ -363,42 +362,36 @@ def dummy_boxplot_group_creation() :
         prop=fontP) 
     plt.show()  
 
-# Start processing
-if __name__ == '__main__' :
-   
-    # dummy_thickness_map_creation()          
-
-    threshold_um = 50
+def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False) :
+    
     cohesive_f = []
     cohesive_s = []
     disperse_f = []
     disperse_s = []
     combi_f = []
     combi_s = []
-    c = 0
     data = []
-    title_string = ''
-    for name, index in index_dict.items() :    
+    
+    c = 0   
+    for name, index in index_dict.items() :
+        print(name, c)    
         first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
                                                         name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
         second_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
                                                         name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
-        # for slice in range(10) :
-        #     print(name, slice, kruskal(first_stack[:,:,slice].flatten(), second_stack[:,:,slice].flatten()))
-        
-        # Make this section a robost function
-        first_vals = []
-        second_vals = []
-        for i in range(10) :
-            first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
-            second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
-        first_stack, second_stack = np.asarray(first_vals), np.asarray(second_vals)
-       
-        # print(name, np.round(np.mean(first_vals), 2), ',', np.round(np.median(first_vals), 2), ',', np.round(np.std(first_vals), 2), ',',
-        #       np.round(np.mean(second_vals), 2), ',', np.round(np.median(second_vals), 2), ',', np.round(np.std(second_vals), 2), ';')        
-        
+
+        def grab_inner_circle_vals_only(first_stack, second_stack) :
+            first_vals = []
+            second_vals = []
+            for i in range(10) :
+                first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
+                second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
+            return np.asarray(first_vals), np.asarray(second_vals)
+
+        # first_stack, second_stack = grab_inner_circle_vals_only(first_stack, second_stack)
+
         if c in range(2) : # 0,1
             cohesive_f.append(first_stack)
             cohesive_s.append(second_stack)
@@ -411,7 +404,10 @@ if __name__ == '__main__' :
             combi_f.append(first_stack)
             combi_s.append(second_stack)
             # print("combi", name, c)   
-        c+=1
+        else :
+            ValueError("counter index out of bounds.")
+            
+        c += 1
         
     cohesive_f = np.asarray(cohesive_f)
     cohesive_s = np.asarray(cohesive_s)
@@ -419,36 +415,66 @@ if __name__ == '__main__' :
     disperse_s = np.asarray(disperse_s)
     combi_f = np.asarray(combi_f)
     combi_s = np.asarray(combi_s)
-    data = [cohesive_f.flatten(), cohesive_s.flatten(),
-            disperse_f.flatten(), disperse_s.flatten(),
+
+    # gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
+    
+    if is_save_mat_files :
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                             ('CombinedThicknessMapOVDGroup_' + 'COHESIVE_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': cohesive_f.astype(np.uint16)})
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                            ('CombinedThicknessMapOVDGroup_' + 'COHESIVE_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': cohesive_s.astype(np.uint16)})
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                             ('CombinedThicknessMapOVDGroup_' + 'DISPERSE_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': disperse_f.astype(np.uint16)})
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                            ('CombinedThicknessMapOVDGroup_' + 'DISPERSE_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': disperse_s.astype(np.uint16)})
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                             ('CombinedThicknessMapOVDGroup_' + 'COMBI_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': combi_f.astype(np.uint16)})
+        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
+                            ('CombinedThicknessMapOVDGroup_' + 'COMBI_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': combi_s.astype(np.uint16)})
+
+    data = [cohesive_f.flatten(), cohesive_s.flatten(), 
+            disperse_f.flatten(), disperse_s.flatten(), 
             combi_f.flatten(), combi_s.flatten()]
-    _, ax = plt.subplots()
-    ax.boxplot(data, 0, '')
-    ax.set_title('Box Plots of inner 3mm of OVD categories') 
-    ax.set_xlabel('OVD Number')
-    ax.set_ylabel('Thickness in [µm]')
-    fontP = FontProperties()
-    fontP.set_size('small')
     
-    ax.legend(
-    ('1 Cohesive (1)',
-     '2 Cohesive (2)',
-     '3 Disperse (1)',
-     '4 Disperse (2)',
-     '5 Combi (1)',
-     '6 Combi (2)'), 
-    title='OVD groups', 
-    bbox_to_anchor=(1, 1), 
-    loc='upper left',
-    prop=fontP
-    ) 
+    # return cohesive_f, cohesive_s, disperse_f, disperse_s, combi_f, combi_s
+    return data    
+
+def main() :    
+    data = load_entire_data_base_and_sort_after_ovd_groups()    
+    return data
     
-    plt.show()
-    # print(np.shape(cohesive_f), np.shape(cohesive_s))
-    # print(np.shape(disperse_f), np.shape(disperse_s))
-    # print(np.shape(combi_f), np.shape(combi_s))
-    # # gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
-    # print(f'{le}%')
-    # print(f'{gr}%')
-    # print(f'{name.upper()}')           
-    # whole_stack = np.asarray(whole_stack)
+# Start processing
+if __name__ == '__main__' :    
+    
+    samples = 5_000_000
+    
+    data = main()
+    c1_ = np.asarray(random.choices(data[0], k=samples))
+    c2_ = np.asarray(random.choices(data[1], k=samples))
+    d1_ = np.asarray(random.choices(data[2], k=samples))
+    d2_ = np.asarray(random.choices(data[3], k=samples))
+    cmb1_ = np.asarray(random.choices(data[4], k=samples))
+    cmb2_ = np.asarray(random.choices(data[5], k=samples))
+    del data
+    
+    df1 = pd.DataFrame( {"Cohesive 1":c1_, "rep":"IA", "OVD":"Cohesive"})
+    df2 = pd.DataFrame( {"Cohesive 2":c2_, "rep":"phaco", "OVD":"Cohesive"})
+    df3 = pd.DataFrame( {"Disperse 1":d1_, "rep":"IA", "OVD":"Disperse"})
+    df4 = pd.DataFrame( {"Disperse 2":d2_, "rep":"phaco", "OVD":"Disperse"} )
+    df5 = pd.DataFrame( {"Combi-Sytems 1":cmb1_, "rep":"IA", "OVD":"Combi"})
+    df6 = pd.DataFrame( {"Combi-Sytems 2":cmb2_, "rep":"phaco", "OVD":"Combi"})
+    
+    # plot_df_frame = pd.DataFrame( {"Cohesive OVDs - after I/A":c1_, "Cohesive OVDs - after phaco":c2_, 
+    #                               "Disperse OVDs - after I/A":d1_, "Disperse OVDs - after phaco":d2_,
+    #                               "Combi-Sytems - after I/A":cmb1_, "Combi-Sytems - after phaco":cmb2_ } )
+    
+    df = pd.melt( pd.concat([df1,df2,df3,df4,df5,df6]), 
+                  var_name = 'OVD group', value_name = 'Thickness values in µm')
+    
+    ax = sns.violinplot(data = df, x = 'OVD group', y = 'Thickness values in µm', 
+                        inner='quartile', hue='rep', split=True)
+    ax.set_title("Example Title", fontsize=15)
+    
+    
+    
+    

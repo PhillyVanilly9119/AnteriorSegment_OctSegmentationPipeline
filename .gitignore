@@ -27,3 +27,6 @@
 *.trace
 *.h5
 *.json
+
+# Other
+*.html
