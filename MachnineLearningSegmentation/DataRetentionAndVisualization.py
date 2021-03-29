@@ -457,24 +457,35 @@ if __name__ == '__main__' :
     cmb2_ = np.asarray(random.choices(data[5], k=samples))
     del data
     
-    df1 = pd.DataFrame( {"Cohesive 1":c1_, "rep":"IA", "OVD":"Cohesive"})
-    df2 = pd.DataFrame( {"Cohesive 2":c2_, "rep":"phaco", "OVD":"Cohesive"})
-    df3 = pd.DataFrame( {"Disperse 1":d1_, "rep":"IA", "OVD":"Disperse"})
-    df4 = pd.DataFrame( {"Disperse 2":d2_, "rep":"phaco", "OVD":"Disperse"} )
-    df5 = pd.DataFrame( {"Combi-Sytems 1":cmb1_, "rep":"IA", "OVD":"Combi"})
-    df6 = pd.DataFrame( {"Combi-Sytems 2":cmb2_, "rep":"phaco", "OVD":"Combi"})
+    key1 = "Thickness values in [µm]"
+    key2 = "Type of measurement"
+    key3 = "OVD groups"
     
-    # plot_df_frame = pd.DataFrame( {"Cohesive OVDs - after I/A":c1_, "Cohesive OVDs - after phaco":c2_, 
-    #                               "Disperse OVDs - after I/A":d1_, "Disperse OVDs - after phaco":d2_,
-    #                               "Combi-Sytems - after I/A":cmb1_, "Combi-Sytems - after phaco":cmb2_ } )
+    df1 = pd.DataFrame( {key1:c1_, key2:"after Irrigation and Aspiration", key3:"Cohesive"})
+    df2 = pd.DataFrame( {key1:c2_, key2:"after I/A  & Phaco", key3:"Cohesive"})
+    df3 = pd.DataFrame( {key1:d1_, key2:"after Irrigation and Aspiration", key3:"Disperse"})
+    df4 = pd.DataFrame( {key1:d2_, key2:"after I/A  & Phaco", key3:"Disperse"} )
+    df5 = pd.DataFrame( {key1:cmb1_, key2:"after Irrigation and Aspiration", key3:"Combi"})
+    df6 = pd.DataFrame( {key1:cmb2_, key2:"after I/A  & Phaco", key3:"Combi"})
     
-    df = pd.melt( pd.concat([df1,df2,df3,df4,df5,df6]), 
-                  var_name = 'OVD group', value_name = 'Thickness values in µm')
-    
-    ax = sns.violinplot(data = df, x = 'OVD group', y = 'Thickness values in µm', 
-                        inner='quartile', hue='rep', split=True)
-    ax.set_title("Example Title", fontsize=15)
-    
-    
+    df = pd.concat([df1,df2,df3,df4,df5,df6], ignore_index=True)
+       
+    fig, ax = plt.subplots(figsize=(32, 18))
+    ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
+                        inner='quartile', hue=key2, split=True, cut=0, palette='Blues', 
+                        fontsize=12, legend=False)
+
+    ax.set_xlabel(key3, fontsize=30)
+    ax.set_ylabel(key1, fontsize=25)
+    ax.set_title('Thickness values distribution split after OVD categories', fontsize=36)
+    ax.set_yticklabels(ax.get_yticks(), size=20)
+    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
+
+    # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
+    plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
+    plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
+    # ax._legend.set_title(key2, size=50) 
+
+    plt.show()
     
     
