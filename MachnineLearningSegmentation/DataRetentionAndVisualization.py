@@ -21,7 +21,7 @@ from scipy.io import savemat
 import numpy as np
 import pandas as pd
 import seaborn as sns
-# from tqdm import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
@@ -362,19 +362,11 @@ def dummy_boxplot_group_creation() :
         prop=fontP) 
     plt.show()  
 
-def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False) :
-    
-    cohesive_f = []
-    cohesive_s = []
-    disperse_f = []
-    disperse_s = []
-    combi_f = []
-    combi_s = []
-    data = []
+def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False, is_process_only_inner_circle=False) :
     
     c = 0   
     for name, index in index_dict.items() :
-        print(name, c)    
+        print(name, c) # debug print    
         first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
                                                         name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
@@ -382,6 +374,7 @@ def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False) :
                                                         name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
                                                         is_manual_path_selection=False)
 
+        # if only the inner 3mm diameter values should be taken
         def grab_inner_circle_vals_only(first_stack, second_stack) :
             first_vals = []
             second_vals = []
@@ -390,8 +383,17 @@ def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False) :
                 second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
             return np.asarray(first_vals), np.asarray(second_vals)
 
-        # first_stack, second_stack = grab_inner_circle_vals_only(first_stack, second_stack)
+        if is_process_only_inner_circle : 
+            first_stack, second_stack = grab_inner_circle_vals_only(first_stack, second_stack)
 
+        # if OVDs are split into their functional groups
+        cohesive_f = []
+        cohesive_s = []
+        disperse_f = []
+        disperse_s = []
+        combi_f = []
+        combi_s = []
+        data = []
         if c in range(2) : # 0,1
             cohesive_f.append(first_stack)
             cohesive_s.append(second_stack)
