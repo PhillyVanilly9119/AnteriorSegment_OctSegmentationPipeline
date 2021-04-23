@@ -279,10 +279,10 @@ def dummy_thickness_map_creation() :
     >>> Create and save thickness maps
     """
     path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
-    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\ThicknessMaps'
+    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\NewHeatMaps'
     mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
-    x_label='6mm [slow scanning axis]' 
-    y_label='6mm [fast scanning axis]'
+    x_label='Slow Scanning Axis [6mm]' 
+    y_label='Fast Scanning Axis [6mm]'
     my_dpi = 300
     
     for i, file in tqdm(enumerate(os.listdir(path_loading))) :
@@ -307,7 +307,9 @@ def dummy_thickness_map_creation() :
             ax.set_title(title, fontsize=15)
             ax.set_xlabel(x_label, fontsize=14)
             ax.set_ylabel(y_label, fontsize=14)
-            plt.savefig(os.path.join( path_saving, (file.split('.mat')[0] + '.png') ), format='png')
+            ax.set_yticklabels([])
+            ax.set_xticklabels([])
+            plt.savefig(os.path.join( path_saving, (file.split('.mat')[0] + '.pdf') ), format='pdf')
         plt.clf()
   
 def dummy_boxplot_group_creation() :
@@ -411,14 +413,15 @@ def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False, is_
             
         c += 1
         
-    cohesive_f = np.asarray(cohesive_f)
-    cohesive_s = np.asarray(cohesive_s)
-    disperse_f = np.asarray(disperse_f)
-    disperse_s = np.asarray(disperse_s)
-    combi_f = np.asarray(combi_f)
-    combi_s = np.asarray(combi_s)
-
-    # gr, le = calc_value_ratio_for_threshold(cohesive, threshold_um)
+        data.append(first_stack)
+        data.append(second_stack)
+             
+    # cohesive_f = np.asarray(cohesive_f)
+    # cohesive_s = np.asarray(cohesive_s)
+    # disperse_f = np.asarray(disperse_f)
+    # disperse_s = np.asarray(disperse_s)
+    # combi_f = np.asarray(combi_f)
+    # combi_s = np.asarray(combi_s)
     
     if is_save_mat_files :
         savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
@@ -434,52 +437,108 @@ def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False, is_
         savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
                             ('CombinedThicknessMapOVDGroup_' + 'COMBI_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': combi_s.astype(np.uint16)})
 
-    data = [cohesive_f.flatten(), cohesive_s.flatten(), 
-            disperse_f.flatten(), disperse_s.flatten(), 
-            combi_f.flatten(), combi_s.flatten()]
+    # data = [cohesive_f.flatten(), cohesive_s.flatten(), 
+    #         disperse_f.flatten(), disperse_s.flatten(), 
+    #         combi_f.flatten(), combi_s.flatten()]
     
     # return cohesive_f, cohesive_s, disperse_f, disperse_s, combi_f, combi_s
-    return data    
+    return np.asarray(data)    
 
-def main() :    
-    data = load_entire_data_base_and_sort_after_ovd_groups()    
-    return data
+def main() :   
     
-# Start processing
-if __name__ == '__main__' :    
+# =============================================================================
+#     index_dict = {
+#     "provisc": 1.357, #cohesive
+#     "zhyalinplus": 1.364,
+#     "amviscplus": 1.356, 
+#     "discovisc": 1.337, #diperse
+#     "healonendocoat": 1.357,
+#     "viscoat": 1.356,
+#     "zhyalcoat": 1.343,
+#     "combivisc": 1.353, #combi-systems
+#     "duovisc": 1.356,
+#     "twinvisc": 1.353,
+# }
+# =============================================================================
     
-    samples = 5_000_000
-    
-    data = main()
-    c1_ = np.asarray(random.choices(data[0], k=samples))
-    c2_ = np.asarray(random.choices(data[1], k=samples))
-    d1_ = np.asarray(random.choices(data[2], k=samples))
-    d2_ = np.asarray(random.choices(data[3], k=samples))
-    cmb1_ = np.asarray(random.choices(data[4], k=samples))
-    cmb2_ = np.asarray(random.choices(data[5], k=samples))
-    del data
+    data1 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'combivisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+    data2 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'combivisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+    data3 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'duovisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+    data4 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'duovisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+    data5 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'twinvisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+    data6 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+                                                        'twinvisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+                                                        is_manual_path_selection=False)
+# =============================================================================
+#     data7 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+#                                                         'viscoat', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+#                                                         is_manual_path_selection=False)
+#     data8 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+#                                                         'viscoat', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+#                                                         is_manual_path_selection=False)    
+#     data9 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+#                                                         'zhyalcoat', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+#                                                         is_manual_path_selection=False)
+#     data10 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
+#                                                         'zhyalcoat', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
+#                                                         is_manual_path_selection=False)
+# =============================================================================
+    samples = 2621440
+
+    _d1 = np.asarray(random.choices(data1.flatten(), k=samples))
+    _d2 = np.asarray(random.choices(data2.flatten(), k=samples))
+    _d3 = np.asarray(random.choices(data3.flatten(), k=samples))
+    _d4 = np.asarray(random.choices(data4.flatten(), k=samples))
+    _d5 = np.asarray(random.choices(data5.flatten(), k=samples))
+    _d6 = np.asarray(random.choices(data6.flatten(), k=samples))
+# =============================================================================
+#     _d7 = np.asarray(random.choices(data7.flatten(), k=samples))
+#     _d8 = np.asarray(random.choices(data8.flatten(), k=samples))
+#     _d9 = np.asarray(random.choices(data9.flatten(), k=samples))
+#     _d10 = np.asarray(random.choices(data10.flatten(), k=samples))
+# =============================================================================
     
     key1 = "Thickness values in [µm]"
     key2 = "Type of measurement"
-    key3 = "OVD groups"
+    key3 = "OVD name"
+
+    df1 = pd.DataFrame( {key1:_d1, key2:"after I/A", key3:"combivisc"} )
+    df2 = pd.DataFrame( {key1:_d2, key2:"after I/A & Phaco", key3:"combivisc"} )
+    df3 = pd.DataFrame( {key1:_d3, key2:"after I/A", key3:"duovisc"} )
+    df4 = pd.DataFrame( {key1:_d4, key2:"after I/A & Phaco", key3:"duovisc"} )
+    df5 = pd.DataFrame( {key1:_d5, key2:"after I/A", key3:"twinvisc"})
+    df6 = pd.DataFrame( {key1:_d6, key2:"after I/A & Phaco", key3:"twinvisc"} )
+# =============================================================================
+#     df7 = pd.DataFrame( {key1:_d7, key2:"after I/A", key3:"viscoat"} )
+#     df8 = pd.DataFrame( {key1:_d8, key2:"after I/A & Phaco", key3:"viscoat"} )
+#     df9 = pd.DataFrame( {key1:_d9, key2:"after I/A", key3:"zhyalcoat"} )
+#     df10 = pd.DataFrame( {key1:_d10, key2:"after I/A & Phaco", key3:"zhyalcoat"} )
+# =============================================================================
     
-    df1 = pd.DataFrame( {key1:c1_, key2:"after Irrigation and Aspiration", key3:"Cohesive"})
-    df2 = pd.DataFrame( {key1:c2_, key2:"after I/A  & Phaco", key3:"Cohesive"})
-    df3 = pd.DataFrame( {key1:d1_, key2:"after Irrigation and Aspiration", key3:"Disperse"})
-    df4 = pd.DataFrame( {key1:d2_, key2:"after I/A  & Phaco", key3:"Disperse"} )
-    df5 = pd.DataFrame( {key1:cmb1_, key2:"after Irrigation and Aspiration", key3:"Combi"})
-    df6 = pd.DataFrame( {key1:cmb2_, key2:"after I/A  & Phaco", key3:"Combi"})
-    
-    df = pd.concat([df1,df2,df3,df4,df5,df6], ignore_index=True)
-       
+    df = pd.concat([df1, df2, df3, df4, df5, df6], ignore_index=True)
+    # return df
     fig, ax = plt.subplots(figsize=(32, 18))
     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
-                        inner='quartile', hue=key2, split=True, cut=0, palette='Blues', 
-                        fontsize=12, legend=False)
+                        inner='quartile', cut=0, palette='Blues', fontsize=12, 
+                        legend=False, split=True, hue=key2)
+# =============================================================================
+#     , hue=key2, split=True, cut=0, palette='Blues', 
+#                         fontsize=12, legend=False)
+# =============================================================================
 
     ax.set_xlabel(key3, fontsize=30)
     ax.set_ylabel(key1, fontsize=25)
-    ax.set_title('Thickness values distribution split after OVD categories', fontsize=36)
+    ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
     ax.set_yticklabels(ax.get_yticks(), size=20)
     ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
 
@@ -489,5 +548,11 @@ if __name__ == '__main__' :
     # ax._legend.set_title(key2, size=50) 
 
     plt.show()
+    return df
+    
+# Start processing
+if __name__ == '__main__' :  
+    var = main()
+    
     
     
