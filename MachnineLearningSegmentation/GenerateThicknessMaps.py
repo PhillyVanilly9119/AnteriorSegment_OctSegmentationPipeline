@@ -335,5 +335,4 @@ def generate_and_safe_thickness_maps(flag_delete_existing_eval_data_path=True) :
 
 
 if __name__ == '__main__' :
-    
-    generate_and_safe_thickness_maps()
+            
