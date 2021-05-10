@@ -6,7 +6,12 @@ Created on Tue Sep 22 13:32:10 2020
 
 @copyright: Medical University of Vienna,
             Center for Medical Physics and Biomedical Engineering
+              
+                                    **************
+              
+    Script containing functions to calculate thickness maps and perform analysis in them
                 
+                                    **************
 """
 
 # Global imports 
@@ -550,9 +555,22 @@ def main() :
     plt.show()
     return df
     
+
 # Start processing
-if __name__ == '__main__' :  
-    var = main()
+if __name__ == '__main__' : 
+    
+    path_mat_files = r'C:\Users\Philipp\Desktop\OVID Results\DATA\Raw Thickness Maps'
+    #var = main()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
