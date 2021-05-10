@@ -36,14 +36,14 @@ import BackendFunctions as Backend
 
 # OVD optical index list (empirially found by M. Wuest - wuest.melanie96@gmail.com)
 index_dict = {
-    "provisc": 1.357, #cohesive
+    "provisc": 1.357, # from here on: cohesive
     "zhyalinplus": 1.364,
     "amviscplus": 1.356, 
-    "discovisc": 1.337, #diperse
+    "discovisc": 1.337, # from here on: diperse
     "healonendocoat": 1.357,
     "viscoat": 1.356,
     "zhyalcoat": 1.343,
-    "combivisc": 1.353, #combi-systems
+    "combivisc": 1.353, # from here on: combi-systems
     "duovisc": 1.356,
     "twinvisc": 1.353,
 }
@@ -335,11 +335,6 @@ def dummy_boxplot_group_creation() :
             first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
             second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
         first_vals, second_vals = np.asarray(first_vals), np.asarray(second_vals)
-        ## Save data if you want to 
-        # savemat(os.path.join(r'C:\Users\Philipp\Desktop', ('CombinedThicknessMapInner3mm_' + name.upper() + '_firstRep.mat')),  
-        #                     {'ALL_THICKNESS_MAPs': first_vals.astype(np.uint16)})
-        # savemat(os.path.join(r'C:\Users\Philipp\Desktop', ('CombinedThicknessMapInner3mm_' + name.upper() + '_secondRep.mat')),  
-        #                     {'ALL_THICKNESS_MAPs': second_vals.astype(np.uint16)})
         first_vals = first_vals.flatten()
         second_vals = second_vals.flatten()
         data.append(second_vals.flatten())
@@ -369,169 +364,62 @@ def dummy_boxplot_group_creation() :
         prop=fontP) 
     plt.show()  
 
-def load_entire_data_base_and_sort_after_ovd_groups(is_save_mat_files=False, is_process_only_inner_circle=False) :
+
+def grab_inner_circle_vals_only(stack_in, num_ovds: int=10, radius_pxls: int=128):
+    assert stack_in.ndim == 3 # expecting 3D data cube 
+    return np.asarray([find_values_in_inner_circle(stack_in[:,:,i], radius_pxls)[0] for i in range(num_ovds)])
+
+
+def load_all_ovd_data(index_dict, path_files_loading, path_files_saving, rep_num,
+                      is_save_files=False, is_process_inner_circle=False) :
     
-    c = 0   
-    for name, index in index_dict.items() :
-        print(name, c) # debug print    
-        first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-        second_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-
-        # if only the inner 3mm diameter values should be taken
-        def grab_inner_circle_vals_only(first_stack, second_stack) :
-            first_vals = []
-            second_vals = []
-            for i in range(10) :
-                first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
-                second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
-            return np.asarray(first_vals), np.asarray(second_vals)
-
-        if is_process_only_inner_circle : 
-            first_stack, second_stack = grab_inner_circle_vals_only(first_stack, second_stack)
-
-        # if OVDs are split into their functional groups
-        cohesive_f = []
-        cohesive_s = []
-        disperse_f = []
-        disperse_s = []
-        combi_f = []
-        combi_s = []
-        data = []
-        if c in range(2) : # 0,1
-            cohesive_f.append(first_stack)
-            cohesive_s.append(second_stack)
-            # print("cohesive", name, c)
-        elif c in range(2, 7) : # 2,3,4,5,6
-            disperse_f.append(first_stack)
-            disperse_s.append(second_stack)
-            # print("disperse", name, c)
-        elif c in range(7, 10) : # 7,8,9
-            combi_f.append(first_stack)
-            combi_s.append(second_stack)
-            # print("combi", name, c)   
-        else :
-            ValueError("counter index out of bounds.")
-            
-        c += 1
+    for name, _ in index_dict.items() :
         
-        data.append(first_stack)
-        data.append(second_stack)
-             
-    # cohesive_f = np.asarray(cohesive_f)
-    # cohesive_s = np.asarray(cohesive_s)
-    # disperse_f = np.asarray(disperse_f)
-    # disperse_s = np.asarray(disperse_s)
-    # combi_f = np.asarray(combi_f)
-    # combi_s = np.asarray(combi_s)
-    
-    if is_save_mat_files :
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                             ('CombinedThicknessMapOVDGroup_' + 'COHESIVE_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': cohesive_f.astype(np.uint16)})
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                            ('CombinedThicknessMapOVDGroup_' + 'COHESIVE_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': cohesive_s.astype(np.uint16)})
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                             ('CombinedThicknessMapOVDGroup_' + 'DISPERSE_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': disperse_f.astype(np.uint16)})
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                            ('CombinedThicknessMapOVDGroup_' + 'DISPERSE_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': disperse_s.astype(np.uint16)})
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                             ('CombinedThicknessMapOVDGroup_' + 'COMBI_firstRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': combi_f.astype(np.uint16)})
-        savemat(os.path.join(r'C:\Users\Philipp\Desktop\OVID Results\DATA\CombinedMapsOvdGroupsInner3mm', 
-                            ('CombinedThicknessMapOVDGroup_' + 'COMBI_secondRep.mat')), {'ALL_COMBINED_GROUP_THICKNESS_MAPs': combi_s.astype(np.uint16)})
+        print(name) # debug print    
+        data_stack = stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, rep_num)
 
-    # data = [cohesive_f.flatten(), cohesive_s.flatten(), 
-    #         disperse_f.flatten(), disperse_s.flatten(), 
-    #         combi_f.flatten(), combi_s.flatten()]
-    
-    # return cohesive_f, cohesive_s, disperse_f, disperse_s, combi_f, combi_s
-    return np.asarray(data)    
+        # grab only values from inner 3mm diameter 
+        if is_process_inner_circle : 
+            data_inner_dia = grab_inner_circle_vals_only(data_stack) # asserting [x, y, n] cube (n = number of measurement repetitions)
+            data_stack = data_inner_dia
+            
+            if is_save_files :
+                savemat(os.path.join(path_files_saving, 'CombinedMapsInner3mm' + name + 'mat'), 
+                        {'ALL_COMBINED_GROUP_THICKNESS_MAPs': data_stack.astype(np.uint16)})
 
-def main() :   
-    
-# =============================================================================
-#     index_dict = {
-#     "provisc": 1.357, #cohesive
-#     "zhyalinplus": 1.364,
-#     "amviscplus": 1.356, 
-#     "discovisc": 1.337, #diperse
-#     "healonendocoat": 1.357,
-#     "viscoat": 1.356,
-#     "zhyalcoat": 1.343,
-#     "combivisc": 1.353, #combi-systems
-#     "duovisc": 1.356,
-#     "twinvisc": 1.353,
-# }
-# =============================================================================
-    
-    data1 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'combivisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-    data2 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'combivisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-    data3 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'duovisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-    data4 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'duovisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-    data5 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'twinvisc', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-    data6 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        'twinvisc', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-# =============================================================================
-#     data7 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-#                                                         'viscoat', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-#                                                         is_manual_path_selection=False)
-#     data8 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-#                                                         'viscoat', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-#                                                         is_manual_path_selection=False)    
-#     data9 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-#                                                         'zhyalcoat', 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-#                                                         is_manual_path_selection=False)
-#     data10 = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-#                                                         'zhyalcoat', 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-#                                                         is_manual_path_selection=False)
-# =============================================================================
-    samples = 2621440
+    return np.asarray(data_stack)    
 
-    _d1 = np.asarray(random.choices(data1.flatten(), k=samples))
-    _d2 = np.asarray(random.choices(data2.flatten(), k=samples))
-    _d3 = np.asarray(random.choices(data3.flatten(), k=samples))
-    _d4 = np.asarray(random.choices(data4.flatten(), k=samples))
-    _d5 = np.asarray(random.choices(data5.flatten(), k=samples))
-    _d6 = np.asarray(random.choices(data6.flatten(), k=samples))
-# =============================================================================
-#     _d7 = np.asarray(random.choices(data7.flatten(), k=samples))
-#     _d8 = np.asarray(random.choices(data8.flatten(), k=samples))
-#     _d9 = np.asarray(random.choices(data9.flatten(), k=samples))
-#     _d10 = np.asarray(random.choices(data10.flatten(), k=samples))
-# =============================================================================
+
+def return_n_random_choices(data, samples) :
+    return np.asarray(random.choices(data.flatten(), k=samples))
+
+
+def create_pandas_data_frame(data, index_dict: dict, num_rep: int) :
+    
+    assert data.ndim == 3
+    # assert that data stack contains as much different OVDs as the name dict contains entries
+    assert data.shape[-1] == len(index_dict) 
     
     key1 = "Thickness values in [µm]"
     key2 = "Type of measurement"
     key3 = "OVD name"
-
-    df1 = pd.DataFrame( {key1:_d1, key2:"after I/A", key3:"combivisc"} )
-    df2 = pd.DataFrame( {key1:_d2, key2:"after I/A & Phaco", key3:"combivisc"} )
-    df3 = pd.DataFrame( {key1:_d3, key2:"after I/A", key3:"duovisc"} )
-    df4 = pd.DataFrame( {key1:_d4, key2:"after I/A & Phaco", key3:"duovisc"} )
-    df5 = pd.DataFrame( {key1:_d5, key2:"after I/A", key3:"twinvisc"})
-    df6 = pd.DataFrame( {key1:_d6, key2:"after I/A & Phaco", key3:"twinvisc"} )
-# =============================================================================
-#     df7 = pd.DataFrame( {key1:_d7, key2:"after I/A", key3:"viscoat"} )
-#     df8 = pd.DataFrame( {key1:_d8, key2:"after I/A & Phaco", key3:"viscoat"} )
-#     df9 = pd.DataFrame( {key1:_d9, key2:"after I/A", key3:"zhyalcoat"} )
-#     df10 = pd.DataFrame( {key1:_d10, key2:"after I/A & Phaco", key3:"zhyalcoat"} )
-# =============================================================================
+    if num_rep == 1:
+        rep_key = "after I/A"
+    elif num_rep == 2:
+        rep_key = "after I/A & Phaco"
+    else :
+        ValueError("num_rep argument invalid... Please check if 3rd parameter is either 1 or 2")
     
-    df = pd.concat([df1, df2, df3, df4, df5, df6], ignore_index=True)
-    # return df
+    frame_list = []
+    for ovd in range(data.shape[-1]) : 
+        df = pd.DataFrame( {key1:data[:,:,ovd].flatten(), key2:rep_key, key3:index_dict[ovd]} )
+        frame_list.append(df)
+
+    return pd.concat(frame_list, ignore_index=True)
+
+
+def main() :   
+    
     fig, ax = plt.subplots(figsize=(32, 18))
     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
                         inner='quartile', cut=0, palette='Blues', fontsize=12, 
@@ -559,7 +447,7 @@ def main() :
 # Start processing
 if __name__ == '__main__' : 
     
-    path_mat_files = r'C:\Users\Philipp\Desktop\OVID Results\DATA\Raw Thickness Maps'
+    path_mat_files = r'C:\Users\phili\Desktop\OVID\ThicknesMapsOriginalSampling'
     #var = main()
     
     
