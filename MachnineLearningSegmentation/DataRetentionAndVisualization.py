@@ -21,6 +21,7 @@ import math
 import random
 
 import scipy.io
+from scipy.stats import kruskal
 from scipy.io import savemat
 
 import numpy as np
@@ -47,6 +48,16 @@ index_dict = {
     "duovisc": 1.356,
     "twinvisc": 1.353,
 }
+
+#### TODO: Starting to clean up and rewrite some functions in OOP
+
+class HandleThicknessMaps():
+    def __init__(self):
+        pass
+    
+    def get_loading_path(self, flag):
+        pass
+
 
 #########################################
 ### I/O AND MEASUREMENT NAME HANDLING ###
@@ -121,15 +132,21 @@ def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THI
     stacked_map_array = []
     for file in os.listdir(main_path) :
         c_full_file_path = os.path.join(main_path, file)
-        c_ovd_name = get_ovd_name(c_full_file_path)
+        c_ovd_name = get_ovd_name(c_full_file_path) 
         if file.endswith('.mat') and os.path.isfile(c_full_file_path) and c_ovd_name.lower()==ovd_name.lower() :
             stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )
     return np.dstack( np.asarray(stacked_map_array) )
 
-def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, meas_rep_num, mat_var_name='INTERPOL_THICKNESS_MAP', is_manual_path_selection=True) :
+def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, index, meas_rep_num, 
+                                         mat_var_name='INTERPOL_THICKNESS_MAP', 
+                                         is_manual_path_selection=True) :
     """
     >>> returns 3D data tensor, containing the stacked thickness maps of the same OVDs from the same measurement repetition
     """
+    
+    if meas_rep_num != 1 or meas_rep_num != 2:
+        ValueError("num_rep argument invalid... Please check if 3rd parameter is either 1 or 2")
+    
     if is_manual_path_selection :
         main_path = Backend.clean_path_selection("Please select path with thickness maps")  
     stacked_map_array = []
@@ -138,9 +155,17 @@ def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, meas_rep_num, mat_
         c_full_file_path = os.path.join(main_path, file)
         c_ovd_name = get_ovd_name(c_full_file_path)
         c_rep = get_repetition_number(c_full_file_path)
-        if file.endswith('.mat') and os.path.isfile(c_full_file_path) and c_ovd_name.lower()==ovd_name.lower() and c_rep==meas_rep_num:
-            stacked_map_array.append( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name) )    
-    return np.dstack( np.asarray(stacked_map_array) )
+        # print(file.endswith('.mat'))
+        # print(os.path.isfile(c_full_file_path))
+        # print(c_ovd_name.lower(), ovd_name.lower())
+        # print(c_rep, meas_rep_num)
+        if file.endswith('.mat') and os.path.isfile(c_full_file_path) and \
+            c_ovd_name.lower()==ovd_name.lower() and c_rep==meas_rep_num:
+            index = index_dict[c_ovd_name.lower()]
+            data_stack_um = convert_ovd_map_to_um( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name), 
+                                                  index)  
+            stacked_map_array.append(data_stack_um)  
+    return np.asarray(stacked_map_array)
 
 ######################
 ### MAP PROCESSING ###
@@ -150,7 +175,7 @@ def convert_ovd_map_to_um(heat_map, index, scan_depth_um=2900, aLen_plxs=512, dt
     >>> converts the values of the ovd thickness map from realtive a-Scan samples/pixels to µm
     """
     conversion_factor = (scan_depth_um * 1.34) / (index * aLen_plxs) # convert from pixels to µm acc. to opt. idx of OVD 
-    return np.asarray( conversion_factor * heat_map, dtype=np.uint16 )
+    return np.asarray( conversion_factor * heat_map, dtype=dtype_return )
 
 def save_mat_file_as_xls(mat_file, file_name, path='', is_manual_path_selection=True) :
     """
@@ -207,77 +232,69 @@ def find_values_in_inner_circle(c_map, radius_pxls) :
                 inner_pnts_spots.append([i,j])
     return np.asarray(inner_pnts), np.asarray(inner_pnts_spots)
 
+
+def grab_inner_circle_vals_only(stack_in, num_ovds: int=10, radius_pxls: int=128):
+    assert stack_in.ndim == 3 # expecting 3D data cube 
+    return np.asarray([find_values_in_inner_circle(stack_in[i,:,:], radius_pxls)[0] for i in range(num_ovds)])
+
+
+def load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, rep_num,
+                      is_save_files=False, is_process_inner_circle=False) :
+    """
+    returns data stack with all OVDs from one measurement repetition
+    data_stack = [name_ovd, measurement, length, width]
+    """
+    return_list = []
+    for name, index in index_dict.items() :
+        data_stack = stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, index, rep_num, 
+                                                          mat_var_name='ORIGINAL_THICKNESS_MAP',
+                                                          is_manual_path_selection=False)
+        print(data_stack.shape)
+        # grab only values from inner 3mm diameter 
+        if is_process_inner_circle :
+            print()
+            data_inner_dia = grab_inner_circle_vals_only(data_stack) # asserting [x, y, n] cube (n = number of measurement repetitions)
+            data_stack = data_inner_dia
+            
+            if is_save_files :
+                savemat(os.path.join(path_files_saving, 'CombinedMapsInner3mm' + name + 'mat'), 
+                        {'ALL_COMBINED_GROUP_THICKNESS_MAPs': data_stack.astype(np.uint16)})
+        return_list.append(data_stack)
+
+    return np.asarray(np.squeeze(return_list))    
+
+
+def return_n_random_choices(data, samples) :
+    return np.asarray(random.choices(data.flatten(), k=samples))
+
+
+def create_pandas_data_frame(data, index_dict: dict, num_rep: int) :
+    
+    assert data.ndim == 3
+    # assert that data stack contains as much different OVDs as the name dict contains entries
+    assert data.shape[-1] == len(index_dict) 
+    
+    key1 = "Thickness values in [µm]"
+    key2 = "Type of measurement"
+    key3 = "OVD name"
+    if num_rep == 1:
+        rep_key = "after I/A"
+    elif num_rep == 2:
+        rep_key = "after I/A & Phaco"
+    else :
+        ValueError("num_rep argument invalid... Please check if 3rd parameter is either 1 or 2")
+    
+    frame_list = []
+    for ovd in range(data.shape[-1]) : 
+        df = pd.DataFrame( {key1:data[:,:,ovd].flatten(), key2:rep_key, key3:index_dict[ovd]} )
+        frame_list.append(df)
+
+    return pd.concat(frame_list, ignore_index=True)
+
+
 ################
 ### PLOTTING ###
-################
-def create_histogram(data_stack, ax, delta_bar, thickness_threshold_um=30, is_truncate_threshold=True, 
-                     histo_label="Histogram", x_label="Thickness in [µm]", y_label="Count [n]",
-                     update_rate=1, is_show_histos_full_screen=False) :
-    """
-    >>> creates histograms of OVD data stack and colors values below threshold differently if wanted
-    """   
-    data_stack = data_stack.reshape(np.size(data_stack))  
-    _, _, patches = ax.hist(data_stack, bins=delta_bar)
-    ax.set_xlabel(x_label, fontsize=12)
-    ax.set_ylabel(y_label, fontsize=12)
-    ax.set_title(histo_label, fontsize=18)
-    if is_truncate_threshold : 
-        bar_thickness_value = round(np.amax(data_stack) / len(patches))
-        if bar_thickness_value > thickness_threshold_um :
-            ticks_boundary = 1
-        else :
-            ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
-        for i in range(int(ticks_boundary)) :    
-            patches[i].set_facecolor('r')
-    # Show plot on full screen 
-    if is_show_histos_full_screen :
-        mng = plt.get_current_fig_manager()
-        mng.window.showMaximized()
-    # Show images for a certain time/ with a certain update rate 
-    plt.draw()
-    plt.pause(1/update_rate)
-    
-def dummy_histo_creation() :
-    """
-    >>> Create and save histograms
-    """
-    delta_bar = 64
-    thickness_threshold_um = 50
-    path_loading = r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm'
-    path_saving = r'C:\Users\Philipp\Desktop\OVID Results\All OVDs Histos\All Histos 64 Bar Delta 50 Threshold'
-    mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM'
-    x_label='Thickness in [µm]' 
-    y_label='Sample Count [n]'
-    my_dpi = 150
-    
-    for file in tqdm(os.listdir(path_loading)) :
-        c_full_file_path = os.path.join(path_loading, file)
-        just_file = file.split('.mat')[0].split('_')
-        just_file = [string + '_' for string in just_file]
-        title_string = ''.join(just_file[1:])[:-1]
-        plt.ion()
-        # plt.figure(figsize=(1920/my_dpi, 1080/my_dpi))
-        _, ax = plt.subplots(figsize=(1920/my_dpi, 1080/my_dpi))
-        if file.endswith('.mat') and os.path.isfile(c_full_file_path) :
-            data_stack = load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name)
-            histo_label = 'Histogram of ' + title_string 
-            data_stack = data_stack.reshape(np.size(data_stack))  
-            _, _, patches = ax.hist(data_stack, bins=delta_bar)
-            ax.set_xlabel(x_label, fontsize=12)
-            ax.set_ylabel(y_label, fontsize=12)
-            ax.set_title(histo_label, fontsize=18)
-            bar_thickness_value = round(np.amax(data_stack) / len(patches))
-            if bar_thickness_value > thickness_threshold_um :
-                ticks_boundary = 1
-            else :
-                ticks_boundary = round(thickness_threshold_um/bar_thickness_value)
-                if math.isinf(ticks_boundary) :
-                    ticks_boundary = 0 
-            for i in range(int(ticks_boundary)) :    
-                patches[i].set_facecolor('r')
-            plt.show()
-            plt.savefig(os.path.join(path_saving, title_string + '.png'), format='png')
-        plt.clf()
+################   
   
 def dummy_thickness_map_creation() :
     """
@@ -316,139 +333,88 @@ def dummy_thickness_map_creation() :
             ax.set_xticklabels([])
             plt.savefig(os.path.join( path_saving, (file.split('.mat')[0] + '.pdf') ), format='pdf')
         plt.clf()
-  
-def dummy_boxplot_group_creation() :
-    c = 0
-    data = []
-    title_string = ''
-    for name, _ in index_dict.items() :    
-        c+=1
-        first_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 1, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-        second_stack = stack_all_heat_maps_same_ovd_and_rep(r'C:\Users\Philipp\Desktop\OVID Results\Thickness Maps in µm', 
-                                                        name, 2, mat_var_name='INTERPOL_THICKNESS_MAP_SMOOTH_UM', 
-                                                        is_manual_path_selection=False)
-        first_vals = []
-        second_vals = []
-        for i in range(10) :
-            first_vals.append(find_values_in_inner_circle(first_stack[:,:,i], 128)[0])
-            second_vals.append(find_values_in_inner_circle(second_stack[:,:,i], 128)[0])
-        first_vals, second_vals = np.asarray(first_vals), np.asarray(second_vals)
-        first_vals = first_vals.flatten()
-        second_vals = second_vals.flatten()
-        data.append(second_vals.flatten())
-        title_string += ' ' + str(c) + ' ' + name.upper()
-    _, ax = plt.subplots()
-    ax.boxplot(data, 0, '')
-    ax.set_title('Box Plots of all OVDs inner 3mm of second measurement (phaco)') 
-    ax.set_xlabel('OVD Number')
-    ax.set_ylabel('Thickness in [µm]')
-    fontP = FontProperties()
-    fontP.set_size('small')
-
-    ax.legend(
-        ('1 PROVISC', 
-         '2 ZHYALINPLUS',
-         '3 DISCOVISC',
-         '4 AMVISCPLUS', 
-         '5 HEALONENDOCOAT',
-         '6 VISCOAT', 
-         '7 ZHYALCOAT', 
-         '8 COMBIVISC', 
-         '9 DUOVISC', 
-         '10 TWINVISC'), 
-        title='Names OVDs', 
-        bbox_to_anchor=(1, 1), 
-        loc='upper left',
-        prop=fontP) 
-    plt.show()  
 
 
-def grab_inner_circle_vals_only(stack_in, num_ovds: int=10, radius_pxls: int=128):
-    assert stack_in.ndim == 3 # expecting 3D data cube 
-    return np.asarray([find_values_in_inner_circle(stack_in[:,:,i], radius_pxls)[0] for i in range(num_ovds)])
-
-
-def load_all_ovd_data(index_dict, path_files_loading, path_files_saving, rep_num,
-                      is_save_files=False, is_process_inner_circle=False) :
-    
-    for name, _ in index_dict.items() :
-        
-        print(name) # debug print    
-        data_stack = stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, rep_num)
-
-        # grab only values from inner 3mm diameter 
-        if is_process_inner_circle : 
-            data_inner_dia = grab_inner_circle_vals_only(data_stack) # asserting [x, y, n] cube (n = number of measurement repetitions)
-            data_stack = data_inner_dia
-            
-            if is_save_files :
-                savemat(os.path.join(path_files_saving, 'CombinedMapsInner3mm' + name + 'mat'), 
-                        {'ALL_COMBINED_GROUP_THICKNESS_MAPs': data_stack.astype(np.uint16)})
-
-    return np.asarray(data_stack)    
-
-
-def return_n_random_choices(data, samples) :
-    return np.asarray(random.choices(data.flatten(), k=samples))
-
-
-def create_pandas_data_frame(data, index_dict: dict, num_rep: int) :
-    
-    assert data.ndim == 3
-    # assert that data stack contains as much different OVDs as the name dict contains entries
-    assert data.shape[-1] == len(index_dict) 
-    
-    key1 = "Thickness values in [µm]"
-    key2 = "Type of measurement"
-    key3 = "OVD name"
-    if num_rep == 1:
-        rep_key = "after I/A"
-    elif num_rep == 2:
-        rep_key = "after I/A & Phaco"
-    else :
-        ValueError("num_rep argument invalid... Please check if 3rd parameter is either 1 or 2")
-    
-    frame_list = []
-    for ovd in range(data.shape[-1]) : 
-        df = pd.DataFrame( {key1:data[:,:,ovd].flatten(), key2:rep_key, key3:index_dict[ovd]} )
-        frame_list.append(df)
-
-    return pd.concat(frame_list, ignore_index=True)
-
-
-def main() :   
-    
-    fig, ax = plt.subplots(figsize=(32, 18))
-    ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
-                        inner='quartile', cut=0, palette='Blues', fontsize=12, 
-                        legend=False, split=True, hue=key2)
-# =============================================================================
-#     , hue=key2, split=True, cut=0, palette='Blues', 
-#                         fontsize=12, legend=False)
-# =============================================================================
-
-    ax.set_xlabel(key3, fontsize=30)
-    ax.set_ylabel(key1, fontsize=25)
-    ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
-    ax.set_yticklabels(ax.get_yticks(), size=20)
-    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-
-    # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
-    plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
-    plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
-    # ax._legend.set_title(key2, size=50) 
-
-    plt.show()
-    return df
-    
+def main() : 
+    pass
 
 # Start processing
-if __name__ == '__main__' : 
+if __name__ == '__main__' :
     
-    path_mat_files = r'C:\Users\phili\Desktop\OVID\ThicknesMapsOriginalSampling'
-    #var = main()
+    path_files_loading = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\Original Data'
+    path_files_saving = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\OVD Type Maps'
+    rep_num = 2
+    data = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, rep_num=rep_num, 
+                                            is_process_inner_circle=False)
+    # len_vec = []
+    # for set_ in range(data.shape[-1]):
+    #     len_vec.append(data[:,:,set_].flatten())
+    # len_vec = np.asarray(np.swapaxes(len_vec, 1, 0))
+    # print(len_vec.shape)
+    matrix = np.zeros((10,10))
+    print(data.shape)
+    # print(data.shape)
+    for ovd in range(data.shape[0]):
+        for i in range(data.shape[1]):
+            matrix[ovd,i] = calc_value_ratio_for_threshold(data[ovd,i,:,:], 200)[0]
+
+    
+    # print(kruskal(data[i,:,:,0], data[i,:,:,1],
+    #               data[i,:,:,2], data[i,:,:,3],
+    #               data[i,:,:,4], data[i,:,:,5],
+    #               data[i,:,:,6], data[i,:,:,7],
+    #               data[i,:,:,8], data[i,:,:,9]))
+    
+# =============================================================================
+#     d1 = data[0,:].flatten()
+#     d2 = data[1,:].flatten()
+#     d3 = data[2,:].flatten()
+#     d4 = data[3,:].flatten()
+#     d5 = data[4,:].flatten()
+#     d6 = data[5,:].flatten()
+#     d7 = data[6,:].flatten()
+#     d8 = data[7,:].flatten()
+#     d9 = data[8,:].flatten()
+#     d10 = data[9,:].flatten()
+# =============================================================================
+    
+    # s, p = kruskal(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10)
+    # print(kruskal(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10))
+    
+    # bins = np.linspace(0, 2250, 64)
+
+    # fig, ax = plt.subplots(figsize=(32, 18))
+    # ax.set_xlabel('Thickness values in [µm]', fontsize=16)
+    # ax.set_ylabel('Count [n]', fontsize=16)
+    # ax.set_title(f'Thickness values\nKruskal-Wallis-Test results:\nstats={s} and p-value={p}', fontsize=20)
+    # # ax.set_xlabel(ax.get_yticks(), size=20)
+    # # ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
+    # plt.hist(d1, bins, alpha=0.5, label='Amvisc Plus')
+    # plt.hist(d2, bins, alpha=0.5, label='DiscoVisc')
+    # plt.hist(d3, bins, alpha=0.5, label='Healon Endocoat')
+    # plt.hist(d4, bins, alpha=0.5, label='Viscoat')
+    # plt.hist(d5, bins, alpha=0.5, label='Z-Hyalcoat')
+    # plt.hist(d6, bins, alpha=0.5, label='Measurement 6')
+    # plt.hist(d7, bins, alpha=0.5, label='Measurement 7')
+    # plt.hist(d8, bins, alpha=0.5, label='Measurement 8')
+    # plt.hist(d9, bins, alpha=0.5, label='Measurement 9')
+    # plt.hist(d10, bins, alpha=0.5, label='Measurement 10')
+    # plt.legend(loc='upper right')
+    # plt.show()
+    
+    # path_ = r'C:\Users\Philipp\Desktop\OVID Results\PLOTS\11052021'
+    # file = f'DispersiveOVDs_rep{rep_num}'
+    # plt.savefig(os.path.join(path_, file + '.png'), dpi=600)
+    # plt.savefig(os.path.join(path_, file + '.pdf'), dpi=600)
+    # plt.savefig(os.path.join(path_, file + '.svg'), dpi=600)
+    
+    
+    # return matrix
+    # var = main()
+    # var = var.reshape((10, var.shape[-1] * var.shape[-2] * var.shape[-3]))
+    # print(var.shape)
+    
+    # print(kruskal(var[:,0], var[:,1], var[:,2]))
     
     
     
@@ -462,3 +428,40 @@ if __name__ == '__main__' :
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# =============================================================================
+#     fig, ax = plt.subplots(figsize=(32, 18))
+#     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
+#                         inner='quartile', cut=0, palette='Blues', fontsize=12, 
+#                         legend=False, split=True, hue=key2)
+# # =============================================================================
+# #     , hue=key2, split=True, cut=0, palette='Blues', 
+# #                         fontsize=12, legend=False)
+# # =============================================================================
+# 
+#     ax.set_xlabel(key3, fontsize=30)
+#     ax.set_ylabel(key1, fontsize=25)
+#     ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
+#     ax.set_yticklabels(ax.get_yticks(), size=20)
+#     ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
+# 
+#     # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
+#     plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
+#     plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
+#     # ax._legend.set_title(key2, size=50) 
+# 
+#     plt.show()
+#     return df
+# =============================================================================

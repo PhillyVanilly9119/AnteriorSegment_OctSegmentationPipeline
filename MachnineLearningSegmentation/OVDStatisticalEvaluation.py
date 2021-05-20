@@ -12,7 +12,7 @@ Created on Tue Sep 22 13:32:10 2020
 
 import os
 import numpy as np
-from scipy.stats import wilcoxon, ranksums#, RanksumsResult   
+from scipy.stats import wilcoxon, ranksums #, RanksumsResult   
 import matplotlib.pyplot as plt
 
 import BackendFunctions as Backend
