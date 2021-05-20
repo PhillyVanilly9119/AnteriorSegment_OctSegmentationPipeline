@@ -22,6 +22,7 @@ import uuid
 import glob 
 import scipy
 import scipy.io
+from scipy.io import loadmat
 import shutil
 import platform
 import numpy as np
@@ -196,7 +197,7 @@ def convert_mask_vals_to_trips(mask) :
 def load_mat_file(file_path, var_name, dtype) :
     try :
         if os.path.isfile(file_path) :
-            mat_data = scipy.io.loadmat(file_path)
+            mat_data = loadmat(file_path)
             mat_data = mat_data[var_name]
             return np.asarray(mat_data, dtype=dtype)
     except FileExistsError :
