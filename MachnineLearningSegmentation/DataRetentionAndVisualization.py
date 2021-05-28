@@ -342,126 +342,43 @@ def main() :
 if __name__ == '__main__' :
     
     path_files_loading = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\Original Data'
-    path_files_saving = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\OVD Type Maps'
-    rep_num = 2
+    path_files_saving = r'C:\Users\Philipp\Desktop\plotvalues200um_one.mat'
+    rep_num = 1
     data = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, rep_num=rep_num, 
                                             is_process_inner_circle=False)
-    # len_vec = []
-    # for set_ in range(data.shape[-1]):
-    #     len_vec.append(data[:,:,set_].flatten())
-    # len_vec = np.asarray(np.swapaxes(len_vec, 1, 0))
-    # print(len_vec.shape)
-    matrix = np.zeros((10,10))
-    print(data.shape)
-    # print(data.shape)
-    for ovd in range(data.shape[0]):
-        for i in range(data.shape[1]):
-            matrix[ovd,i] = calc_value_ratio_for_threshold(data[ovd,i,:,:], 200)[0]
+    
+    d1 = data[0,:].flatten()
+    d2 = data[1,:].flatten()
+    d3 = data[2,:].flatten()
+    d4 = data[3,:].flatten()
+    d5 = data[4,:].flatten()
+    d6 = data[5,:].flatten()
+    d7 = data[6,:].flatten()
+    d8 = data[7,:].flatten()
+    d9 = data[8,:].flatten()
+    d10 = data[9,:].flatten()
+    
+    df = create_pandas_data_frame(data, index_dict, 1)
+    
+    key1 = "Thickness values in [µm]"
+    key2 = "Type of measurement"
+    key3 = "OVD name"
+    
+    fig, ax = plt.subplots(figsize=(32, 18))
+    ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
+                        inner='quartile', cut=0, fontsize=12, legend=False, 
+                        hue=key2, split=True, palette='Blues')
 
-    
-    # print(kruskal(data[i,:,:,0], data[i,:,:,1],
-    #               data[i,:,:,2], data[i,:,:,3],
-    #               data[i,:,:,4], data[i,:,:,5],
-    #               data[i,:,:,6], data[i,:,:,7],
-    #               data[i,:,:,8], data[i,:,:,9]))
-    
-# =============================================================================
-#     d1 = data[0,:].flatten()
-#     d2 = data[1,:].flatten()
-#     d3 = data[2,:].flatten()
-#     d4 = data[3,:].flatten()
-#     d5 = data[4,:].flatten()
-#     d6 = data[5,:].flatten()
-#     d7 = data[6,:].flatten()
-#     d8 = data[7,:].flatten()
-#     d9 = data[8,:].flatten()
-#     d10 = data[9,:].flatten()
-# =============================================================================
-    
-    # s, p = kruskal(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10)
-    # print(kruskal(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10))
-    
-    # bins = np.linspace(0, 2250, 64)
+    ax.set_xlabel(key3, fontsize=30)
+    ax.set_ylabel(key1, fontsize=25)
+    ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
+    ax.set_yticklabels(ax.get_yticks(), size=20)
+    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
 
-    # fig, ax = plt.subplots(figsize=(32, 18))
-    # ax.set_xlabel('Thickness values in [µm]', fontsize=16)
-    # ax.set_ylabel('Count [n]', fontsize=16)
-    # ax.set_title(f'Thickness values\nKruskal-Wallis-Test results:\nstats={s} and p-value={p}', fontsize=20)
-    # # ax.set_xlabel(ax.get_yticks(), size=20)
-    # # ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-    # plt.hist(d1, bins, alpha=0.5, label='Amvisc Plus')
-    # plt.hist(d2, bins, alpha=0.5, label='DiscoVisc')
-    # plt.hist(d3, bins, alpha=0.5, label='Healon Endocoat')
-    # plt.hist(d4, bins, alpha=0.5, label='Viscoat')
-    # plt.hist(d5, bins, alpha=0.5, label='Z-Hyalcoat')
-    # plt.hist(d6, bins, alpha=0.5, label='Measurement 6')
-    # plt.hist(d7, bins, alpha=0.5, label='Measurement 7')
-    # plt.hist(d8, bins, alpha=0.5, label='Measurement 8')
-    # plt.hist(d9, bins, alpha=0.5, label='Measurement 9')
-    # plt.hist(d10, bins, alpha=0.5, label='Measurement 10')
-    # plt.legend(loc='upper right')
-    # plt.show()
-    
-    # path_ = r'C:\Users\Philipp\Desktop\OVID Results\PLOTS\11052021'
-    # file = f'DispersiveOVDs_rep{rep_num}'
-    # plt.savefig(os.path.join(path_, file + '.png'), dpi=600)
-    # plt.savefig(os.path.join(path_, file + '.pdf'), dpi=600)
-    # plt.savefig(os.path.join(path_, file + '.svg'), dpi=600)
-    
-    
-    # return matrix
-    # var = main()
-    # var = var.reshape((10, var.shape[-1] * var.shape[-2] * var.shape[-3]))
-    # print(var.shape)
-    
-    # print(kruskal(var[:,0], var[:,1], var[:,2]))
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-# =============================================================================
-#     fig, ax = plt.subplots(figsize=(32, 18))
-#     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
-#                         inner='quartile', cut=0, palette='Blues', fontsize=12, 
-#                         legend=False, split=True, hue=key2)
-# # =============================================================================
-# #     , hue=key2, split=True, cut=0, palette='Blues', 
-# #                         fontsize=12, legend=False)
-# # =============================================================================
-# 
-#     ax.set_xlabel(key3, fontsize=30)
-#     ax.set_ylabel(key1, fontsize=25)
-#     ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
-#     ax.set_yticklabels(ax.get_yticks(), size=20)
-#     ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-# 
-#     # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
-#     plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
-#     plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
-#     # ax._legend.set_title(key2, size=50) 
-# 
-#     plt.show()
-#     return df
-# =============================================================================
+    # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
+    plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
+    plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
+    # ax._legend.set_title(key2, size=50) 
+
+    plt.show()
+ 
