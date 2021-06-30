@@ -16,6 +16,7 @@ Created on Tue Sep 22 13:32:10 2020
 
 # Global imports 
 import os
+import cv2
 import tqdm
 import math
 import random
@@ -155,10 +156,6 @@ def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, index, meas_rep_nu
         c_full_file_path = os.path.join(main_path, file)
         c_ovd_name = get_ovd_name(c_full_file_path)
         c_rep = get_repetition_number(c_full_file_path)
-        # print(file.endswith('.mat'))
-        # print(os.path.isfile(c_full_file_path))
-        # print(c_ovd_name.lower(), ovd_name.lower())
-        # print(c_rep, meas_rep_num)
         if file.endswith('.mat') and os.path.isfile(c_full_file_path) and \
             c_ovd_name.lower()==ovd_name.lower() and c_rep==meas_rep_num:
             index = index_dict[c_ovd_name.lower()]
@@ -249,11 +246,13 @@ def load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_
         data_stack = stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, index, rep_num, 
                                                           mat_var_name='ORIGINAL_THICKNESS_MAP',
                                                           is_manual_path_selection=False)
-        print(data_stack.shape)
         # grab only values from inner 3mm diameter 
         if is_process_inner_circle :
-            print()
-            data_inner_dia = grab_inner_circle_vals_only(data_stack) # asserting [x, y, n] cube (n = number of measurement repetitions)
+            new_stack = []
+            for img in range(data_stack.shape[0]):
+                new_stack.append(cv2.resize(data_stack[img,:,:], (512,512)))
+            new_stack = np.asarray(new_stack)
+            data_inner_dia = grab_inner_circle_vals_only(new_stack) # asserting [x, y, n] cube (n = number of measurement repetitions)
             data_stack = data_inner_dia
             
             if is_save_files :
@@ -343,42 +342,60 @@ if __name__ == '__main__' :
     
     path_files_loading = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\Original Data'
     path_files_saving = r'C:\Users\Philipp\Desktop\plotvalues200um_one.mat'
-    rep_num = 1
-    data = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, rep_num=rep_num, 
-                                            is_process_inner_circle=False)
+# =============================================================================
+#     rep_num = 2
+# =============================================================================
+    data = []    
+    for name, index in index_dict.items():
+        for i in range(1,3):
+            # data 
+            data.append(stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, index, i,
+                                                 mat_var_name='ORIGINAL_THICKNESS_MAP',
+                                                 is_manual_path_selection=(False)))
+            # create pandas data frame
+            
+    data = np.asarray(data)
+# =============================================================================
+#     data1 = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, 
+#                                             rep_num=1, is_process_inner_circle=True)
+#     data2 = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, 
+#                                             rep_num=2, is_process_inner_circle=True)
+# =============================================================================
     
-    d1 = data[0,:].flatten()
-    d2 = data[1,:].flatten()
-    d3 = data[2,:].flatten()
-    d4 = data[3,:].flatten()
-    d5 = data[4,:].flatten()
-    d6 = data[5,:].flatten()
-    d7 = data[6,:].flatten()
-    d8 = data[7,:].flatten()
-    d9 = data[8,:].flatten()
-    d10 = data[9,:].flatten()
-    
-    df = create_pandas_data_frame(data, index_dict, 1)
-    
-    key1 = "Thickness values in [µm]"
-    key2 = "Type of measurement"
-    key3 = "OVD name"
-    
-    fig, ax = plt.subplots(figsize=(32, 18))
-    ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
-                        inner='quartile', cut=0, fontsize=12, legend=False, 
-                        hue=key2, split=True, palette='Blues')
-
-    ax.set_xlabel(key3, fontsize=30)
-    ax.set_ylabel(key1, fontsize=25)
-    ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
-    ax.set_yticklabels(ax.get_yticks(), size=20)
-    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-
-    # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
-    plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
-    plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
-    # ax._legend.set_title(key2, size=50) 
-
-    plt.show()
+# =============================================================================
+#     d1 = data[0,:].flatten()
+#     d2 = data[1,:].flatten()
+#     d3 = data[2,:].flatten()
+#     d4 = data[3,:].flatten()
+#     d5 = data[4,:].flatten()
+#     d6 = data[5,:].flatten()
+#     d7 = data[6,:].flatten()
+#     d8 = data[7,:].flatten()
+#     d9 = data[8,:].flatten()
+#     d10 = data[9,:].flatten()
+#     
+#     df = create_pandas_data_frame(data, index_dict, 1)
+#     
+#     key1 = "Thickness values in [µm]"
+#     key2 = "Type of measurement"
+#     key3 = "OVD name"
+#     
+#     fig, ax = plt.subplots(figsize=(32, 18))
+#     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
+#                         inner='quartile', cut=0, fontsize=12, legend=False, 
+#                         hue=key2, split=True, palette='Blues')
+# 
+#     ax.set_xlabel(key3, fontsize=30)
+#     ax.set_ylabel(key1, fontsize=25)
+#     ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
+#     ax.set_yticklabels(ax.get_yticks(), size=20)
+#     ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
+# 
+#     # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
+#     plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
+#     plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
+#     # ax._legend.set_title(key2, size=50) 
+# 
+#     plt.show()
+# =============================================================================
  
