@@ -355,7 +355,7 @@ def create_data_stack_and_pdFrame() :
     key3 = "OVD name"
     ovd = list(index_dict.keys())
     frame_list = []
-    for i in range(4) : # interate through OVDs
+    for i in range(data.shape[0]) : # interate through OVDs
         if i % 2 == 0 :
             rep_key = "after I/A"
         else :
@@ -367,6 +367,7 @@ def create_data_stack_and_pdFrame() :
 
 
 def main() : 
+    
     data, df =  create_data_stack_and_pdFrame()
     key1 = "Thickness values in [µm]"
     key2 = "Type of measurement"
@@ -390,7 +391,9 @@ def main() :
 
     plt.show()
     
-
+    data.to_csv(r"C:\Users\Philipp\Desktop\OVID Results\DATA\allThicknessValues.csv")
+    
+    
 
 if __name__ == '__main__' :
     main()
