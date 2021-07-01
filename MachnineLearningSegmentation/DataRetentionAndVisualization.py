@@ -140,7 +140,8 @@ def stack_all_heat_maps_same_ovd(main_path, ovd_name, mat_var_name='INTERPOL_THI
 
 def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, index, meas_rep_num, 
                                          mat_var_name='INTERPOL_THICKNESS_MAP', 
-                                         is_manual_path_selection=True) :
+                                         is_manual_path_selection=True,
+                                         is_resize_to_square_map=True) :
     """
     >>> returns 3D data tensor, containing the stacked thickness maps of the same OVDs from the same measurement repetition
     """
@@ -161,6 +162,8 @@ def stack_all_heat_maps_same_ovd_and_rep(main_path, ovd_name, index, meas_rep_nu
             index = index_dict[c_ovd_name.lower()]
             data_stack_um = convert_ovd_map_to_um( load_heat_map_from_current_sub_dir(c_full_file_path, mat_var_name), 
                                                   index)  
+            if is_resize_to_square_map :
+                data_stack_um = cv2.resize(data_stack_um, (512,512))
             stacked_map_array.append(data_stack_um)  
     return np.asarray(stacked_map_array)
 
@@ -268,7 +271,7 @@ def return_n_random_choices(data, samples) :
 
 
 def create_pandas_data_frame(data, index_dict: dict, num_rep: int) :
-    
+    """ Returns input data (numpy-array) as a pandas data frame """
     assert data.ndim == 3
     # assert that data stack contains as much different OVDs as the name dict contains entries
     assert data.shape[-1] == len(index_dict) 
@@ -284,8 +287,8 @@ def create_pandas_data_frame(data, index_dict: dict, num_rep: int) :
         ValueError("num_rep argument invalid... Please check if 3rd parameter is either 1 or 2")
     
     frame_list = []
-    for ovd in range(data.shape[-1]) : 
-        df = pd.DataFrame( {key1:data[:,:,ovd].flatten(), key2:rep_key, key3:index_dict[ovd]} )
+    for i, ovd in enumerate(index_dict.items()) : 
+        df = pd.DataFrame( {key1:data[:,:,i].flatten(), key2:rep_key, key3:index_dict[ovd[0]]} )
         frame_list.append(df)
 
     return pd.concat(frame_list, ignore_index=True)
@@ -334,68 +337,62 @@ def dummy_thickness_map_creation() :
         plt.clf()
 
 
-def main() : 
-    pass
-
-# Start processing
-if __name__ == '__main__' :
-    
+def create_data_stack_and_pdFrame() :
     path_files_loading = r'C:\Users\Philipp\Desktop\OVID Results\DATA\OriginalSampling\Original Data'
     path_files_saving = r'C:\Users\Philipp\Desktop\plotvalues200um_one.mat'
-# =============================================================================
-#     rep_num = 2
-# =============================================================================
+
     data = []    
     for name, index in index_dict.items():
-        for i in range(1,3):
-            # data 
+        for i in range(1,3): # measurement repetiton number
+            # data = first half of all valuesare 1st rep, se
             data.append(stack_all_heat_maps_same_ovd_and_rep(path_files_loading, name, index, i,
                                                  mat_var_name='ORIGINAL_THICKNESS_MAP',
-                                                 is_manual_path_selection=(False)))
-            # create pandas data frame
-            
+                                                 is_manual_path_selection=(False)).flatten())        
     data = np.asarray(data)
-# =============================================================================
-#     data1 = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, 
-#                                             rep_num=1, is_process_inner_circle=True)
-#     data2 = load_all_ovd_data_after_meas_rep(index_dict, path_files_loading, path_files_saving, 
-#                                             rep_num=2, is_process_inner_circle=True)
-# =============================================================================
     
-# =============================================================================
-#     d1 = data[0,:].flatten()
-#     d2 = data[1,:].flatten()
-#     d3 = data[2,:].flatten()
-#     d4 = data[3,:].flatten()
-#     d5 = data[4,:].flatten()
-#     d6 = data[5,:].flatten()
-#     d7 = data[6,:].flatten()
-#     d8 = data[7,:].flatten()
-#     d9 = data[8,:].flatten()
-#     d10 = data[9,:].flatten()
-#     
-#     df = create_pandas_data_frame(data, index_dict, 1)
-#     
-#     key1 = "Thickness values in [µm]"
-#     key2 = "Type of measurement"
-#     key3 = "OVD name"
-#     
-#     fig, ax = plt.subplots(figsize=(32, 18))
-#     ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
-#                         inner='quartile', cut=0, fontsize=12, legend=False, 
-#                         hue=key2, split=True, palette='Blues')
-# 
-#     ax.set_xlabel(key3, fontsize=30)
-#     ax.set_ylabel(key1, fontsize=25)
-#     ax.set_title('Thickness values distribution split after OVDs', fontsize=36)
-#     ax.set_yticklabels(ax.get_yticks(), size=20)
-#     ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
-# 
-#     # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
-#     plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
-#     plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
-#     # ax._legend.set_title(key2, size=50) 
-# 
-#     plt.show()
-# =============================================================================
+    key1 = "Thickness values in [µm]"
+    key2 = "Type of measurement"
+    key3 = "OVD name"
+    ovd = list(index_dict.keys())
+    frame_list = []
+    for i in range(4) : # interate through OVDs
+        if i % 2 == 0 :
+            rep_key = "after I/A"
+        else :
+            rep_key = "after I/A & Phaco"
+        df = pd.DataFrame( {key1:data[i,:].flatten(), key2:rep_key, key3:ovd[i//2]} )
+        frame_list.append(df)
+
+    return data, pd.concat(frame_list, ignore_index=True)
+
+
+def main() : 
+    data, df =  create_data_stack_and_pdFrame()
+    key1 = "Thickness values in [µm]"
+    key2 = "Type of measurement"
+    key3 = "OVD name"
+    
+    fig, ax = plt.subplots(figsize=(32, 18))
+    ax = sns.violinplot(ax=ax, data = df, x = key3, y = key1, linewidth=2.5, 
+                        inner='quartile', cut=0, fontsize=12, legend=False, 
+                        hue=key2, split=True, palette='Blues')
+
+    ax.set_xlabel(key3, fontsize=30)
+    ax.set_ylabel(key1, fontsize=25)
+    ax.set_title('Thickness value distribution per OVD', fontsize=36)
+    ax.set_yticklabels(ax.get_yticks(), size=20)
+    ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 20)
+
+    # plt.legend(title=key2, size=24, loc=1, bbox_to_anchor=(0.6,1))
+    plt.setp(ax.get_legend().get_texts(), fontsize=20) # for legend text
+    plt.setp(ax.get_legend().get_title(), fontsize=24) # for legend title
+    # ax._legend.set_title(key2, size=50) 
+
+    plt.show()
+    
+
+
+if __name__ == '__main__' :
+    main()
+    
  
