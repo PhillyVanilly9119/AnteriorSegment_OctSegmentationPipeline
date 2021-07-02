@@ -391,7 +391,7 @@ def main() :
 
     plt.show()
     
-    data.to_csv(r"C:\Users\Philipp\Desktop\OVID Results\DATA\allThicknessValues.csv")
+    df.to_csv(r"C:\Users\Philipp\Desktop\OVID Results\DATA\allThicknessValues.csv")
     
     
 
